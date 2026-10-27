@@ -129,7 +129,7 @@
 />
 <main
 	id="app-main"
-	class="rail-content podcast-page ml-18 min-h-[calc(100dvh-47px)] max-[600px]:ml-0 max-[600px]:pb-[calc(86px+env(safe-area-inset-bottom))]"
+	class="rail-content podcast-page ml-18 min-h-[calc(100dvh-47px)] max-sm:ml-0 max-sm:pb-[calc(86px+env(safe-area-inset-bottom))]"
 >
 	<div class="podcast-content">
 		<header class="podcast-header">
@@ -708,7 +708,7 @@
 			gap: 3px;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (width < 40rem) {
 		.podcast-content {
 			padding: 25px 18px 155px;
 		}

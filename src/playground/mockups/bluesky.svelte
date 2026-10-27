@@ -253,7 +253,7 @@
 	accountLabel="Profile"
 />
 <div
-	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-[600px]:ml-0 max-[600px]:pb-[calc(86px+env(safe-area-inset-bottom))]"
+	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-sm:ml-0 max-sm:pb-[calc(86px+env(safe-area-inset-bottom))]"
 >
 	<div class="sky-layout">
 		<Surface as="main" id="app-main" class="sky-timeline relative  p-0">
@@ -1253,7 +1253,7 @@
 			display: none;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (width < 40rem) {
 		.sky-layout {
 			display: block;
 			padding: 0;

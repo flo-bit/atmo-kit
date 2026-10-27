@@ -270,14 +270,12 @@
 		</div>
 	</div></Sidebar
 >
-<div
-	class="workspace-content notes-workspace ml-[266px] min-h-[calc(100dvh-47px)] max-[900px]:ml-0"
->
+<div class="workspace-content notes-workspace ml-[266px] min-h-[calc(100dvh-47px)] max-md:ml-0">
 	<header class="notes-toolbar">
 		<IconButton
 			label="Open workspace navigation"
 			size="sm"
-			class="icon-button mobile-workspace-menu min-[901px]:hidden"
+			class="icon-button mobile-workspace-menu md:hidden"
 			aria-label="Open workspace navigation"
 			onclick={() => sidebar.open()}><Icon name="PanelLeft" size={20} /></IconButton
 		>
@@ -732,7 +730,7 @@
 			padding-inline: 40px;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (width < 40rem) {
 		.notes-toolbar {
 			min-height: 65px;
 			gap: 9px;

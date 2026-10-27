@@ -36,8 +36,6 @@
 	--color-control-hover: var(--ui-control-hover);
 	--color-field: var(--ui-field);
 	--color-action: var(--ui-action);
-	--color-on-action: var(--ui-on-action);
-	--color-action-hover: var(--ui-action-hover);
 	--color-accent-soft: var(--ui-accent-soft);
 	--color-focus: var(--ui-focus);
 	--font-sans: var(--atmo-font-sans);
@@ -138,8 +136,6 @@
 		--ui-control-line: light-dark(var(--base-300), var(--base-800));
 		--ui-control-hover: light-dark(var(--base-400), var(--base-700));
 		--ui-action: light-dark(var(--accent-700), var(--accent-300));
-		--ui-on-action: light-dark(var(--accent-50), var(--accent-950));
-		--ui-action-hover: light-dark(var(--accent-800), var(--accent-200));
 		--ui-accent-soft: light-dark(
 			var(--accent-50),
 			color-mix(in srgb, var(--accent-950) 65%, var(--base-950))

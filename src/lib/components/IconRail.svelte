@@ -38,7 +38,7 @@
 		footer?: Snippet<[{ expanded: boolean; close: () => void }]>;
 		ref?: HTMLElement | null;
 	} = $props();
-	const small = new MediaQuery('(max-width: 600px)', false);
+	const small = new MediaQuery('(width < 40rem)', false);
 	const close = () => (open = false);
 	let drawerWasOpen = false;
 	$effect(() => {
@@ -112,13 +112,13 @@
 			data-slot="icon-rail"
 			data-backed={backed}
 			class={cn(
-				'fixed top-[var(--atmo-nav-top,0px)] bottom-0 left-0 z-40 flex w-18 flex-col items-center bg-transparent pt-6 pb-5 [@media(max-width:600px)]:top-auto [@media(max-width:600px)]:right-0 [@media(max-width:600px)]:h-[calc(62px+env(safe-area-inset-bottom))] [@media(max-width:600px)]:w-full [@media(max-width:600px)]:flex-row [@media(max-width:600px)]:justify-around [@media(max-width:600px)]:bg-page [@media(max-width:600px)]:px-2 [@media(max-width:600px)]:pt-1.5 [@media(max-width:600px)]:pb-[calc(6px+env(safe-area-inset-bottom))]',
-				mobile === 'drawer' && '[@media(max-width:600px)]:hidden',
+				'fixed top-[var(--atmo-nav-top,0px)] bottom-0 left-0 z-40 flex w-18 flex-col items-center bg-transparent pt-6 pb-5 max-sm:top-auto max-sm:right-0 max-sm:h-[calc(62px+env(safe-area-inset-bottom))] max-sm:w-full max-sm:flex-row max-sm:justify-around max-sm:bg-page max-sm:px-2 max-sm:pt-1.5 max-sm:pb-[calc(6px+env(safe-area-inset-bottom))]',
+				mobile === 'drawer' && 'max-sm:hidden',
 				className
 			)}
 		>
 			<div
-				class="flex flex-col items-center gap-3 [@media(max-width:600px)]:min-w-0 [@media(max-width:600px)]:flex-1 [@media(max-width:600px)]:flex-row [@media(max-width:600px)]:justify-around [@media(max-width:600px)]:gap-0"
+				class="flex flex-col items-center gap-3 max-sm:min-w-0 max-sm:flex-1 max-sm:flex-row max-sm:justify-around max-sm:gap-0"
 			>
 				{#each items as item (item.label)}
 					<Tooltip.Root disabled={item.disabled ?? false}
@@ -134,9 +134,8 @@
 									aria-current={item.active ? 'page' : undefined}
 									data-part="item"
 									class={cn(
-										'relative size-11 rounded-(--atmo-radius-button) text-muted hover:bg-recess/55 aria-[current=page]:text-action [@media(max-width:600px)]:size-10',
-										item.primary &&
-											'mt-2 text-action hover:text-action [@media(max-width:600px)]:mt-0',
+										'relative size-11 rounded-(--atmo-radius-button) text-muted hover:bg-recess/55 aria-[current=page]:text-action max-sm:size-10',
+										item.primary && 'mt-2 text-action hover:text-action max-sm:mt-0',
 										backed && 'bg-recess/45 hover:bg-recess/75'
 									)}
 								>
@@ -157,9 +156,7 @@
 					>
 				{/each}
 			</div>
-			{#if footer}<div
-					class="mt-auto [@media(max-width:600px)]:mt-0 [@media(max-width:600px)]:ml-1"
-				>
+			{#if footer}<div class="mt-auto max-sm:mt-0 max-sm:ml-1">
 					{@render footer({ expanded: false, close })}
 				</div>{/if}
 		</nav>

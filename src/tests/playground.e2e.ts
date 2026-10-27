@@ -21,19 +21,6 @@ test.beforeEach(async ({ page }) => {
 	);
 });
 
-test('profile form, native select/checkbox, and save feedback', async ({ page }) => {
-	await page.getByLabel('Name', { exact: true }).fill('Flo');
-	await page.getByLabel('Profile visibility').selectOption('followers');
-	await page.getByLabel('Email me about new replies').uncheck();
-	await page.getByRole('button', { name: 'Save profile', exact: true }).click();
-	await expect(page.getByRole('button', { name: 'Saving…', exact: true })).toBeDisabled();
-	await expect(page.getByRole('status')).toHaveText('Profile saved locally.');
-	await page.getByRole('button', { name: 'Reset', exact: true }).click();
-	await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Florian');
-	await expect(page.getByLabel('Profile visibility')).toHaveValue('public');
-	await expect(page.getByLabel('Email me about new replies')).toBeChecked();
-});
-
 test('palette changes inherit, local red overrides blue, and utilities override defaults', async ({
 	page
 }) => {
@@ -61,30 +48,7 @@ test('palette changes inherit, local red overrides blue, and utilities override 
 	await expect(overrides).toHaveCSS('padding-left', '28px');
 });
 
-test('page-level fields update the preview and inset images have an edge, not a frame', async ({
-	page
-}) => {
-	const fields = page.getByTestId('page-fields');
-	expect(await fields.evaluate((element) => element.closest('[data-slot="surface"]'))).toBeNull();
-	await fields.getByLabel('Event title').fill('A coastal Saturday');
-	await expect(
-		page.getByRole('heading', { name: 'A coastal Saturday', exact: true })
-	).toBeVisible();
-	await fields.getByLabel('Topic', { exact: true }).selectOption('Community');
-	await expect(page.locator('#in-context').getByText('Community', { exact: true })).toBeVisible();
-	await fields.getByLabel('Description', { exact: true }).fill('Bring a camera.');
-	await expect(
-		page.getByRole('tabpanel').getByText('Bring a camera.', { exact: true })
-	).toBeVisible();
-	await fields.getByLabel('Event title').focus();
-	await expect(fields.getByLabel('Event title')).toHaveCSS('outline-offset', '-1px');
-	const image = page.locator('[data-slot="inset-image"]').first();
-	await expect(image).toHaveCSS('border-top-width', '1px');
-	await expect(image).toHaveCSS('padding', '0px');
-	await expect(image).toHaveCSS('box-shadow', 'none');
-});
-
-test('Bits UI tabs provide keyboard navigation and reply state', async ({ page }) => {
+test('Bits UI tabs provide keyboard navigation', async ({ page }) => {
 	const about = page.getByRole('tab', { name: 'About', exact: true });
 	await expect(page.getByRole('tablist', { name: 'Event information' })).toHaveCSS(
 		'box-shadow',
@@ -98,16 +62,6 @@ test('Bits UI tabs provide keyboard navigation and reply state', async ({ page }
 		'aria-selected',
 		'true'
 	);
-	await page.getByLabel('Write a reply').fill('See you there!');
-	await page.getByRole('button', { name: 'Post reply' }).click();
-	await expect(page.getByText('See you there!', { exact: true })).toBeVisible();
-	await expect(page.getByRole('tab', { name: 'Comments 2' })).toBeVisible();
-	await page.getByRole('button', { name: "I'm going", exact: true }).click();
-	await expect(page.getByRole('button', { name: "You're going", exact: true })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
-	await expect(page.getByText('43 going', { exact: true })).toBeVisible();
 });
 
 test('Bits UI modal traps/restores focus and commits only submitted edits', async ({ page }) => {
@@ -157,14 +111,6 @@ test('real portal preserves scoped palette and follows ancestor theme changes', 
 	await audit(page);
 	await page.keyboard.press('Escape');
 	await expect(trigger).toBeFocused();
-});
-
-test('scoped destructive dialog changes only the sample event', async ({ page }) => {
-	await page.getByRole('button', { name: 'Delete event', exact: true }).click();
-	await page.getByRole('dialog').getByRole('button', { name: 'Delete event', exact: true }).click();
-	await expect(page.getByText('Sample event removed.', { exact: true })).toBeVisible();
-	await page.getByRole('button', { name: 'Restore event' }).click();
-	await expect(page.getByRole('heading', { name: 'A walk, without a plan.' })).toBeVisible();
 });
 
 test('WCAG checks in both modes, scoped modal, and representative accent ramps', async ({

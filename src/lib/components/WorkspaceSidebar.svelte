@@ -22,7 +22,7 @@
 		Object.fromEntries(Object.entries(rest).filter(([, value]) => value !== null))
 	);
 	let desktop = $state<HTMLElement | null>(null);
-	const mobile = new MediaQuery('(max-width: 900px)', false);
+	const mobile = new MediaQuery('(width < 48rem)', false);
 	let drawerWasOpen = false;
 	$effect(() => {
 		const leavingDrawer = !mobile.current && drawerWasOpen;
@@ -50,7 +50,7 @@
 		aria-label={label}
 		data-slot="workspace-sidebar"
 		class={cn(
-			'fixed top-[calc(var(--atmo-nav-top,0px)+12px)] bottom-3 left-3 z-40 w-[var(--atmo-sidebar-width,238px)] overflow-hidden rounded-[21px_18px_23px_19px] p-0 [@media(max-width:900px)]:hidden',
+			'fixed top-[calc(var(--atmo-nav-top,0px)+12px)] bottom-3 left-3 z-40 w-[var(--atmo-sidebar-width,238px)] overflow-hidden rounded-[21px_18px_23px_19px] p-0 max-md:hidden',
 			className
 		)}
 	>

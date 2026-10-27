@@ -176,7 +176,7 @@
 	accountLabel="Your events"
 />
 <div
-	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-[600px]:ml-0 max-[600px]:pb-[calc(86px+env(safe-area-inset-bottom))]"
+	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-sm:ml-0 max-sm:pb-[calc(86px+env(safe-area-inset-bottom))]"
 >
 	<header
 		class="app-header rsvp-header mx-auto flex min-h-22 max-w-[1200px] items-center gap-9 border-b border-line px-7 py-4.5 max-[800px]:gap-5.5 max-[800px]:px-5.5 max-[520px]:min-h-[75px] max-[520px]:gap-4 max-[520px]:p-4"

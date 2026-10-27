@@ -34,7 +34,7 @@
 	{#snippet footer()}{#if account}<IconButton
 				label={accountLabel}
 				data-part="item"
-				class="size-11 [@media(max-width:600px)]:size-10"
+				class="size-11 max-sm:size-10"
 				onclick={account}><Icon img={UserRound} size={22} /></IconButton
 			>{/if}{/snippet}
 </IconRail>

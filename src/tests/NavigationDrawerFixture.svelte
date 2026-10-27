@@ -12,7 +12,7 @@
 		aria-expanded={open}
 		aria-controls="fixture-navigation"
 		onclick={() => (open = true)}
-		class="min-[601px]:hidden"><Icon img={Menu} /></IconButton
+		class="sm:hidden"><Icon img={Menu} /></IconButton
 	>
 	<IconRail
 		id="fixture-navigation"

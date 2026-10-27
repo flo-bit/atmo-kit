@@ -122,7 +122,7 @@
 	accountLabel="Edit your Blento profile"
 />
 <div
-	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-[600px]:ml-0 max-[600px]:pb-[calc(86px+env(safe-area-inset-bottom))]"
+	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-sm:ml-0 max-sm:pb-[calc(86px+env(safe-area-inset-bottom))]"
 >
 	<header class="blento-toolbar">
 		<span class="blento-wordmark">blento<span class="accent-text text-action">.</span></span><span
@@ -663,7 +663,7 @@
 			font-size: 16px;
 		}
 	}
-	@media (max-width: 900px) {
+	@media (width < 48rem) {
 		.blento-main {
 			grid-template-columns: minmax(0, 1fr);
 			max-width: 740px;
@@ -694,7 +694,7 @@
 			display: none;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (width < 40rem) {
 		.blento-toolbar {
 			padding: 19px 18px;
 			gap: 12px;

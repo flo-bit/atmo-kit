@@ -101,7 +101,7 @@
 >
 	<a
 		href="#main"
-		class="fixed top-3 left-4 z-80 -translate-y-24 rounded-ui bg-action px-4 py-2 text-on-action focus:translate-y-0"
+		class="fixed top-3 left-4 z-80 -translate-y-24 rounded-ui bg-accent-400 px-4 py-2 text-base-950 focus:translate-y-0"
 		>Skip to content</a
 	>
 	<header class="border-b border-line">

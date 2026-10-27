@@ -128,7 +128,7 @@
 
 <main
 	id="app-main"
-	class="rail-content watch-page ml-18 min-h-[calc(100dvh-47px)] max-[600px]:ml-0 max-[600px]:pb-[calc(86px+env(safe-area-inset-bottom))]"
+	class="rail-content watch-page ml-18 min-h-[calc(100dvh-47px)] max-sm:ml-0 max-sm:pb-[calc(86px+env(safe-area-inset-bottom))]"
 >
 	{#if (view === 'discover' && !query.trim()) || view === 'detail'}
 		<section
@@ -847,7 +847,7 @@
 			grid-template-columns: 1fr;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (width < 40rem) {
 		.watch-cinema {
 			height: 57svh;
 			min-height: 400px;

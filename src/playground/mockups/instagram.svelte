@@ -153,7 +153,7 @@
 	accountLabel="Your photo profile"
 />
 <div
-	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-[600px]:ml-0 max-[600px]:pb-[calc(86px+env(safe-area-inset-bottom))]"
+	class="rail-content ml-18 min-h-[calc(100dvh-47px)] max-sm:ml-0 max-sm:pb-[calc(86px+env(safe-area-inset-bottom))]"
 >
 	<div class="photo-layout">
 		<main id="app-main" class="photo-main">
@@ -703,7 +703,7 @@
 			display: none;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (width < 40rem) {
 		.photo-layout {
 			padding: 22px 17px 35px;
 		}

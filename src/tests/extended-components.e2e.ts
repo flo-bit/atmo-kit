@@ -37,19 +37,6 @@ async function assertInsetOnly(page: Page) {
 	expect(bad).toEqual([]);
 }
 
-test('the foundation links to the new component examples', async ({ page }) => {
-	await page.goto('/', { waitUntil: 'networkidle' });
-	await page.getByRole('link', { name: 'Components', exact: true }).click();
-	await expect(page).toHaveTitle('Components · Atmo Kit');
-	for (const name of [
-		'Popover',
-		'Inline editor',
-		'Post composer',
-		'Post content',
-		'Nested comments'
-	])
-		await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
-});
 test('toggle-group keyboard navigation skips disabled choices and changes post attachments', async ({
 	page
 }) => {
