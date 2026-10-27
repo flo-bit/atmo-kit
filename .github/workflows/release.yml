@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  release:
+    name: Version or publish
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create release PR or publish missing versions
+        # v1 is maintained for Changesets CLI v2 and runs on Node 24.
+        uses: changesets/action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          commitMode: github-api
+          version: pnpm version-packages
+          publish: pnpm release
+        env:
+          # npm provenance requires public source; enable it automatically if the repo becomes public.
+          NPM_CONFIG_PROVENANCE: ${{ github.event.repository.private == false }}

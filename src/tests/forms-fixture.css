@@ -1,0 +1,4 @@
+@import '../routes/layout.css';
+
+/* Reproduce consumers that use the Forms plugin alongside the kit. */
+@plugin '@tailwindcss/forms';
