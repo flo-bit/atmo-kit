@@ -36,7 +36,7 @@
 	);
 	const dialogDescription = $derived(
 		step === 'permissions'
-			? 'Choose what this app can access. Required permissions stay on.'
+			? 'Choose what this app can access.'
 			: step === 'signup'
 				? 'You can use a Bluesky, Blacksky, or other Atmosphere account here. Otherwise, continue to create one.'
 				: description
@@ -52,9 +52,9 @@
 			document.getElementById(uid)?.querySelector<HTMLElement>('h2')?.focus();
 		}
 	}
-	function completed(handle: string, actor?: ActorSummary) {
+	function completed(identifier: string, actor?: ActorSummary) {
 		if (closeOnSuccess) open = false;
-		onSuccess?.(handle, actor);
+		onSuccess?.(identifier, actor);
 	}
 </script>
 

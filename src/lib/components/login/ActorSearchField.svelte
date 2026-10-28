@@ -16,7 +16,7 @@
 		searchActors,
 		onSelect,
 		label = 'Your handle',
-		placeholder = 'yourname.bsky.social',
+		placeholder = 'Handle',
 		id,
 		name = 'handle',
 		disabled = false,
@@ -51,9 +51,9 @@
 	let dismissedQuery = '';
 	const message = $derived(
 		status === 'error'
-			? 'Search unavailable. Enter your full handle to continue.'
+			? 'Search unavailable. Enter your full handle or DID to continue.'
 			: status === 'ready' && !results.length
-				? 'No suggestions. You can still enter a full handle.'
+				? 'No suggestions. You can still enter a full handle or DID.'
 				: ''
 	);
 	const announcement = $derived(
@@ -67,7 +67,8 @@
 	$effect(() => {
 		const query = value.trim().replace(/^@+/, '');
 		const provider = searchActors;
-		if (disabled || !provider || query.length < 2) {
+		// DIDs go directly to the app's login adapter, never to handle typeahead.
+		if (disabled || !provider || query.length < 2 || /^did:/i.test(query)) {
 			results = [];
 			status = 'idle';
 			open = false;

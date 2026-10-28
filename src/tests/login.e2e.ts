@@ -13,18 +13,44 @@ test('manual handles, validation, and permission choices reach only the app call
 	await page.goto('/login', { waitUntil: 'networkidle' });
 	const form = inline(page);
 	await form.getByRole('button', { name: 'Log in', exact: true }).click();
-	await expect(form.getByRole('alert')).toHaveText('Enter your handle.');
+	await expect(form.getByRole('alert')).toHaveText('Enter your handle or DID.');
 	await form.getByRole('combobox', { name: 'Your handle' }).fill(' @ALICE.EXAMPLE.COM ');
 	await form.getByRole('button', { name: 'Log in', exact: true }).click();
 	await expect(form.getByRole('heading', { name: 'Requested permissions' })).toBeFocused();
 	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toBeChecked();
-	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toBeDisabled();
+	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toHaveAttribute('aria-disabled', 'true');
+	await form.getByRole('checkbox', { name: 'Your account (required)' }).click({ force: true });
+	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toBeChecked();
 	await form.getByRole('checkbox', { name: 'Publish posts' }).uncheck();
 	await form.getByRole('checkbox', { name: 'Like posts' }).check();
 	await form.getByRole('button', { name: 'Continue to log in' }).click();
 	await expect(page.getByTestId('callback-status')).toHaveText(
 		'Login callback received @alice.example.com · identity, likes. No account connected.'
 	);
+});
+test('manual DIDs retain case through validation, permission review, and the app callback', async ({
+	page
+}) => {
+	for (const did of [
+		'did:plc:abcdefghijklmnopqrstuvwx',
+		'did:web:example.com%3A8443:Users:Alice'
+	]) {
+		await page.goto('/login', { waitUntil: 'networkidle' });
+		const form = inline(page);
+		const input = form.getByRole('combobox', { name: 'Your handle', exact: true });
+		await input.fill('did:web:');
+		await input.press('Enter');
+		await expect(form.getByRole('alert')).toHaveText('Enter a valid handle or DID.');
+		await input.fill(` ${did} `);
+		await input.press('Enter');
+		await expect(form.getByRole('heading', { name: 'Requested permissions' })).toBeFocused();
+		await expect(form).toContainText(`Logging in as ${did}`);
+		await expect(form).not.toContainText(`@${did}`);
+		await form.getByRole('button', { name: 'Continue to log in' }).click();
+		await expect(page.getByTestId('callback-status')).toHaveText(
+			`Login callback received ${did} · identity, posts. No account connected.`
+		);
+	}
 });
 test('keyboard actor search, selected-account clearing, and search failure fallback', async ({
 	page
@@ -44,11 +70,11 @@ test('keyboard actor search, selected-account clearing, and search failure fallb
 	await expect(input).toBeFocused();
 	await input.fill('offline.example.com');
 	await expect(form.locator('[data-slot="actor-search"] > p')).toHaveText(
-		'Search unavailable. Enter your full handle to continue.'
+		'Search unavailable. Enter your full handle or DID to continue.'
 	);
 	await input.press('Enter');
 	await expect(form.getByRole('heading', { name: 'Requested permissions' })).toBeVisible();
-	await expect(form).toContainText('Logging in as @offline.example.com');
+	await expect(form).toContainText('Logging in as offline.example.com');
 });
 test('dialog and nested search portals preserve theme, Escape order, focus, and reset', async ({
 	page

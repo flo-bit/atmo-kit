@@ -22,5 +22,12 @@ export function observeTheme(element: HTMLElement, update: () => void): () => vo
 		});
 		parent = parent.parentElement;
 	}
-	return () => observer.disconnect();
+	// readTheme snapshots computed semantic colors for portals. Those colors
+	// change with the system scheme even when no ancestor attribute changes.
+	const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+	scheme.addEventListener('change', update);
+	return () => {
+		observer.disconnect();
+		scheme.removeEventListener('change', update);
+	};
 }

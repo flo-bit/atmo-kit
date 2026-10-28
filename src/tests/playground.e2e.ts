@@ -21,6 +21,32 @@ test.beforeEach(async ({ page }) => {
 	);
 });
 
+test('the shared font includes a real italic face when synthetic styles are disabled', async ({
+	page
+}) => {
+	await page.evaluate(() => {
+		const text = document.createElement('em');
+		text.dataset.testid = 'italic-font-probe';
+		text.className = 'font-sans';
+		text.style.fontSynthesis = 'none';
+		text.style.fontWeight = '600';
+		text.textContent = 'Real italic text';
+		document.body.append(text);
+	});
+	await expect(page.getByTestId('italic-font-probe')).toHaveCSS('font-style', 'italic');
+	await expect
+		.poll(async () =>
+			page.evaluate(async () => {
+				await document.fonts.ready;
+				return [...document.fonts].some(
+					(face) =>
+						face.family.includes('Figtree') && face.style === 'italic' && face.status === 'loaded'
+				);
+			})
+		)
+		.toBe(true);
+});
+
 test('palette changes inherit, local red overrides blue, and utilities override defaults', async ({
 	page
 }) => {

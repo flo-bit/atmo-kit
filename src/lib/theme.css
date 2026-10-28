@@ -1,4 +1,5 @@
 @import '@fontsource-variable/figtree';
+@import '@fontsource-variable/figtree/wght-italic.css';
 
 /* Resolve relative to this stylesheet in src/lib or the packaged dist directory. */
 @source './';

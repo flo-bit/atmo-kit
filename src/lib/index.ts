@@ -26,6 +26,8 @@ export { default as LoginForm } from './components/login/LoginForm.svelte';
 export type { LoginFormProps } from './components/login/LoginForm.svelte';
 export { default as LoginDialog } from './components/login/LoginDialog.svelte';
 export type { LoginDialogProps } from './components/login/LoginDialog.svelte';
+export { default as SignupPermissions } from './components/login/SignupPermissions.svelte';
+export type { SignupPermissionsProps } from './components/login/SignupPermissions.svelte';
 export { default as ActorSearchField } from './components/login/ActorSearchField.svelte';
 export { default as RecentAccounts } from './components/login/RecentAccounts.svelte';
 export type {
@@ -38,7 +40,12 @@ export type {
 	LoginStep
 } from './components/login/types.js';
 export { createActorSearch } from './components/login/search.js';
-export { normalizeHandle, isValidHandle } from './components/login/handle.js';
+export {
+	normalizeHandle,
+	isValidHandle,
+	normalizeIdentifier,
+	isValidIdentifier
+} from './components/login/handle.js';
 export { resolveLoginOptions, isPermissionSelected } from './components/login/permissions.js';
 export {
 	loadRecentAccounts,

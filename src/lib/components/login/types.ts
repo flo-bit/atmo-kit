@@ -21,8 +21,9 @@ export type LoginPermission = {
 /** Requested scopes, not proof of the permissions ultimately granted by OAuth. */
 export type LoginOptions = { permissionIds: string[]; scopes: string[] };
 export type LoginResult = boolean | void;
+/** Receives a normalized handle or a trimmed, case-preserved DID. Resolution belongs to the app. */
 export type LoginCallback = (
-	handle: string,
+	identifier: string,
 	actor?: ActorSummary,
 	options?: LoginOptions
 ) => LoginResult | Promise<LoginResult>;

@@ -79,10 +79,11 @@
 			`${actor.handle} ${actor.displayName}`.toLowerCase().includes(query.toLowerCase())
 		);
 	};
-	const login: LoginCallback = async (handle, _actor, options) => {
+	const login: LoginCallback = async (identifier, _actor, options) => {
 		await new Promise((resolve) => setTimeout(resolve, 500));
 		if (fail) throw new Error('Could not start login. Please try again.');
-		status = `Login callback received @${handle}${options ? ` · ${options.permissionIds.join(', ')}` : ''}. No account connected.`;
+		const account = identifier.startsWith('did:') ? identifier : `@${identifier}`;
+		status = `Login callback received ${account}${options ? ` · ${options.permissionIds.join(', ')}` : ''}. No account connected.`;
 	};
 	function signup() {
 		status = 'Signup callback received. A real app would open account creation.';
@@ -151,7 +152,7 @@
 					{#snippet footer(step)}{#if step === 'login'}<p
 								class="text-xs leading-relaxed text-muted"
 							>
-								Try “mika” to search, or enter a full handle.
+								Try “mika” to search, or enter a full handle or DID.
 							</p>{/if}{/snippet}
 				</LoginForm>{/key}
 		</section>

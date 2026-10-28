@@ -17,6 +17,7 @@
 		login: LoginCallback;
 		signup?: () => LoginResult | Promise<LoginResult>;
 		searchActors?: ActorSearch;
+		/** Initial handle or DID; retained under this name for compatibility. */
 		initialHandle?: string;
 		loginOnSelect?: boolean;
 		recentAccounts?: ActorSummary[];
@@ -28,7 +29,7 @@
 		description?: string;
 		showHeader?: boolean;
 		showApps?: boolean;
-		onSuccess?: (handle: string, actor?: ActorSummary) => void;
+		onSuccess?: (identifier: string, actor?: ActorSummary) => void;
 		onStepChange?: (step: LoginStep) => void;
 		children?: Snippet;
 		footer?: Snippet<[LoginStep]>;
@@ -38,20 +39,20 @@
 
 <script lang="ts">
 	import { onMount, onDestroy, tick, untrack } from 'svelte';
-	import { X, ShieldCheck, TriangleAlert, ArrowRight } from '@sketchyicons/svelte';
+	import { X, TriangleAlert, ArrowRight } from '@sketchyicons/svelte';
 	import Button from '../Button.svelte';
 	import IconButton from '../IconButton.svelte';
 	import Icon from '../Icon.svelte';
 	import Avatar from '../Avatar.svelte';
-	import Checkbox from '../Checkbox.svelte';
+	import PermissionFields from './PermissionFields.svelte';
 	import Label from '../Label.svelte';
 	import Heading from '../Heading.svelte';
 	import ActorSearchField from './ActorSearchField.svelte';
 	import RecentAccounts from './RecentAccounts.svelte';
 	import AtmosphereApps from './AtmosphereApps.svelte';
 	import { actorName } from './types.js';
-	import { handleError, normalizeHandle } from './handle.js';
-	import { isPermissionSelected, resolveLoginOptions } from './permissions.js';
+	import { identifierError, normalizeHandle, normalizeIdentifier } from './handle.js';
+	import { resolveLoginOptions } from './permissions.js';
 	import {
 		loadRecentAccounts,
 		writeRecentAccounts,
@@ -89,7 +90,7 @@
 	let error = $state('');
 	let useRecent = $state(true);
 	let choices = $state<Record<string, boolean>>({});
-	let pending = $state<{ handle: string; actor?: ActorSummary }>();
+	let pending = $state<{ identifier: string; actor?: ActorSummary }>();
 	let input = $state<HTMLInputElement | null>(null);
 	let submitRef = $state<HTMLButtonElement | HTMLAnchorElement | null>(null);
 	let heading = $state<HTMLHeadingElement | null>(null);
@@ -108,7 +109,7 @@
 	);
 	const descriptionText = $derived(
 		step === 'permissions'
-			? 'Choose what this app can access. Required permissions stay on.'
+			? 'Choose what this app can access.'
 			: step === 'signup'
 				? 'You can use a Bluesky, Blacksky, or other Atmosphere account here. Otherwise, continue to create one.'
 				: description
@@ -122,7 +123,7 @@
 		if (next !== previous) {
 			previous = next;
 			error = '';
-			if (selected && normalizeHandle(selected.handle) !== normalizeHandle(next))
+			if (selected && normalizeHandle(selected.handle) !== normalizeIdentifier(next))
 				selected = undefined;
 		}
 	});
@@ -153,32 +154,32 @@
 		if (next === 'login') await focusAccount();
 		else if (showHeader) heading?.focus();
 	}
-	async function authenticate(request: { handle: string; actor?: ActorSummary }) {
+	async function authenticate(request: { identifier: string; actor?: ActorSummary }) {
 		if (busy) return;
 		busy = true;
 		error = '';
 		try {
 			const result = permissions.length
 				? await login(
-						request.handle,
+						request.identifier,
 						request.actor,
 						resolveLoginOptions(permissions, choices, baseScopes)
 					)
-				: await login(request.handle, request.actor);
+				: await login(request.identifier, request.actor);
 			if (!alive) return;
 			if (result === false) return;
 			if (request.actor?.did) {
 				const next = [
 					{ ...request.actor, lastUsedAt: new Date().toISOString() },
 					...recentAccounts.filter(
-						(actor) => actor.did !== request.actor?.did && actor.handle !== request.handle
+						(actor) => actor.did !== request.actor?.did && actor.handle !== request.identifier
 					)
 				].slice(0, recentLimit);
 				recentAccounts = persistRecentAccounts
 					? writeRecentAccounts(next, recentAccountOptions)
 					: next;
 			}
-			onSuccess?.(request.handle, request.actor);
+			onSuccess?.(request.identifier, request.actor);
 		} catch (caught) {
 			if (alive)
 				error = caught instanceof Error ? caught.message : 'Login failed. Please try again.';
@@ -190,10 +191,10 @@
 			}
 		}
 	}
-	async function beginLogin(handle = value, actor = selected) {
+	async function beginLogin(identifier = value, actor = selected) {
 		if (busy) return;
-		const normalized = normalizeHandle(handle);
-		const problem = handleError(normalized);
+		const normalized = normalizeIdentifier(identifier);
+		const problem = identifierError(normalized);
 		if (problem) {
 			error = problem;
 			await focusAccount();
@@ -202,7 +203,7 @@
 		previous = normalized;
 		value = normalized;
 		const request = {
-			handle: normalized,
+			identifier: normalized,
 			actor: actor && normalizeHandle(actor.handle) === normalized ? actor : undefined
 		};
 		pending = request;
@@ -285,7 +286,7 @@
 				onclick={() => {
 					useRecent = false;
 					void focusAccount();
-				}}>Use another handle</Button
+				}}>Use another account</Button
 			>
 		{:else}
 			{#if selected}<div
@@ -345,41 +346,17 @@
 				>
 			</div>{/if}
 	{:else if step === 'permissions'}
-		{#if pending}<div class="flex items-center gap-3">
+		{#if pending}<p class="flex min-w-0 items-center gap-2 text-xs text-muted">
+				<span class="shrink-0">Logging in as</span>
 				{#if pending.actor}<Avatar
 						name={actorName(pending.actor)}
 						src={pending.actor.avatar}
-						size={32}
+						size={20}
 						aria-hidden="true"
 					/>{/if}
-				<p class="min-w-0 truncate text-xs text-muted">Logging in as @{pending.handle}</p>
-			</div>{/if}
-		<fieldset class="grid min-w-0 gap-5 border-0 py-1" disabled={busy}>
-			<legend class="sr-only">Requested permissions</legend>
-			{#each permissions as permission, index (permission.id)}<div class="flex items-start gap-3">
-					<Icon img={permission.icon ?? ShieldCheck} size={20} class="mt-1 shrink-0 text-muted" />
-					<div class="min-w-0 flex-1 space-y-1.5">
-						<Label for={`${uid}-permission-${index}`} class="leading-snug"
-							>{permission.label}{permission.required ? ' (required)' : ''}</Label
-						>
-						<p
-							id={`${uid}-permission-${index}-description`}
-							class="text-xs leading-relaxed text-muted"
-						>
-							{permission.description}
-						</p>
-					</div>
-					<Checkbox
-						id={`${uid}-permission-${index}`}
-						class="mt-1"
-						checked={isPermissionSelected(permission, choices)}
-						disabled={busy || permission.required}
-						aria-describedby={`${uid}-permission-${index}-description`}
-						onchange={(event) =>
-							(choices = { ...choices, [permission.id]: event.currentTarget.checked })}
-					/>
-				</div>{/each}
-		</fieldset>
+				<span class="min-w-0 break-words">{pending.identifier}</span>
+			</p>{/if}
+		<PermissionFields {permissions} bind:choices disabled={busy} />
 		<Button type="submit" bind:ref={submitRef} loading={busy} class="w-full"
 			>{busy ? 'Logging in…' : 'Continue to log in'}</Button
 		><Button variant="secondary" disabled={busy} class="w-full" onclick={() => changeStep('login')}

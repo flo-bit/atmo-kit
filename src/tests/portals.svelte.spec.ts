@@ -3,6 +3,7 @@ import { expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import PopoverFixture from './PopoverFixture.svelte';
 import Modal from '../lib/components/Modal.svelte';
+import { observeTheme } from '../lib/theme.js';
 import '../routes/layout.css';
 
 it('preserves a popover’s originating palette, updates it while open, and restores keyboard focus', async () => {
@@ -20,6 +21,27 @@ it('preserves a popover’s originating palette, updates it while open, and rest
 	await userEvent.keyboard('{Escape}');
 	await expect.element(content).not.toBeInTheDocument();
 	expect(document.activeElement).toBe(trigger.element());
+});
+
+it('refreshes portal themes on system scheme changes and removes the listener on cleanup', () => {
+	const media = new EventTarget();
+	const matchMedia = vi.spyOn(window, 'matchMedia').mockReturnValue(media as MediaQueryList);
+	const update = vi.fn();
+	const origin = document.createElement('span');
+	document.body.append(origin);
+	const cleanup = observeTheme(origin, update);
+	try {
+		expect(matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
+		media.dispatchEvent(new Event('change'));
+		expect(update).toHaveBeenCalledTimes(1);
+		cleanup();
+		media.dispatchEvent(new Event('change'));
+		expect(update).toHaveBeenCalledTimes(1);
+	} finally {
+		cleanup();
+		origin.remove();
+		matchMedia.mockRestore();
+	}
 });
 
 it('does not permit dismissing a busy modal through its close button or Escape', async () => {

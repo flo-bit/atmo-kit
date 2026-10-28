@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { handleError, isValidHandle, normalizeHandle } from '../lib/components/login/handle.js';
+import {
+	handleError,
+	isValidHandle,
+	normalizeHandle,
+	identifierError,
+	isValidIdentifier,
+	normalizeIdentifier
+} from '../lib/components/login/handle.js';
 import { createActorSearch } from '../lib/components/login/search.js';
 import { isPermissionSelected, resolveLoginOptions } from '../lib/components/login/permissions.js';
 import {
@@ -50,6 +57,49 @@ describe('login handles', () => {
 		expect(handleError('')).toBe('Enter your handle.');
 		expect(handleError('alice')).toContain('valid handle');
 		expect(handleError('alice.example.com')).toBeUndefined();
+	});
+});
+describe('login identifiers', () => {
+	it('keeps handle normalization and preserves DID case and percent encoding', () => {
+		expect(normalizeIdentifier(' @@ALICE.Example.COM ')).toBe('alice.example.com');
+		expect(isValidIdentifier('@alice.example.com')).toBe(true);
+		for (const did of [
+			alice.did,
+			'did:web:example.com:Users:Alice',
+			'did:web:example.com%3A8443:Alice'
+		]) {
+			expect(normalizeIdentifier(`  ${did}  `)).toBe(did);
+			expect(isValidIdentifier(`  ${did}  `)).toBe(true);
+			expect(identifierError(did)).toBeUndefined();
+			// Profile handles and login identifiers remain different validation contracts.
+			expect(isValidHandle(did)).toBe(false);
+		}
+	});
+	it('rejects malformed identifiers without repairing DID case or stripping an @ prefix', () => {
+		for (const invalid of [
+			'',
+			'alice',
+			'https://alice.example.com',
+			'alice_name.example.com',
+			'did:',
+			'did:web:',
+			'did::alice',
+			'did:WEB:example.com',
+			'DID:web:example.com',
+			'@did:web:Example.com',
+			'@@did:plc:abc',
+			'did:web:example.com/Users/Alice',
+			'did:web:example.com#key',
+			'did:web:example.com?query',
+			'did:web:example .com',
+			`did:web:${'a'.repeat(2048)}`
+		]) {
+			expect(isValidIdentifier(invalid), invalid).toBe(false);
+			expect(identifierError(invalid), invalid).toBeDefined();
+		}
+		expect(normalizeIdentifier(' DID:web:Example.com ')).toBe('DID:web:Example.com');
+		expect(normalizeIdentifier(' @did:web:Example.com ')).toBe('@did:web:Example.com');
+		expect(identifierError('  ')).toBe('Enter your handle or DID.');
 	});
 });
 describe('permission requests', () => {
