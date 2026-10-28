@@ -18,7 +18,10 @@ test('manual handles, validation, and permission choices reach only the app call
 	await form.getByRole('button', { name: 'Log in', exact: true }).click();
 	await expect(form.getByRole('heading', { name: 'Requested permissions' })).toBeFocused();
 	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toBeChecked();
-	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toHaveAttribute('aria-disabled', 'true');
+	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toHaveAttribute(
+		'aria-disabled',
+		'true'
+	);
 	await form.getByRole('checkbox', { name: 'Your account (required)' }).click({ force: true });
 	await expect(form.getByRole('checkbox', { name: 'Your account (required)' })).toBeChecked();
 	await form.getByRole('checkbox', { name: 'Publish posts' }).uncheck();

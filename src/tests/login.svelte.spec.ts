@@ -18,44 +18,72 @@ const mika = {
 };
 
 describe('app-owned login callbacks', () => {
-	it.each([false, true])('places the selected account avatar after Logging in as (dialog: %s)', async (dialog) => {
-		const avatar = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>';
-		const props = {
-			login: vi.fn(),
-			recentAccounts: [{ ...alice, avatar }],
-			showApps: false,
-			permissions: [{ id: 'calendar', label: 'Events', description: 'Manage events.', required: true, scopes: ['atproto'] }]
-		};
-		if (dialog) render(LoginDialog, { ...props, open: true });
-		else render(LoginForm, props);
-		await page.getByRole('button', { name: /Alice/ }).click();
-		const caption = page.getByText(`Logging in as ${alice.handle}`, { exact: true });
-		await expect.element(caption).toBeVisible();
-		const image = caption.element().querySelector<HTMLElement>('[role="img"]');
-		expect(image).not.toBeNull();
-		expect(image?.querySelector('img')?.getAttribute('src')).toBe(avatar);
-		expect(image?.style.getPropertyValue('--ak-avatar-size')).toBe('20px');
-		expect(Array.from(caption.element().children, (node) => node === image ? 'avatar' : node.textContent?.trim())).toEqual(['Logging in as', 'avatar', alice.handle]);
-	});
+	it.each([false, true])(
+		'places the selected account avatar after Logging in as (dialog: %s)',
+		async (dialog) => {
+			const avatar = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>';
+			const props = {
+				login: vi.fn(),
+				recentAccounts: [{ ...alice, avatar }],
+				showApps: false,
+				permissions: [
+					{
+						id: 'calendar',
+						label: 'Events',
+						description: 'Manage events.',
+						required: true,
+						scopes: ['atproto']
+					}
+				]
+			};
+			if (dialog) render(LoginDialog, { ...props, open: true });
+			else render(LoginForm, props);
+			await page.getByRole('button', { name: /Alice/ }).click();
+			const caption = page.getByText(`Logging in as ${alice.handle}`, { exact: true });
+			await expect.element(caption).toBeVisible();
+			const image = caption.element().querySelector<HTMLElement>('[role="img"]');
+			expect(image).not.toBeNull();
+			expect(image?.querySelector('img')?.getAttribute('src')).toBe(avatar);
+			expect(image?.style.getPropertyValue('--ak-avatar-size')).toBe('20px');
+			expect(
+				Array.from(caption.element().children, (node) =>
+					node === image ? 'avatar' : node.textContent?.trim()
+				)
+			).toEqual(['Logging in as', 'avatar', alice.handle]);
+		}
+	);
 	it.each([false, true])('keeps permission helper copy concise (dialog: %s)', async (dialog) => {
 		const props = {
 			login: vi.fn(),
 			initialHandle: alice.handle,
 			showApps: false,
-			permissions: [{
-				id: 'calendar', label: 'Events and RSVPs', description: 'Manage events.',
-				required: true, scopes: ['atproto']
-			}]
+			permissions: [
+				{
+					id: 'calendar',
+					label: 'Events and RSVPs',
+					description: 'Manage events.',
+					required: true,
+					scopes: ['atproto']
+				}
+			]
 		};
 		if (dialog) render(LoginDialog, { ...props, open: true });
 		else render(LoginForm, props);
 		await page.getByRole('button', { name: 'Log in', exact: true }).click();
-		await expect.element(page.getByText('Choose what this app can access.', { exact: true })).toBeVisible();
-		await expect.element(page.getByText('Required permissions stay on.', { exact: false })).not.toBeInTheDocument();
+		await expect
+			.element(page.getByText('Choose what this app can access.', { exact: true }))
+			.toBeVisible();
+		await expect
+			.element(page.getByText('Required permissions stay on.', { exact: false }))
+			.not.toBeInTheDocument();
 		await expect.element(page.getByRole('checkbox', { name: 'Events and RSVPs' })).toBeChecked();
 		const required = page.getByRole('checkbox', { name: 'Events and RSVPs' });
 		await expect.element(required).toHaveAttribute('aria-disabled', 'true');
-		const label = required.element().ownerDocument.getElementById(required.element().getAttribute('aria-labelledby')!) as HTMLLabelElement;
+		const label = required
+			.element()
+			.ownerDocument.getElementById(
+				required.element().getAttribute('aria-labelledby')!
+			) as HTMLLabelElement;
 		expect(label.control).toBeNull();
 		await page.getByText('Events and RSVPs (required)', { exact: true }).hover();
 		expect(required.element().matches(':hover')).toBe(false);
@@ -105,7 +133,9 @@ describe('app-owned login callbacks', () => {
 			const login = vi.fn(),
 				success = vi.fn();
 			render(LoginForm, { login, onSuccess: success, showApps: false });
-			await expect.element(page.getByRole('textbox', { name: 'Your handle', exact: true })).toHaveAttribute('placeholder', 'Handle');
+			await expect
+				.element(page.getByRole('textbox', { name: 'Your handle', exact: true }))
+				.toHaveAttribute('placeholder', 'Handle');
 			await page.getByRole('textbox', { name: 'Your handle', exact: true }).fill(` ${did} `);
 			await page.getByRole('button', { name: 'Log in', exact: true }).click();
 			expect(login).toHaveBeenCalledWith(did, undefined);
