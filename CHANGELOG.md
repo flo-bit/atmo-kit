@@ -1,5 +1,12 @@
 # @atmo-dev/kit
 
+## 0.2.0
+
+### Minor Changes
+
+- 9e98f57: Add LegalDocument, LegalFooter, and framework-free legal authoring helpers. Footer destinations are individually optional/toggleable, including reporting and source; contextual report actions remain app-owned. Generate draft document snapshots for app review rather than changing deployed policy text at runtime on Kit updates. Add a focused /legal preview separating visitor-facing pages from authoring configuration.
+- 9e98f57: Add ReportDialog with standard report reasons, optional details, pending/success/error states, and a signed-out sign-in/email fallback. Apps supply authentication state, canonical subject links, the report mailbox, and submission/sign-in callbacks; no app session or moderation service is imported by Kit.
+
 ## 0.1.0
 
 ### Minor Changes
