@@ -1,5 +1,11 @@
 # @atmo-dev/kit
 
+## 0.2.1
+
+### Patch Changes
+
+- 544ca84: Preserve literal DIDs in Bluesky post, comment, profile, and mention URLs. Fix reply links rejected by Bluesky because DID colons were percent-encoded, including did:web accounts.
+
 ## 0.2.0
 
 ### Minor Changes
