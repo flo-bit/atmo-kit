@@ -1,5 +1,6 @@
 import { tokenize } from '@atcute/bluesky-richtext-parser';
 import type { JSONContent } from '@tiptap/core';
+import { blueskyProfileUrl } from './urls.js';
 
 export type Facet = {
 	index: { byteStart: number; byteEnd: number };
@@ -86,7 +87,7 @@ export function richTextSegments(text: string, facets: Facet[] = []) {
 			continue;
 		const feature = facet.features?.[0];
 		const href = feature?.did
-			? `https://bsky.app/profile/${encodeURIComponent(feature.did)}`
+			? blueskyProfileUrl(feature.did)
 			: feature?.uri
 				? safeWebUrl(feature.uri)
 				: feature?.tag

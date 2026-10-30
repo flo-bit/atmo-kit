@@ -1,4 +1,5 @@
 import type { Facet } from './richtext.js';
+import { blueskyProfileUrl } from './urls.js';
 export type PostEmbed =
 	| {
 			type: 'images';
@@ -49,7 +50,7 @@ export function blueskyPostToPostData(post: BlueskyPostView, depth = 0): PostDat
 	const record = post.record ?? post.value;
 	const result: PostData = {
 		uri: post.uri,
-		href: `https://bsky.app/profile/${encodeURIComponent(post.author.did)}/post/${encodeURIComponent(post.uri.split('/').at(-1) ?? '')}`,
+		href: `${blueskyProfileUrl(post.author.did)}/post/${encodeURIComponent(post.uri.split('/').at(-1) ?? '')}`,
 		author: {
 			did: post.author.did,
 			handle: post.author.handle,

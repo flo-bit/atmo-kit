@@ -8,7 +8,7 @@ import NestedComments from '../lib/components/NestedComments.svelte';
 import InlineEditor from '../lib/components/InlineEditor.svelte';
 import PostComposer from '../lib/components/PostComposer.svelte';
 import type { ActorSummary } from '../lib/components/login/types.js';
-import type { PostData } from '../lib/social/posts.js';
+import { blueskyPostToPostData, type PostData } from '../lib/social/posts.js';
 import { editorJsonToBlueskyPost } from '../lib/social/richtext.js';
 import '../routes/layout.css';
 
@@ -213,6 +213,42 @@ describe('post presentation', () => {
 		expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
 		await expect.element(page.getByText('Post unavailable', { exact: true })).toBeVisible();
 		expect(document.body.textContent).toContain('<script>bad</script> safe');
+	});
+	it('renders working did:web reply, author, and mention links', async () => {
+		const did = 'did:web:fry69.dev';
+		const profile = `https://bsky.app/profile/${did}`;
+		const href = `${profile}/post/3myx3e4254k2g`;
+		render(NestedComments, {
+			comments: [
+				blueskyPostToPostData({
+					uri: `at://${did}/app.bsky.feed.post/3myx3e4254k2g`,
+					author: { did, handle: 'fry69.dev', displayName: 'Fry' },
+					record: {
+						text: '@fry69.dev',
+						facets: [
+							{
+								index: { byteStart: 0, byteEnd: 10 },
+								features: [{ $type: 'app.bsky.richtext.facet#mention', did }]
+							}
+						]
+					}
+				})
+			]
+		});
+		await expect
+			.element(page.getByRole('link', { name: 'Reply', exact: true }))
+			.toHaveAttribute('href', href);
+		await expect
+			.element(page.getByRole('link', { name: 'Fry', exact: true }).last())
+			.toHaveAttribute('href', href);
+		await expect
+			.element(page.getByRole('link', { name: '0 likes', exact: true }))
+			.toHaveAttribute('href', href);
+		await expect
+			.element(page.getByRole('link', { name: '@fry69.dev', exact: true }))
+			.toHaveAttribute('href', profile);
+		expect(document.querySelector('article a')?.getAttribute('href')).toBe(profile);
+		expect(document.querySelector('a[href*="did%3A"]')).toBeNull();
 	});
 	it('renders nested replies with safe outbound links and valid dates only', async () => {
 		render(NestedComments, {

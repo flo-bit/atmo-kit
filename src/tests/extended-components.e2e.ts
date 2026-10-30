@@ -139,7 +139,7 @@ test('composer previews real mention facets and leaves empty/over-limit validati
 	});
 	await expect(
 		preview(page).getByRole('link', { name: '@mika.example.com', exact: true })
-	).toHaveAttribute('href', 'https://bsky.app/profile/did%3Aplc%3Aabcdefghijklmnopqrstuvwx');
+	).toHaveAttribute('href', 'https://bsky.app/profile/did:plc:abcdefghijklmnopqrstuvwx');
 	// Use the editor's select-all command so atom mentions are part of the selection.
 	await editor.press('ControlOrMeta+a');
 	await editor.press('Backspace');

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PostData } from '../social/posts.js';
 	import { safeWebUrl } from '../social/richtext.js';
+	import { blueskyProfileUrl } from '../social/urls.js';
 	import Avatar from './Avatar.svelte';
 	import PostContent from './PostContent.svelte';
 	import NestedComments from './NestedComments.svelte';
@@ -12,7 +13,7 @@
 		<article class="min-w-0">
 			<div class="flex items-start gap-3">
 				<a
-					href={`https://bsky.app/profile/${encodeURIComponent(comment.author.did)}`}
+					href={blueskyProfileUrl(comment.author.did)}
 					target="_blank"
 					rel="noopener noreferrer"
 					class="shrink-0"
