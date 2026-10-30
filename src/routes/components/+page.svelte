@@ -115,6 +115,7 @@
 				<Button href={resolve('/')} variant="link" size="sm"
 					><Icon img={ArrowLeft} size={15} />Foundation</Button
 				>
+				<Button href={resolve('/legal')} variant="link" size="sm">Legal pages</Button>
 			</div>
 			<div class="flex items-center gap-3">
 				<Select

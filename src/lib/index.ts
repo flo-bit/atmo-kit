@@ -15,6 +15,32 @@ export { default as Avatar } from './components/Avatar.svelte';
 export { default as InsetImage } from './components/InsetImage.svelte';
 export { default as Badge } from './components/Badge.svelte';
 export { default as Modal } from './components/Modal.svelte';
+export { default as LegalDocument } from './components/legal/LegalDocument.svelte';
+export type { LegalDocumentProps } from './components/legal/LegalDocument.svelte';
+export { default as LegalFooter } from './components/legal/LegalFooter.svelte';
+export type { LegalFooterProps } from './components/legal/LegalFooter.svelte';
+export {
+	createLegalDrafts,
+	getLegalDraftIssues,
+	getLegalDocumentIssues
+} from './components/legal/drafts.js';
+export type {
+	LegalDocumentKind,
+	LegalDocumentData,
+	LegalSection,
+	LegalLink,
+	LegalFooterLink,
+	LegalFooterLinks,
+	LegalDraftConfig
+} from './components/legal/types.js';
+export { default as ReportDialog } from './components/report/ReportDialog.svelte';
+export type { ReportDialogProps } from './components/report/ReportDialog.svelte';
+export type {
+	ReportReasonType,
+	ReportInput,
+	ReportFailure,
+	ReportSubmit
+} from './components/report/types.js';
 export { default as Tabs } from './components/Tabs.svelte';
 export type { TabItem } from './components/Tabs.svelte';
 export { default as Icon } from './components/Icon.svelte';

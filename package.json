@@ -46,6 +46,10 @@
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./legal": {
+			"types": "./dist/legal.d.ts",
+			"default": "./dist/legal.js"
+		},
 		"./theme.css": "./dist/theme.css"
 	},
 	"peerDependencies": {
