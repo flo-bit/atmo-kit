@@ -9,6 +9,47 @@ Svelte 5 and Tailwind CSS 4 components for Atmo apps.
 - Releases: `pnpm changeset`, then merge the generated release PR. [Details](.changeset/README.md).
 - License: [MIT](LICENSE).
 
+## Read-only profiles
+
+`UserProfile` displays a Bluesky profile header: banner, avatar, name, handle, pronouns, optional counts, bio, modern profile links, and a DID-based “View on Bluesky” link. It has no editing or follow behavior. An optional `actions` snippet holds app-owned controls. `metrics={[{ label: 'events created', value: 12 }]}` replaces the default Bluesky counts; `metrics={[]}` hides all counts.
+
+```svelte
+<script lang="ts">
+	import { UserProfile, blueskyProfileToProfileData } from '@atmo-dev/kit';
+
+	// Fetch and apply moderation in the app, not in the component.
+	let { profileView } = $props();
+	let profile = $derived(blueskyProfileToProfileData(profileView));
+</script>
+
+{#if profile}<UserProfile {profile} />{/if}
+```
+
+`ProfileData` can also be supplied directly. Bios remain escaped plain text with detected HTTP(S) links, mentions and hashtags; newlines are preserved. There is no HTML/Markdown interpretation, DOM sanitizer, client-only rendering, or mention-resolution request. Link destinations and images reject executable schemes and credential-bearing URLs. External links use `noopener noreferrer`; user links also use `nofollow ugc`.
+
+`blueskyProfileToProfileData` accepts an `app.bsky.actor.getProfile` view and validates optional fields. Its `links` must be hydrated `app.bsky.actor.link` views (`url`, optional `title` and `icon` image URL), not the profile record's ordered strongRefs. It omits unresolved refs and labeled links conservatively, deduplicates destinations, and displays at most ten. The legacy `website` field is deliberately ignored. Apps own hydration, account moderation and any more specific link-moderation policy. Supplied icons render as small decorative images; unsafe or failed icons fall back to text-only links. No link metadata or destination is fetched by the component.
+
+## Preferred social client
+
+`SocialClientPicker` is a native form field group for Bluesky, mu, Blacksky, Witchsky, or a custom web client. Pass the viewer's saved `value` (a `PreferredSocialClient`, or `null` for Bluesky) and optionally `disabled`. It submits `client` and, for custom clients, `customUrl`. The app owns the form, save button, authentication, and feedback.
+
+The dedicated public record is `social.atmo.actor.preferredClient/self`:
+
+```json
+{ "$type": "social.atmo.actor.preferredClient", "client": "mu" }
+```
+
+For a custom client, use `"client": "custom"` and `"customUrl": "https://example.com"`. This lexicon stores **only social-client selection**, not general preferences. Its schema is available at `@atmo-dev/kit/lexicons/social.atmo.actor.preferredClient.json`.
+
+Framework-free helpers are exported from `@atmo-dev/kit/social` (and the main entry point):
+
+- `PREFERRED_CLIENT_COLLECTION`, `PREFERRED_CLIENT_RKEY`, `PREFERRED_CLIENT_SCOPE` for repository IO and OAuth metadata/incremental permission requests. The scope grants create/update only on this collection; request it when the user chooses to authorize this setting, not during normal login or signup.
+- `parsePreferredSocialClient(record)` validates repository records or form input; invalid, unknown or absent selections return `null`.
+- `preferredSocialClientRecord(selection)` builds a validated record. Never write merely because a read failed; distinguish `RecordNotFound` from PDS/network failures, and use `swapRecord` to guard updates.
+- `socialClientInfo(selection)`, `socialProfileUrl(actor, selection)`, `socialPostUrl(atUri, selection)`, and `socialHashtagUrl(tag, selection)` default to Bluesky. `socialPostUrl` accepts feed-post AT URIs and returns `null` for invalid ones. Custom URLs must be absolute HTTP(S), without credentials, query or fragment, and support `/profile/:actor` routes. Base paths are preserved.
+
+Read the signed-in viewer's record from their PDS, include the parsed selection in viewer data, and pass it to `<UserProfile {profile} socialClient={viewer.preferredSocialClient} />`. The profile's external button and handle link use that client. Pass the same `socialClient` prop to `NestedComments` for author, reply and like links, including nested replies. Changing the selection updates these links without changing the stored post data. Bio hashtags also use the selected client. Supply an app-owned `mentionUrl` callback to `UserProfile` (for example, `(actor) => '/p/' + encodeURIComponent(actor)`) to route bio mentions locally in the same tab; without it they open the selected social client. Post-content facets retain their existing Bluesky links. Apps remain responsible for server-side authorization, IO, incremental authorization when access is missing, and invalidating viewer data after saves.
+
 ## Login identifiers
 
 `LoginForm` and `LoginDialog` accept handles and DIDs by default. Handles are trimmed, stripped of leading `@` characters, and lowercased. DIDs are trimmed only: method-specific case and percent encoding are preserved. `initialHandle` also accepts a DID; its existing name is retained for compatibility.

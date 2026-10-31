@@ -46,6 +46,11 @@
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./social": {
+			"types": "./dist/social.d.ts",
+			"default": "./dist/social.js"
+		},
+		"./lexicons/social.atmo.actor.preferredClient.json": "./dist/lexicons/social.atmo.actor.preferredClient.json",
 		"./legal": {
 			"types": "./dist/legal.d.ts",
 			"default": "./dist/legal.js"

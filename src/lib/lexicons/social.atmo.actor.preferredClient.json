@@ -1,0 +1,29 @@
+{
+	"lexicon": 1,
+	"id": "social.atmo.actor.preferredClient",
+	"defs": {
+		"main": {
+			"type": "record",
+			"description": "An actor's public preferred Bluesky-compatible social client. Other preferences belong in separate records.",
+			"key": "literal:self",
+			"record": {
+				"type": "object",
+				"required": ["client"],
+				"properties": {
+					"client": {
+						"type": "string",
+						"description": "The preferred social client. custom requires customUrl.",
+						"knownValues": ["bluesky", "mu", "blacksky", "witchsky", "custom"],
+						"maxLength": 64
+					},
+					"customUrl": {
+						"type": "string",
+						"format": "uri",
+						"maxLength": 2048,
+						"description": "For custom clients only: an absolute HTTP(S) base URL without credentials, query or fragment. Must support /profile/:actor links."
+					}
+				}
+			}
+		}
+	}
+}
