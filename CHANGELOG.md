@@ -1,5 +1,12 @@
 # @atmo-dev/kit
 
+## 0.3.0
+
+### Minor Changes
+
+- e7fe970: Add a reusable social-client picker and a dedicated public social.atmo.actor.preferredClient lexicon, with framework-free record validation and URL helpers. UserProfile can open the viewer's preferred client. Add a shared post-URL helper and let NestedComments use the preferred client for author, reply and like links, including nested replies.
+- e7fe970: Add a shared read-only UserProfile with banner, avatar, pronouns, safely linkified plain-text bio, modern Bluesky profile links with optional safe icons, optional metrics, a Bluesky profile link, and app-owned action slots. Support app-owned metrics in place of Bluesky counts. Keep header actions below the cover while the avatar overlaps it. Reserve a neutral cover frame during loading, prioritize its image, and fall back to the no-cover layout on errors. Export profile types and a public AppView data adapter. Render untrusted content safely in both SSR and client rendering without interpreting HTML.
+
 ## 0.2.1
 
 ### Patch Changes
