@@ -1,5 +1,16 @@
 # @atmo-dev/kit
 
+## 0.4.0
+
+### Minor Changes
+
+- cdee2f3: Use accessible icon/count links for comment replies, reposts, and likes. Preserve repost counts from AppView, support gallery and non-post record embeds (feeds, lists, starter packs, and labelers), and distinguish unavailable quoted posts. Keep quoted-post links on the preferred social client and provide a fallback for unknown embed variants. Add click-to-load YouTube and autoplaying, control-free Klipy GIF players with an extensible, app-configurable external-embed provider registry. Klipy supports pausing and respects reduced-motion preferences.
+- cdee2f3: Add provider-neutral PhotoGrid and fullscreen PhotoLightbox, plus callback-driven GrainAlbumPicker, GrainAlbumView and StreamplacePicker. Export framework-free Grain/Streamplace URL helpers and a normalized GrainClient contract with the current Grain.social XRPC implementation. Apps retain sessions, routes, persistence, caching and moderation policy; a future atmo.pics/Contrail provider can implement the same read contract.
+
+### Patch Changes
+
+- cdee2f3: Use a native horizontal scroll-snap track in the shared PhotoLightbox so photos follow touch and trackpad movement continuously, with inertia and looping. Support direct mouse/pen dragging, preserve native pinch zoom and reduced-motion preferences, and prevent drag-generated backdrop clicks. Keep keyboard, arrow, Escape, focus-restoration and bind:index behavior, including viewport resizing and replaced photo lists. No new dependency or consumer API changes.
+
 ## 0.3.0
 
 ### Minor Changes
