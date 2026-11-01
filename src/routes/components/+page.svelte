@@ -27,6 +27,7 @@
 		type Editor
 	} from '#lib';
 	import { ArrowLeft, Moon, Sun, Link, ArrowRight, X } from '@sketchyicons/svelte';
+	import MediaExamples from '../../playground/components/MediaExamples.svelte';
 	import coastAsset from '../playground/coast.webp';
 	import forestAsset from '../../playground/mockups/assets/nature3.webp';
 	import {
@@ -141,6 +142,7 @@
 		class="mx-auto grid max-w-6xl items-start gap-12 px-5 py-9 sm:px-8 sm:py-11 lg:grid-cols-2 lg:gap-16"
 	>
 		<div class="min-w-0 space-y-11">
+			<MediaExamples />
 			<section aria-labelledby="popover-heading">
 				<Subheading id="popover-heading" class="mb-5">Popover</Subheading>
 				<div class="flex flex-wrap items-center gap-3">
@@ -230,6 +232,8 @@
 							>Photos</ToggleGroupItem
 						><ToggleGroupItem value="link">Link</ToggleGroupItem><ToggleGroupItem value="quote"
 							>Quote</ToggleGroupItem
+						><ToggleGroupItem value="youtube">YouTube</ToggleGroupItem><ToggleGroupItem
+							value="klipy">Klipy</ToggleGroupItem
 						><ToggleGroupItem value="video">Video</ToggleGroupItem><ToggleGroupItem
 							value="poll"
 							disabled>Poll</ToggleGroupItem

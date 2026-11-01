@@ -46,6 +46,18 @@
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./grain": {
+			"types": "./dist/grain.d.ts",
+			"default": "./dist/grain.js"
+		},
+		"./streamplace": {
+			"types": "./dist/streamplace.d.ts",
+			"default": "./dist/streamplace.js"
+		},
+		"./media": {
+			"types": "./dist/media.d.ts",
+			"default": "./dist/media.js"
+		},
 		"./social": {
 			"types": "./dist/social.d.ts",
 			"default": "./dist/social.js"

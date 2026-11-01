@@ -236,7 +236,7 @@ describe('post presentation', () => {
 			]
 		});
 		await expect
-			.element(page.getByRole('link', { name: 'Reply', exact: true }))
+			.element(page.getByRole('link', { name: '0 replies', exact: true }))
 			.toHaveAttribute('href', href);
 		await expect
 			.element(page.getByRole('link', { name: 'Fry', exact: true }).last())

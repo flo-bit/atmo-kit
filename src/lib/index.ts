@@ -19,6 +19,19 @@ export { default as UserProfile } from './components/UserProfile.svelte';
 export type { UserProfileProps } from './components/UserProfile.svelte';
 export { blueskyProfileToProfileData } from './social/profile.js';
 export type { ProfileData, ProfileLink } from './social/profile.js';
+export { default as PhotoLightbox } from './components/PhotoLightbox.svelte';
+export type { PhotoLightboxProps } from './components/PhotoLightbox.svelte';
+export { default as PhotoGrid } from './components/PhotoGrid.svelte';
+export type { PhotoGridProps } from './components/PhotoGrid.svelte';
+export type { Photo } from './media.js';
+export { default as GrainAlbumPicker } from './components/GrainAlbumPicker.svelte';
+export type { GrainAlbumPickerProps } from './components/GrainAlbumPicker.svelte';
+export { default as GrainAlbumView } from './components/GrainAlbumView.svelte';
+export type { GrainAlbumViewProps } from './components/GrainAlbumView.svelte';
+export { default as StreamplacePicker } from './components/StreamplacePicker.svelte';
+export type { StreamplacePickerProps } from './components/StreamplacePicker.svelte';
+export * from './grain.js';
+export * from './streamplace.js';
 export { default as InsetImage } from './components/InsetImage.svelte';
 export { default as Badge } from './components/Badge.svelte';
 export { default as Modal } from './components/Modal.svelte';
@@ -100,6 +113,18 @@ export { default as InlineEditor } from './components/InlineEditor.svelte';
 export { default as PostComposer } from './components/PostComposer.svelte';
 export { default as NestedComments } from './components/NestedComments.svelte';
 export { default as PostContent } from './components/PostContent.svelte';
+export { default as ExternalEmbed } from './components/ExternalEmbed.svelte';
+export {
+	defaultExternalEmbedProviders,
+	youtubeEmbedProvider,
+	klipyEmbedProvider,
+	resolveExternalEmbed
+} from './social/external-embeds.js';
+export type {
+	ExternalPostEmbed,
+	ExternalEmbedProvider,
+	ExternalEmbedPlayer
+} from './social/external-embeds.js';
 export { blueskyPostToPostData } from './social/posts.js';
 export type { PostData, PostEmbed, BlueskyPostView } from './social/posts.js';
 export { editorJsonToBlueskyPost, textToDoc, graphemeLength } from './social/richtext.js';

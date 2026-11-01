@@ -1,3 +1,4 @@
+import { isActorIdentifier, isRecordKey } from '@atcute/lexicons/syntax';
 import type { Facet } from './richtext.js';
 import { blueskyProfileUrl } from './urls.js';
 export type PostEmbed =
@@ -7,7 +8,17 @@ export type PostEmbed =
 	  }
 	| { type: 'external'; uri: string; title: string; description?: string; image?: string }
 	| { type: 'video'; playlist: string; poster?: string; alt?: string }
-	| { type: 'quote'; post?: PostData; unavailable?: boolean };
+	| { type: 'quote'; post?: PostData; unavailable?: boolean; reason?: 'blocked' | 'detached' }
+	| {
+			type: 'record';
+			kind: 'feed' | 'list' | 'starter-pack' | 'labeler';
+			href: string;
+			title: string;
+			description?: string;
+			image?: string;
+			handle?: string;
+	  }
+	| { type: 'unsupported' };
 export type PostData = {
 	uri: string;
 	href: string;
@@ -16,19 +27,42 @@ export type PostData = {
 	facets?: Facet[];
 	createdAt?: string;
 	replyCount?: number;
+	repostCount?: number;
 	likeCount?: number;
 	embeds?: PostEmbed[];
 	replies?: PostData[];
 };
+type PostRecord = { text?: string; facets?: Facet[]; createdAt?: string };
+type ActorView = { did: string; handle: string; displayName?: string; avatar?: string };
 /** The public AppView view shape; no session or network dependency. */
 export type BlueskyPostView = {
 	uri: string;
-	author: { did: string; handle: string; displayName?: string; avatar?: string };
-	record?: { text?: string; facets?: Facet[]; createdAt?: string };
-	value?: { text?: string; facets?: Facet[]; createdAt?: string };
+	author: ActorView;
+	record?: PostRecord;
+	value?: PostRecord;
 	embed?: BlueskyEmbedView;
 	embeds?: BlueskyEmbedView[];
 	replyCount?: number;
+	repostCount?: number;
+	likeCount?: number;
+};
+type RecordView = {
+	$type?: string;
+	uri?: string;
+	author?: { did: string; handle?: string; displayName?: string; avatar?: string };
+	creator?: ActorView;
+	value?: PostRecord;
+	record?: unknown;
+	embeds?: BlueskyEmbedView[];
+	displayName?: string;
+	name?: string;
+	description?: string;
+	avatar?: string;
+	blocked?: boolean;
+	detached?: boolean;
+	notFound?: boolean;
+	replyCount?: number;
+	repostCount?: number;
 	likeCount?: number;
 };
 type BlueskyEmbedView = {
@@ -39,13 +73,93 @@ type BlueskyEmbedView = {
 		alt: string;
 		aspectRatio?: { width: number; height: number };
 	}[];
+	items?: {
+		$type?: string;
+		thumbnail?: string;
+		fullsize?: string;
+		alt?: string;
+		aspectRatio?: { width: number; height: number };
+	}[];
 	external?: { uri: string; title: string; description?: string; thumb?: string };
 	playlist?: string;
 	thumbnail?: string;
 	alt?: string;
-	record?: BlueskyPostView & { $type?: string; record?: BlueskyPostView };
+	record?: RecordView;
 	media?: BlueskyEmbedView;
 };
+
+/** Convert record-view variants without mistaking blocked authors or starter packs for posts. */
+function recordEmbed(record: RecordView, depth: number): PostEmbed {
+	const type = record.$type;
+	if (record.blocked || type === 'app.bsky.embed.record#viewBlocked')
+		return { type: 'quote', unavailable: true, reason: 'blocked' };
+	if (record.detached || type === 'app.bsky.embed.record#viewDetached')
+		return { type: 'quote', unavailable: true, reason: 'detached' };
+	if (record.notFound || type === 'app.bsky.embed.record#viewNotFound')
+		return { type: 'quote', unavailable: true };
+
+	const kind = {
+		'app.bsky.feed.defs#generatorView': 'feed',
+		'app.bsky.graph.defs#listView': 'list',
+		'app.bsky.graph.defs#starterPackViewBasic': 'starter-pack',
+		'app.bsky.labeler.defs#labelerView': 'labeler'
+	} as const;
+	const recordKind = Object.hasOwn(kind, type ?? '') ? kind[type as keyof typeof kind] : undefined;
+	if (recordKind) {
+		const match = /^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/.exec(record.uri ?? '');
+		if (!match) return { type: 'unsupported' };
+		const [, actor, , rkey] = match;
+		if (!isActorIdentifier(actor) || !isRecordKey(rkey)) return { type: 'unsupported' };
+		const details = record.record as { name?: unknown; description?: unknown } | undefined;
+		const profile = blueskyProfileUrl(actor);
+		const href =
+			recordKind === 'starter-pack'
+				? `https://bsky.app/starter-pack/${actor}/${encodeURIComponent(rkey)}`
+				: recordKind === 'labeler'
+					? profile
+					: `${profile}/${recordKind === 'feed' ? 'feed' : 'lists'}/${encodeURIComponent(rkey)}`;
+		return {
+			type: 'record',
+			kind: recordKind,
+			href,
+			title:
+				record.displayName ||
+				record.name ||
+				(typeof details?.name === 'string' && details.name) ||
+				record.creator?.displayName ||
+				record.creator?.handle ||
+				'Untitled',
+			description:
+				record.description ||
+				(typeof details?.description === 'string' ? details.description : undefined),
+			image: record.avatar || (recordKind === 'labeler' ? record.creator?.avatar : undefined),
+			handle: record.creator?.handle
+		};
+	}
+	if (
+		record.uri &&
+		record.author?.handle &&
+		depth < 3 &&
+		(!type || type === 'app.bsky.embed.record#viewRecord')
+	) {
+		return {
+			type: 'quote',
+			post: blueskyPostToPostData(
+				{
+					...record,
+					uri: record.uri,
+					author: { ...record.author, handle: record.author.handle },
+					record: record.record as PostRecord | undefined
+				},
+				depth + 1
+			)
+		};
+	}
+	return type && type !== 'app.bsky.embed.record#viewRecord'
+		? { type: 'unsupported' }
+		: { type: 'quote', unavailable: true };
+}
+
 export function blueskyPostToPostData(post: BlueskyPostView, depth = 0): PostData {
 	const record = post.record ?? post.value;
 	const result: PostData = {
@@ -61,11 +175,13 @@ export function blueskyPostToPostData(post: BlueskyPostView, depth = 0): PostDat
 		facets: record?.facets,
 		createdAt: record?.createdAt,
 		replyCount: post.replyCount,
+		repostCount: post.repostCount,
 		likeCount: post.likeCount,
 		embeds: []
 	};
 	function add(embed: BlueskyEmbedView) {
-		if (embed.images)
+		if (embed.media) add(embed.media);
+		if (embed.images) {
 			result.embeds!.push({
 				type: 'images',
 				images: embed.images.map((image) => ({
@@ -75,7 +191,23 @@ export function blueskyPostToPostData(post: BlueskyPostView, depth = 0): PostDat
 					...image.aspectRatio
 				}))
 			});
-		if (embed.external)
+		} else if (embed.items) {
+			const images = embed.items.filter(
+				(item) =>
+					item.thumbnail && (!item.$type || item.$type === 'app.bsky.embed.gallery#viewImage')
+			);
+			if (images.length)
+				result.embeds!.push({
+					type: 'images',
+					images: images.map((image) => ({
+						src: image.thumbnail!,
+						fullsize: image.fullsize,
+						alt: image.alt ?? '',
+						...image.aspectRatio
+					}))
+				});
+			if (images.length !== embed.items.length) result.embeds!.push({ type: 'unsupported' });
+		} else if (embed.external) {
 			result.embeds!.push({
 				type: 'external',
 				uri: embed.external.uri,
@@ -83,21 +215,24 @@ export function blueskyPostToPostData(post: BlueskyPostView, depth = 0): PostDat
 				description: embed.external.description,
 				image: embed.external.thumb
 			});
-		if (embed.playlist)
+		} else if (embed.playlist) {
 			result.embeds!.push({
 				type: 'video',
 				playlist: embed.playlist,
 				poster: embed.thumbnail,
 				alt: embed.alt
 			});
-		if (embed.media) add(embed.media);
-		if (embed.record && depth < 3) {
-			const quote = embed.record.record ?? embed.record;
-			result.embeds!.push({
-				type: 'quote',
-				post: quote.author && quote.uri ? blueskyPostToPostData(quote, depth + 1) : undefined,
-				unavailable: !quote.author
-			});
+		} else if (!embed.record && !embed.media) {
+			result.embeds!.push({ type: 'unsupported' });
+		}
+		if (embed.record) {
+			// recordWithMedia wraps an embed.record#view; a plain record embed does not.
+			const quote =
+				embed.record.$type === 'app.bsky.embed.record#view' ||
+				(!embed.record.uri && embed.record.record)
+					? (embed.record.record as RecordView | undefined)
+					: embed.record;
+			result.embeds!.push(quote ? recordEmbed(quote, depth) : { type: 'quote', unavailable: true });
 		}
 	}
 	for (const embed of post.embeds ?? (post.embed ? [post.embed] : [])) add(embed);

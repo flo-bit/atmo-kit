@@ -237,10 +237,9 @@ test('post and comment links remain keyboard reachable with safe outbound polici
 		await expect(link).toHaveAttribute('rel', /noopener/);
 	}
 	const comments = page.getByRole('region', { name: 'Nested comments', exact: true });
-	await comments
-		.getByRole('link', { name: /^Reply/ })
-		.first()
-		.focus();
+	await comments.getByRole('link', { name: '1 reply', exact: true }).first().focus();
+	await page.keyboard.press('Tab');
+	await expect(comments.getByRole('link', { name: '2 reposts', exact: true })).toBeFocused();
 	await page.keyboard.press('Tab');
 	await expect(comments.getByRole('link', { name: '3 likes', exact: true })).toBeFocused();
 });

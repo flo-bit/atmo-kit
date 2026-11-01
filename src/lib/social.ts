@@ -10,6 +10,17 @@ export {
 } from './social/preferred-client.js';
 export type { SocialClientId, PreferredSocialClient } from './social/preferred-client.js';
 export {
+	defaultExternalEmbedProviders,
+	youtubeEmbedProvider,
+	klipyEmbedProvider,
+	resolveExternalEmbed
+} from './social/external-embeds.js';
+export type {
+	ExternalPostEmbed,
+	ExternalEmbedProvider,
+	ExternalEmbedPlayer
+} from './social/external-embeds.js';
+export {
 	blueskyProfileUrl,
 	socialProfileUrl,
 	socialPostUrl,

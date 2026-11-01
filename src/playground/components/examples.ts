@@ -95,6 +95,25 @@ export function attachment(
 				},
 				{ type: 'quote', unavailable: true }
 			];
+		case 'youtube':
+			return [
+				{
+					type: 'external',
+					uri: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
+					title: 'YouTube player example',
+					image: coast
+				}
+			];
+		case 'klipy':
+			return [
+				{
+					type: 'external',
+					uri: 'https://static.klipy.com/ii/d7aec6f6f171607374b2065c836f92f4/ec/f3/OXB1QWhn.gif?ww=400&hh=300',
+					title: 'Klipy GIF example',
+					description: 'Alt: An animated reaction GIF',
+					image: coast
+				}
+			];
 		case 'video':
 			return [
 				{
@@ -113,6 +132,7 @@ export const comments: PostData[] = [
 		...postFromDoc(textToDoc('A place to slow down. 🌊')),
 		uri: 'at://demo/comment/one',
 		likeCount: 3,
+		repostCount: 2,
 		replyCount: 1,
 		replies: [
 			{
@@ -134,6 +154,16 @@ export const comments: PostData[] = [
 		...postFromDoc(textToDoc('I saved a few notes here: https://example.com')),
 		uri: 'at://demo/comment/two',
 		author: { did: actors[0].did, handle: actors[0].handle, name: actors[0].displayName! },
-		likeCount: 2
+		likeCount: 2,
+		embeds: [
+			{
+				type: 'record',
+				kind: 'feed',
+				href: `https://bsky.app/profile/${actors[0].did}/feed/smallweb`,
+				title: 'The small web',
+				description: 'People making things for the joy of it.',
+				handle: actors[0].handle
+			}
+		]
 	}
 ];
