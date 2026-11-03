@@ -1,5 +1,11 @@
 # @atmo-dev/kit
 
+## 0.5.0
+
+### Minor Changes
+
+- 9a276da: Move the shared event UI from @atmo-dev/events-ui into @atmo-dev/kit/events, including the editor, event cards and views, RSVPs, conference schedules, themes, calendar helpers and browser tests. Add a server-safe events-data entry point and an explicit events/editor record-building API. Keep event components out of the main Kit barrel and map/player dependencies as optional peers.
+
 ## 0.4.0
 
 ### Minor Changes
