@@ -20,6 +20,8 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
+	resolve: { dedupe: ['svelte', 'bits-ui', '@internationalized/date'] },
+	ssr: { noExternal: ['i18n-iso-countries'] },
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
@@ -33,10 +35,23 @@ export default defineConfig({
 						instances: [{ browser: 'chromium', headless: true }]
 					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
-					exclude: ['src/lib/server/**']
+					exclude: ['src/lib/server/**', 'src/tests/events/**']
 				}
 			},
 
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'events',
+					include: ['src/tests/events/**/*.svelte.spec.ts'],
+					browser: {
+						enabled: true,
+						provider: playwright(),
+						instances: [{ browser: 'chromium', headless: true }],
+						viewport: { width: 1280, height: 1000 }
+					}
+				}
+			},
 			{
 				extends: './vite.config.ts',
 				test: {

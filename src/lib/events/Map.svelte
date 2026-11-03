@@ -1,0 +1,36 @@
+<script lang="ts" module>
+	import { setWorkerUrl } from 'maplibre-gl';
+	import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+
+	// Vite moves MapLibre's main module when optimizing dependencies, so its
+	// default relative worker URL breaks. Emit the worker as an explicit asset.
+	setWorkerUrl(workerUrl);
+</script>
+
+<script lang="ts">
+	import { MapLibre, Projection, Marker, AttributionControl } from 'svelte-maplibre-gl';
+	import type { Map as MapLibreMap } from 'maplibre-gl';
+
+	let { lat, lng, zoom = 11 }: { lat: number; lng: number; zoom?: number } = $props();
+
+	let map: MapLibreMap | undefined = $state();
+</script>
+
+<MapLibre
+	bind:map
+	class="h-full w-full overflow-hidden rounded-xl"
+	style="https://tiles.openfreemap.org/styles/liberty"
+	{zoom}
+	center={[lng, lat]}
+	attributionControl={false}
+>
+	<AttributionControl position="bottom-left" compact={false} />
+	<Projection type="globe" />
+	<Marker lnglat={[lng, lat]}>
+		{#snippet content()}
+			<div class="size-10 rounded-full bg-radial from-accent-400 via-transparent p-3">
+				<div class="size-4 rounded-full bg-accent-500 ring-2 ring-white"></div>
+			</div>
+		{/snippet}
+	</Marker>
+</MapLibre>

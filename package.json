@@ -22,9 +22,10 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
-		"test": "pnpm test:unit --run && pnpm test:e2e",
-		"test:ci": "pnpm test:unit --run --no-file-parallelism && pnpm test:e2e",
+		"test": "pnpm test:unit --run && pnpm test:e2e && pnpm test:package",
+		"test:ci": "pnpm test:unit --run --no-file-parallelism && pnpm test:e2e && pnpm test:package",
 		"test:e2e": "playwright test",
+		"test:package": "pnpm prepack && node --test scripts/test-events-package.mjs",
 		"changeset": "changeset",
 		"version-packages": "changeset version && pnpm install --lockfile-only --no-frozen-lockfile --ignore-scripts",
 		"release": "pnpm prepack && changeset publish"
@@ -45,6 +46,19 @@
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
+		},
+		"./events": {
+			"types": "./dist/events.d.ts",
+			"svelte": "./dist/events.js",
+			"default": "./dist/events.js"
+		},
+		"./events-data": {
+			"types": "./dist/events-data.d.ts",
+			"default": "./dist/events-data.js"
+		},
+		"./events/editor": {
+			"types": "./dist/events-editor.d.ts",
+			"default": "./dist/events-editor.js"
 		},
 		"./grain": {
 			"types": "./dist/grain.d.ts",
@@ -71,10 +85,28 @@
 	},
 	"peerDependencies": {
 		"svelte": ">=5.48.0 <6",
-		"tailwindcss": "^4.0.0"
+		"tailwindcss": "^4.0.0",
+		"maplibre-gl": "^6.16.0",
+		"svelte-maplibre-gl": "^2.2.1",
+		"plyr": "^3.8.5"
+	},
+	"peerDependenciesMeta": {
+		"maplibre-gl": {
+			"optional": true
+		},
+		"svelte-maplibre-gl": {
+			"optional": true
+		},
+		"plyr": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.14.0",
+		"axe-core": "^4.14.0",
+		"maplibre-gl": "^6.16.0",
+		"svelte-maplibre-gl": "^2.2.1",
+		"plyr": "^3.8.5",
 		"@changesets/cli": "^2.31.1",
 		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.60.0",
@@ -115,6 +147,16 @@
 	},
 	"dependencies": {
 		"@atcute/bluesky-richtext-parser": "^2.1.2",
+		"@atcute/tid": "^1.1.4",
+		"@internationalized/date": "^3.12.4",
+		"@number-flow/svelte": "^0.4.2",
+		"dompurify": "^3.4.17",
+		"esm-env": "^1.2.2",
+		"h3-js": "^4.5.0",
+		"i18n-iso-countries": "^7.14.0",
+		"marked": "^18.1.2",
+		"svelte-boring-avatars": "^1.2.6",
+		"valibot": "^1.5.0",
 		"@atcute/lexicons": "^2.1.1",
 		"@fontsource-variable/figtree": "^5.3.0",
 		"@sketchyicons/svelte": "^0.5.0",

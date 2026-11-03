@@ -1,0 +1,174 @@
+<script lang="ts">
+	import { Modal, Button, Avatar, LinkCard } from '../index.js';
+	import PostToBlueskyModal from './PostToBlueskyModal.svelte';
+	import type { EditorAdapter, EditorViewer } from './editor/adapter.js';
+
+	let {
+		open = $bindable(false),
+		url,
+		title = 'Event created!',
+		shareText,
+		eventName,
+		ogImageUrl,
+		canSetEventComments = false,
+		eventDid,
+		eventRkey,
+		eventDescription,
+		adapter,
+		viewer,
+		onPosted
+	}: {
+		open: boolean;
+		url: string;
+		title?: string;
+		shareText?: string;
+		eventName?: string;
+		ogImageUrl?: string;
+		canSetEventComments?: boolean;
+		eventDid?: string;
+		eventRkey?: string;
+		eventDescription?: string;
+		adapter: EditorAdapter;
+		viewer: EditorViewer;
+		onPosted?: (ref: { uri: string; cid: string; showComments: boolean }) => void;
+	} = $props();
+
+	let copiedUrl = $state(false);
+	let copiedText = $state(false);
+	let showPostModal = $state(false);
+
+	let textBeforeUrl = $derived(shareText ? shareText.replace(url, '').trim() : undefined);
+
+	async function copyUrl() {
+		try {
+			await navigator.clipboard.writeText(url);
+			copiedUrl = true;
+			setTimeout(() => (copiedUrl = false), 2000);
+		} catch {
+			// Clipboard access may be denied; keep the selectable link available.
+		}
+	}
+
+	async function copyText() {
+		if (!shareText) return;
+		try {
+			await navigator.clipboard.writeText(shareText);
+			copiedText = true;
+			setTimeout(() => (copiedText = false), 2000);
+		} catch {
+			// Clipboard access may be denied; sharing remains available.
+		}
+	}
+
+	let blueskyButton = $state<HTMLButtonElement | HTMLAnchorElement | null>(null);
+
+	let canPostDirectly = $derived(
+		!!eventDid &&
+			!!eventRkey &&
+			!!eventName &&
+			viewer.isLoggedIn &&
+			viewer.canPostToBluesky === true
+	);
+
+	$effect(() => {
+		if (!canPostDirectly) showPostModal = false;
+	});
+
+	let blueskyIntentUrl = $derived(
+		`https://bsky.app/intent/compose?text=${encodeURIComponent(shareText || url)}`
+	);
+
+	function handleBlueskyClick() {
+		if (canPostDirectly) showPostModal = true;
+	}
+
+	function handlePostedFromInner(ref: { uri: string; cid: string; showComments: boolean }) {
+		onPosted?.(ref);
+		open = false;
+	}
+</script>
+
+<Modal
+	bind:open
+	{title}
+	description="Share it with others."
+	onOpenAutoFocus={(e) => {
+		e.preventDefault();
+		blueskyButton?.focus();
+	}}
+>
+	<div>
+		<div
+			class="mb-6 overflow-hidden rounded-xl border border-base-400/40 bg-base-200 px-4 py-3 text-left dark:border-base-700 dark:bg-base-950/30"
+		>
+			{#if viewer.isLoggedIn}
+				<div class="flex items-center gap-2 pb-4">
+					<Avatar
+						src={viewer.avatar}
+						name={viewer.displayName || viewer.handle || viewer.did || 'Account'}
+						class="size-6"
+					/>
+					<span class="text-sm font-medium text-base-700 dark:text-base-200"
+						>{viewer.handle ?? viewer.did}</span
+					>
+				</div>
+			{/if}
+			{#if textBeforeUrl}
+				<p class="text-md mb-3 font-semibold text-base-700 dark:text-base-200">{textBeforeUrl}</p>
+			{/if}
+			{#if eventName}
+				<LinkCard
+					href={url}
+					meta={{
+						title: eventName,
+						image: ogImageUrl
+					}}
+					class="mb-1"
+				/>
+			{/if}
+		</div>
+
+		<div class="flex flex-col gap-2 sm:flex-row">
+			<Button class="flex-1" variant="secondary" onclick={copyUrl}>
+				{copiedUrl ? 'Copied!' : 'Copy link'}
+			</Button>
+			{#if shareText}
+				<Button class="flex-1" variant="secondary" onclick={copyText}>
+					{copiedText ? 'Copied!' : 'Copy text'}
+				</Button>
+			{/if}
+			{#if canPostDirectly}
+				<Button bind:ref={blueskyButton} class="flex-1" onclick={handleBlueskyClick}>
+					Share to Bluesky
+				</Button>
+			{:else}
+				<Button
+					bind:ref={blueskyButton}
+					class="flex-1"
+					href={blueskyIntentUrl}
+					target="_blank"
+					rel="noopener"
+				>
+					Share to Bluesky
+				</Button>
+			{/if}
+		</div>
+	</div>
+</Modal>
+
+{#if canPostDirectly && eventDid && eventRkey && eventName}
+	<PostToBlueskyModal
+		bind:open={showPostModal}
+		{canSetEventComments}
+		{eventDid}
+		{eventRkey}
+		{eventName}
+		eventUrl={url}
+		{eventDescription}
+		{ogImageUrl}
+		initialText={textBeforeUrl ?? eventName}
+		{adapter}
+		{viewer}
+		onPosted={handlePostedFromInner}
+	/>
+{/if}

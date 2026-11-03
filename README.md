@@ -9,6 +9,41 @@ Svelte 5 and Tailwind CSS 4 components for Atmo apps.
 - Releases: `pnpm changeset`, then merge the generated release PR. [Details](.changeset/README.md).
 - License: [MIT](LICENSE).
 
+## Events
+
+The event UI formerly in `@atmo-dev/events-ui` lives in this package:
+
+```svelte
+<script lang="ts">
+	import { EventEditor, EventView, EventCard } from '@atmo-dev/kit/events';
+	import type { EditorAdapter, EditorViewer } from '@atmo-dev/kit/events-data';
+
+	let { adapter, viewer, event, data, pageUrl } = $props();
+</script>
+
+<EventCard {event} />
+<EventEditor {adapter} {viewer} eventData={event} actorDid={event.did} rkey={event.rkey} />
+<EventView {adapter} {viewer} {data} {pageUrl} />
+```
+
+- `@atmo-dev/kit/events`: event cards, views, editor, RSVP/attendee/comment UI, starter-pack actions, conference timetable, VOD player/transcript and date/time/image controls. Event backgrounds and editor sections stay internal.
+- `@atmo-dev/kit/events-data`: structural event types, adapter contracts, conference/date helpers, URL helpers, theme values, linked-record types and thumbnail selection. This entry is safe in plain Node and server routes: no Svelte, CSS, maps or players are loaded. Browser helpers such as `compressImage` only access browser APIs when called.
+- `@atmo-dev/kit/events/editor`: `buildEventRecord` and `buildThumbnailMedia` for hosts that need explicit record construction. This separate entry includes browser-oriented thumbnail code; it is not part of the pure data API.
+
+Apps implement `EditorAdapter` for authentication prompts, repository IO, uploads, save/delete navigation, and optional linked-record transport/indexing notifications. Keep sessions, Cloudflare bindings, app routes, server endpoints, caching and moderation in the app. The editor/view never imports a consumer's app state. Existing `EventView` page-data shape and RSVP behavior are preserved in this migration.
+
+Full event UI requires optional peers (ordinary Kit consumers do not):
+
+```sh
+pnpm add maplibre-gl@^6.16.0 svelte-maplibre-gl@^2.2.1 plyr@^3.8.5
+```
+
+Import `theme.css` as above; it scans the packaged event components too, so no separate Tailwind source path is needed. Event exports are intentionally absent from the main Kit entry.
+
+The initial move preserves legacy defaults: `/p/:actor/e/:rkey` event and `/p/:actor` profile links, `/api/geocoding`, Bluesky's public comments API, the `?created` share flow and RSVP's `createdWith` identifier. Hosts currently need compatible routes/endpoints; `shareUrlOverride` changes outbound share links. These defaults are not a new universal routing contract. Further host-policy extraction can happen independently of the package move.
+
+Event browser tests are in `src/tests/events`; run `pnpm test:unit --run --project events`. `pnpm test:package` checks the actual built server entry and its runtime import graph without Vite aliases.
+
 ## Photos, Grain albums and Streamplace
 
 `PhotoGrid` and `PhotoLightbox` work with provider-neutral `Photo[]` data (`src`, optional `thumbnail`, `alt`, dimensions and `contentWarning`). The grid preserves natural image proportions in responsive masonry columns, with a subtle 2% hover zoom disabled for reduced motion. It gates warned images before mounting them and opens a borderless fullscreen viewer. The viewer has a dimmed backdrop, previous/next arrows, close and a small photo-position counter; native horizontal scrolling with CSS scroll snap makes photos follow your finger or trackpad, with inertia rather than switching only on release. Mouse/pen drags also move the track directly. Swipes loop like the arrows; vertical pans do not navigate and controls are separate from the drag surface. Native pinch zoom, arrow keys, Escape, focus trapping and restoration are preserved; release animations respect reduced motion. `PhotoLightbox` also works independently with `bind:open` and `bind:index`; callers using it directly must first filter or reveal any warned photos. Apps own URL validation and moderation policy.

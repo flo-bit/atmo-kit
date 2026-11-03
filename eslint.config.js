@@ -44,6 +44,13 @@ export default defineConfig(
 		}
 	},
 	{
+		files: ['src/lib/events/**/*.svelte'],
+		rules: {
+			// Assignments to $bindable props notify the host even when not read locally.
+			'no-useless-assignment': 'off'
+		}
+	},
+	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
 		rules: {}
