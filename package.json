@@ -25,7 +25,7 @@
 		"test": "pnpm test:unit --run && pnpm test:e2e && pnpm test:package",
 		"test:ci": "pnpm test:unit --run --no-file-parallelism && pnpm test:e2e && pnpm test:package",
 		"test:e2e": "playwright test",
-		"test:package": "pnpm prepack && node --test scripts/test-events-package.mjs",
+		"test:package": "pnpm prepack && node --test scripts/test-*-package.mjs",
 		"changeset": "changeset",
 		"version-packages": "changeset version && pnpm install --lockfile-only --no-frozen-lockfile --ignore-scripts",
 		"release": "pnpm prepack && changeset publish"
@@ -46,6 +46,10 @@
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
+		},
+		"./at-tags": {
+			"types": "./dist/at-tags.d.ts",
+			"default": "./dist/at-tags.js"
 		},
 		"./events": {
 			"types": "./dist/events.d.ts",
