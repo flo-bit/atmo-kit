@@ -31,7 +31,8 @@
 	import { eventStreamLink, parseGrainLink } from './linked-records.js';
 	import AddToCalendarButton from './event-view/AddToCalendarButton.svelte';
 	import ExternalRsvpNotice from './event-view/ExternalRsvpNotice.svelte';
-	import { buildDescriptionHtml } from './event-view/format';
+	import RichText from '../components/RichText.svelte';
+	import { getLocalProfileUrl } from './profile-url.js';
 	import { getLocations, resolveGeoLocation, type GeoLocation } from './event-view/locations.js';
 
 	let {
@@ -108,13 +109,11 @@
 	let canSetEventComments = $state(false);
 	let isHost = $derived(!!viewer.did && viewer.did === did);
 	let hasComments = $derived(!!eventData.bskyPostRef?.showComments && !!eventData.bskyPostRef?.uri);
-	let descriptionHtml = $derived(
-		buildDescriptionHtml(eventData.description, eventData.facets, viewer.preferredSocialClient)
-	);
+	let hasDescription = $derived(!!eventData.description);
 	let aboutCommentsTab = $state<string>('about');
 	let photoLinks = $derived(eventData.uris?.filter((link) => parseGrainLink(link.uri)) ?? []);
 	let contentTabs = $derived([
-		...(descriptionHtml ? [{ value: 'about', label: 'About' }] : []),
+		...(hasDescription ? [{ value: 'about', label: 'About' }] : []),
 		...(hasComments ? [{ value: 'comments', label: 'Comments' }] : []),
 		...(photoLinks.length ? [{ value: 'photos', label: 'Photos' }] : [])
 	]);
@@ -390,13 +389,14 @@
 							</p>
 						{/if}
 						{#if activeTab === 'about'}
-							<div
-								class="prose dark:prose-invert prose-a:text-accent-600 dark:prose-a:text-accent-400 prose-a:hover:underline prose-a:no-underline max-w-none leading-relaxed wrap-break-word text-base-700 dark:text-base-300"
-							>
-								<!-- HTML is sanitized by buildDescriptionHtml before rendering. -->
-								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-								{@html descriptionHtml}
-							</div>
+							<RichText
+								text={eventData.description ?? ''}
+								facets={eventData.facets}
+								mentionUrl={getLocalProfileUrl}
+								socialClient={viewer.preferredSocialClient}
+								detectLinks
+								class="text-base-700 dark:text-base-300"
+							/>
 						{:else if activeTab === 'comments' && eventData.bskyPostRef?.uri}
 							<EventComments
 								postUri={eventData.bskyPostRef.uri}

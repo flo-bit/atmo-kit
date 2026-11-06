@@ -50,6 +50,121 @@ describe('Bluesky rich text', () => {
 			])
 		).toEqual([{ text: '' }, { text: 'hello', href: undefined }, { text: ' world' }]);
 	});
+
+	it.each([null, {}, 'bad', 42, [null, {}, { index: null }, { index: {} }]])(
+		'ignores malformed facet containers without losing text: %j',
+		(facets) => {
+			const text = '👋 café\n<script>literal</script>';
+			expect(richTextSegments(text, facets)).toEqual([{ text }]);
+		}
+	);
+
+	it('validates byte boundaries, sorts facets and ignores overlapping or invalid ranges', () => {
+		const text = '👋 café hello';
+		const feature = { $type: 'app.bsky.richtext.facet#link', uri: 'https://example.com' };
+		const segments = richTextSegments(text, [
+			{ index: { byteStart: 11, byteEnd: 16 }, features: [feature] },
+			...[
+				[-1, 4],
+				[0, 1],
+				[1, 4],
+				[5, 9],
+				[5, 5],
+				[5, 999],
+				[NaN, 4],
+				[0.5, 4],
+				['0', 4],
+				[0, Infinity]
+			].map(([byteStart, byteEnd]) => ({ index: { byteStart, byteEnd }, features: [feature] })),
+			{ index: { byteStart: 5, byteEnd: 10 }, features: [feature] },
+			{ index: { byteStart: 6, byteEnd: 10 }, features: [feature] }
+		]);
+		expect(segments.map((segment) => segment.text).join('')).toBe(text);
+		expect(segments.filter((segment) => segment.href).map((segment) => segment.text)).toEqual([
+			'café',
+			'hello'
+		]);
+	});
+
+	it.each([
+		'javascript:alert(1)',
+		'java\tscript:alert(1)',
+		'data:text/html,evil',
+		'vbscript:evil',
+		'//evil.test',
+		'https://trusted.test@evil.test',
+		{},
+		null
+	])('does not link unsafe facet URLs: %j', (uri) => {
+		const segments = richTextSegments('click', [
+			{
+				index: { byteStart: 0, byteEnd: 5 },
+				features: [{ $type: 'app.bsky.richtext.facet#link', uri }]
+			}
+		]);
+		expect(segments.map((segment) => segment.text).join('')).toBe('click');
+		expect(segments.some((segment) => segment.href)).toBe(false);
+	});
+
+	it('requires matching feature types and tolerates malformed feature values', () => {
+		for (const features of [
+			null,
+			{},
+			[null],
+			[{ $type: 'unknown', uri: 'https://example.com' }],
+			[{ $type: 'app.bsky.richtext.facet#mention', did: {} }],
+			[{ $type: 'app.bsky.richtext.facet#tag', tag: {} }],
+			[{ $type: 'app.bsky.richtext.facet#link', did: 'did:plc:alice' }]
+		]) {
+			const segments = richTextSegments('hello', [
+				{ index: { byteStart: 0, byteEnd: 5 }, features }
+			]);
+			expect(segments.map((segment) => segment.text).join('')).toBe('hello');
+			expect(segments.some((segment) => segment.href)).toBe(false);
+		}
+	});
+
+	it('uses a valid supported feature even after an unknown feature', () => {
+		expect(
+			richTextSegments('hello', [
+				{
+					index: { byteStart: 0, byteEnd: 5 },
+					features: [
+						null,
+						{ $type: 'unknown' },
+						{ $type: 'app.bsky.richtext.facet#link', uri: 'https://example.com' }
+					]
+				}
+			]).find((segment) => segment.href)?.href
+		).toBe('https://example.com/');
+	});
+
+	it.each(['javascript:alert(1)', '//evil.test', '/\\evil.test', '/\n/evil.test'])(
+		'rejects unsafe mention callback destinations: %s',
+		(href) => {
+			const segments = richTextSegments('@alice.test', undefined, {
+				detectLinks: true,
+				mentionUrl: () => href
+			});
+			expect(segments.some((segment) => segment.href)).toBe(false);
+		}
+	);
+
+	it('does not auto-detect links by default or replace explicit facets with detection', () => {
+		const text = '@alice.test https://example.com #events';
+		expect(richTextSegments(text)).toEqual([{ text }]);
+		const segments = richTextSegments(
+			text,
+			[
+				{
+					index: { byteStart: 0, byteEnd: 11 },
+					features: [{ $type: 'app.bsky.richtext.facet#mention', did: 'did:web:alice.test' }]
+				}
+			],
+			{ detectLinks: true }
+		);
+		expect(segments.filter((segment) => segment.href)).toHaveLength(1);
+	});
 });
 
 it('normalizes media and quoted posts without network/session dependencies', () => {

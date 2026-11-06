@@ -283,14 +283,18 @@ test('local HLS video does not autoplay, recovers from source failure, and stops
 	expect(errors).toEqual([]);
 });
 test('examples pass WCAG, responsive, reduced-motion, and inset-only checks in both themes', async ({
-	page
+	page,
+	baseURL
 }) => {
 	test.setTimeout(90000);
 	const errors: string[] = [],
 		external: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	page.on('request', (request) => {
-		if (/^https?:/.test(request.url()) && new URL(request.url()).origin !== 'http://127.0.0.1:5190')
+		if (
+			/^https?:/.test(request.url()) &&
+			new URL(request.url()).origin !== new URL(baseURL!).origin
+		)
 			external.push(request.url());
 	});
 	for (const mode of ['dark', 'light']) {

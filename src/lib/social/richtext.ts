@@ -1,17 +1,21 @@
 import { tokenize } from '@atcute/bluesky-richtext-parser';
+import { isDid } from '@atcute/lexicons/syntax';
 import type { JSONContent } from '@tiptap/core';
-import { blueskyProfileUrl } from './urls.js';
+import { socialHashtagUrl, socialProfileUrl } from './urls.js';
+import type { PreferredSocialClient } from './preferred-client.js';
 
 export type Facet = {
 	index: { byteStart: number; byteEnd: number };
 	features: { $type: string; did?: string; uri?: string; tag?: string }[];
 };
 
-export function safeWebUrl(url: string | undefined): string | undefined {
-	if (!url) return undefined;
+export function safeWebUrl(url: unknown): string | undefined {
+	if (typeof url !== 'string' || !url) return undefined;
 	try {
 		const parsed = new URL(url);
-		return ['https:', 'http:'].includes(parsed.protocol) ? parsed.href : undefined;
+		return ['https:', 'http:'].includes(parsed.protocol) && !parsed.username && !parsed.password
+			? parsed.href
+			: undefined;
 	} catch {
 		return undefined;
 	}
@@ -70,29 +74,100 @@ export function editorJsonToBlueskyPost(doc: JSONContent): { text: string; facet
 	return { text, facets: facets.sort((a, b) => a.index.byteStart - b.index.byteStart) };
 }
 
-export function richTextSegments(text: string, facets: Facet[] = []) {
+export type RichTextOptions = {
+	socialClient?: PreferredSocialClient | null;
+	/** App-owned mention destination; defaults to the selected social client. */
+	mentionUrl?: (identifier: string) => string;
+	/** Detect plain-text links, mentions and hashtags only when there are no facets. */
+	detectLinks?: boolean;
+};
+
+export type RichTextSegment = { text: string; href?: string };
+
+function record(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Only app-relative paths or HTTP(S), including for app-owned mention callbacks. */
+function safeMentionUrl(identifier: string, options: RichTextOptions): string | undefined {
+	const href =
+		options.mentionUrl?.(identifier) ?? socialProfileUrl(identifier, options.socialClient);
+	if (
+		typeof href !== 'string' ||
+		Array.from(href).some(
+			(char) => char === '\\' || char.charCodeAt(0) <= 0x20 || char.charCodeAt(0) === 0x7f
+		)
+	)
+		return undefined;
+	if (href.startsWith('/') && !href.startsWith('//')) return href;
+	return safeWebUrl(href);
+}
+
+function featureUrl(feature: unknown, options: RichTextOptions): string | undefined {
+	if (!record(feature)) return undefined;
+	switch (feature.$type) {
+		case 'app.bsky.richtext.facet#mention':
+			return typeof feature.did === 'string' && isDid(feature.did)
+				? safeMentionUrl(feature.did, options)
+				: undefined;
+		case 'app.bsky.richtext.facet#link':
+			return safeWebUrl(feature.uri);
+		case 'app.bsky.richtext.facet#tag':
+			return typeof feature.tag === 'string' && feature.tag && feature.tag.isWellFormed()
+				? socialHashtagUrl(feature.tag, options.socialClient)
+				: undefined;
+	}
+}
+
+/** Plain text and validated links, never HTML or Markdown. Invalid facets leave text intact. */
+export function richTextSegments(
+	text: string,
+	facets: unknown = [],
+	options: RichTextOptions = {}
+): RichTextSegment[] {
+	if ((!Array.isArray(facets) || !facets.length) && options.detectLinks) {
+		return Array.from(tokenize(text), (token) => ({
+			text: token.raw,
+			href:
+				token.type === 'autolink'
+					? safeWebUrl(token.url)
+					: token.type === 'mention'
+						? safeMentionUrl(token.handle, options)
+						: token.type === 'topic'
+							? socialHashtagUrl(token.name, options.socialClient)
+							: undefined
+		}));
+	}
+
 	const encoded = new TextEncoder().encode(text);
 	const decoder = new TextDecoder();
-	const segments: { text: string; href?: string }[] = [];
-	let cursor = 0;
-	for (const facet of [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)) {
+	const segments: RichTextSegment[] = [];
+	const valid: { byteStart: number; byteEnd: number; features: unknown[] }[] = [];
+	// UTF-8 continuation bytes cannot start/end a facet.
+	const boundary = (offset: number) =>
+		offset === encoded.length || (encoded[offset] & 0xc0) !== 0x80;
+	for (const facet of Array.isArray(facets) ? facets : []) {
+		if (!record(facet) || !record(facet.index) || !Array.isArray(facet.features)) continue;
 		const { byteStart, byteEnd } = facet.index;
 		if (
-			!Number.isInteger(byteStart) ||
-			!Number.isInteger(byteEnd) ||
-			byteStart < cursor ||
+			typeof byteStart !== 'number' ||
+			typeof byteEnd !== 'number' ||
+			!Number.isSafeInteger(byteStart) ||
+			!Number.isSafeInteger(byteEnd) ||
+			byteStart < 0 ||
 			byteEnd <= byteStart ||
-			byteEnd > encoded.length
+			byteEnd > encoded.length ||
+			!boundary(byteStart) ||
+			!boundary(byteEnd)
 		)
 			continue;
-		const feature = facet.features?.[0];
-		const href = feature?.did
-			? blueskyProfileUrl(feature.did)
-			: feature?.uri
-				? safeWebUrl(feature.uri)
-				: feature?.tag
-					? `https://bsky.app/hashtag/${encodeURIComponent(feature.tag)}`
-					: undefined;
+		valid.push({ byteStart, byteEnd, features: facet.features });
+	}
+
+	let cursor = 0;
+	for (const { byteStart, byteEnd, features } of valid.sort((a, b) => a.byteStart - b.byteStart)) {
+		if (byteStart < cursor) continue;
+		const href = features.map((feature) => featureUrl(feature, options)).find(Boolean);
 		segments.push({ text: decoder.decode(encoded.slice(cursor, byteStart)) });
 		segments.push({ text: decoder.decode(encoded.slice(byteStart, byteEnd)), href });
 		cursor = byteEnd;

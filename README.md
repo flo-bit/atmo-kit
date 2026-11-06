@@ -121,6 +121,8 @@ The event UI formerly in `@atmo-dev/events-ui` lives in this package:
 - `@atmo-dev/kit/events-data`: structural event types, adapter contracts, conference/date helpers, URL helpers, theme values, linked-record types and thumbnail selection. This entry is safe in plain Node and server routes: no Svelte, CSS, maps or players are loaded. Browser helpers such as `compressImage` only access browser APIs when called.
 - `@atmo-dev/kit/events/editor`: `buildEventRecord` and `buildThumbnailMedia` for hosts that need explicit record construction. This separate entry includes browser-oriented thumbnail code; it is not part of the pure data API.
 
+Event descriptions are plain text with AT Protocol facets, rendered by the shared `RichText` component using Svelte text and links—not HTML. Markdown and raw HTML are displayed literally; existing records are not rewritten. Line breaks are preserved. Facet mentions link to local profiles, hashtags use the viewer's preferred social client, and link facets accept only HTTP(S) URLs without credentials. Malformed, overlapping or invalid UTF-8 facet ranges are ignored without dropping text. Descriptions without facets detect plain-text links, mentions and hashtags, with no network requests or Markdown interpretation. There is no sanitizer or asynchronous browser-only fallback.
+
 Event cards and covers prefer native `media` images, then an HTTPS `poster.url`, then a URI named `Event Image` (laugh.town compatibility). `getEventExternalImage(event)` from `events-data` returns `{ url, alt, aspectRatio? }` or `null`, validating URLs and optional poster dimensions. It performs no IO; apps must apply their own allowlist/redirect policy before fetching an external image server-side.
 
 Apps implement `EditorAdapter` for authentication prompts, repository IO, uploads, save/delete navigation, and optional linked-record transport/indexing notifications. Keep sessions, Cloudflare bindings, app routes, server endpoints, caching and moderation in the app. The editor/view never imports a consumer's app state. Existing `EventView` page-data shape and RSVP behavior are preserved in this migration.
@@ -191,6 +193,26 @@ For now, `createGrainXrpcClient(fetchImpl?)` provides the Grain.social implement
 `NestedComments` renders `PostData[]` with recursive replies and compact reply, repost, and like icon/count links. Counts default to zero; each link has a full accessible label and opens the post in the viewer's preferred social client. These are outbound links, not authenticated engagement buttons.
 
 Use `blueskyPostToPostData(postView)` to convert public AppView posts, including `repostCount`. `PostContent` supports images, galleries, external link cards, HLS video, quoted posts (including their embeds), record-with-media combinations, feeds, lists, starter packs, and moderation-service cards. Missing, blocked, and detached quotes have readable placeholders; unknown embed variants show an unavailable fallback. Quote nesting is capped at three levels. Non-post record cards use Bluesky routes, since other clients may not implement them. Apps still own fetching and moderation.
+
+### Plain text and facets
+
+`RichText` is the text renderer shared by posts and event descriptions:
+
+```svelte
+<script lang="ts">
+	import { RichText } from '@atmo-dev/kit';
+</script>
+
+<RichText
+	text={description}
+	{facets}
+	{socialClient}
+	mentionUrl={(actor) => `/p/${encodeURIComponent(actor)}`}
+	detectLinks
+/>
+```
+
+Only `text` is required. By default, only explicit facets become links. `detectLinks` enables plain-text URL, mention and hashtag detection when no facets are supplied. `socialClient` selects mention/hashtag destinations; `mentionUrl` overrides mention routing with an app-owned HTTP(S) URL or root-relative path. Local links stay in the same tab; external links use `noopener noreferrer nofollow ugc`. The component renders a paragraph, preserves whitespace, wraps long text, and accepts `class`. Text is never parsed as HTML or Markdown. Post text retains Bluesky facet destinations by default.
 
 ### Special link embeds
 

@@ -116,6 +116,8 @@ export { default as InlineEditor } from './components/InlineEditor.svelte';
 export { default as PostComposer } from './components/PostComposer.svelte';
 export { default as NestedComments } from './components/NestedComments.svelte';
 export { default as PostContent } from './components/PostContent.svelte';
+export { default as RichText } from './components/RichText.svelte';
+export type { RichTextProps } from './components/RichText.svelte';
 export { default as ExternalEmbed } from './components/ExternalEmbed.svelte';
 export {
 	defaultExternalEmbedProviders,
@@ -131,7 +133,7 @@ export type {
 export { blueskyPostToPostData } from './social/posts.js';
 export type { PostData, PostEmbed, BlueskyPostView } from './social/posts.js';
 export { editorJsonToBlueskyPost, textToDoc, graphemeLength } from './social/richtext.js';
-export type { Facet } from './social/richtext.js';
+export type { Facet, RichTextOptions, RichTextSegment } from './social/richtext.js';
 export type { Editor, JSONContent } from '@tiptap/core';
 export { launchConfetti } from './confetti.js';
 export { cn } from './utils.js';

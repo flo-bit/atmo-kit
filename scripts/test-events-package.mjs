@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { richTextSegments } from '../dist/social/richtext.js';
 
 // Import the actual public, built entry point in plain Node (no Vite aliases,
 // Svelte loader, DOM globals, map libraries or CSS transform).
@@ -41,6 +42,29 @@ test('runtime data imports never pull in components, styles or players', () => {
 	}
 	visit(new URL('../dist/events-data.js', import.meta.url));
 	assert.ok(visited.size > 5);
+});
+
+test('packaged event descriptions use escaped rich text, not the legacy HTML path', () => {
+	const view = readFileSync(new URL('../dist/events/EventView.svelte', import.meta.url), 'utf8');
+	assert.match(view, /<RichText\b/);
+	assert.doesNotMatch(view, /\{@html|buildDescriptionHtml|sanitize/);
+	const text = '<script>window.__atmoSecurityProbe = 1</script x>';
+	const segments = richTextSegments(text, [
+		null,
+		{
+			index: { byteStart: 0, byteEnd: text.length },
+			features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'javascript:alert(1)' }]
+		}
+	]);
+	assert.equal(segments.map((segment) => segment.text).join(''), text);
+	assert.equal(
+		segments.some((segment) => segment.href),
+		false
+	);
+	assert.equal(
+		richTextSegments('https://example.com', undefined, { detectLinks: true })[0].href,
+		'https://example.com/'
+	);
 });
 
 test('the main Kit entry does not load the events module', () => {

@@ -5,7 +5,8 @@
 	import { socialPostUrl } from '../social/urls.js';
 	import { focus } from '../styles.js';
 	import Icon from './Icon.svelte';
-	import { richTextSegments, safeWebUrl } from '../social/richtext.js';
+	import { safeWebUrl } from '../social/richtext.js';
+	import RichText from './RichText.svelte';
 	import type { ExternalEmbedProvider } from '../social/external-embeds.js';
 	import ExternalEmbed from './ExternalEmbed.svelte';
 	import PostVideo from './PostVideo.svelte';
@@ -28,15 +29,7 @@
 	};
 </script>
 
-{#if post.text}<p class="text-sm leading-relaxed break-words whitespace-pre-wrap text-ink">
-		{#each richTextSegments(post.text, post.facets) as segment, index (index)}{#if segment.href}<a
-					href={segment.href}
-					target="_blank"
-					rel="noopener noreferrer nofollow"
-					class="text-action underline decoration-action/40 underline-offset-2 hover:decoration-action"
-					>{segment.text}</a
-				>{:else}{segment.text}{/if}{/each}
-	</p>{/if}
+{#if post.text}<RichText text={post.text} facets={post.facets} class="text-sm" />{/if}
 {#each post.embeds ?? [] as embed, index (index)}
 	<div class="mt-3">
 		{#if embed.type === 'external'}<ExternalEmbed {embed} providers={embedProviders} />
