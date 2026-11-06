@@ -1,5 +1,11 @@
 # @atmo-dev/kit
 
+## 0.6.0
+
+### Minor Changes
+
+- 2de5538: Add the unstyled AtTags head component and server-safe @atmo-dev/kit/at-tags entry with AtTagMetadata, AtTagRecordRef and recordAtTags. Document the AT Tags draft's four standard relationships, record and identity URI shapes, and SvelteKit adoption without app-owned routing or identity-resolution policy.
+
 ## 0.5.0
 
 ### Minor Changes
