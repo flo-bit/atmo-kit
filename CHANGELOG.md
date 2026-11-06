@@ -1,5 +1,15 @@
 # @atmo-dev/kit
 
+## 0.7.0
+
+### Minor Changes
+
+- ea07306: Allow IconRail items to choose a Button variant, including filled primary creation actions in desktop rails, mobile bars and drawers. Existing navigation keeps its ghost styling by default.
+
+### Patch Changes
+
+- ea07306: Support external event posters from `poster.url` and named `Event Image` URIs as a fallback after native event media. Export `getEventExternalImage` for app-owned embeds and previews.
+
 ## 0.6.0
 
 ### Minor Changes
