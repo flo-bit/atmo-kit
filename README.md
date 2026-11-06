@@ -9,6 +9,13 @@ Svelte 5 and Tailwind CSS 4 components for Atmo apps.
 - Releases: `pnpm changeset`, then merge the generated release PR. [Details](.changeset/README.md).
 - License: [MIT](LICENSE).
 
+## Navigation
+
+`IconRail` items accept a `variant` from `Button` (`primary`, `secondary`, `ghost`,
+`link`); omitted variants remain `ghost`. Use `primary: true, variant: 'primary'`
+for a separated, filled creation action in the rail, mobile bar or drawer. The
+existing `primary` flag alone retains its subtle accent/spacing behavior.
+
 ## AT record metadata (AT Tags)
 
 Use `AtTags` to let other clients discover which AT Protocol records and identities
@@ -113,6 +120,8 @@ The event UI formerly in `@atmo-dev/events-ui` lives in this package:
 - `@atmo-dev/kit/events`: event cards, views, editor, RSVP/attendee/comment UI, starter-pack actions, conference timetable, VOD player/transcript and date/time/image controls. Event backgrounds and editor sections stay internal.
 - `@atmo-dev/kit/events-data`: structural event types, adapter contracts, conference/date helpers, URL helpers, theme values, linked-record types and thumbnail selection. This entry is safe in plain Node and server routes: no Svelte, CSS, maps or players are loaded. Browser helpers such as `compressImage` only access browser APIs when called.
 - `@atmo-dev/kit/events/editor`: `buildEventRecord` and `buildThumbnailMedia` for hosts that need explicit record construction. This separate entry includes browser-oriented thumbnail code; it is not part of the pure data API.
+
+Event cards and covers prefer native `media` images, then an HTTPS `poster.url`, then a URI named `Event Image` (laugh.town compatibility). `getEventExternalImage(event)` from `events-data` returns `{ url, alt, aspectRatio? }` or `null`, validating URLs and optional poster dimensions. It performs no IO; apps must apply their own allowlist/redirect policy before fetching an external image server-side.
 
 Apps implement `EditorAdapter` for authentication prompts, repository IO, uploads, save/delete navigation, and optional linked-record transport/indexing notifications. Keep sessions, Cloudflare bindings, app routes, server endpoints, caching and moderation in the app. The editor/view never imports a consumer's app state. Existing `EventView` page-data shape and RSVP behavior are preserved in this migration.
 

@@ -1,7 +1,7 @@
 <script lang="ts" module>
 	import type { IconNode } from '@sketchyicons/svelte';
 	import type { ButtonProps } from './Button.svelte';
-	export type IconRailItem = Pick<ButtonProps, 'href' | 'onclick' | 'disabled'> & {
+	export type IconRailItem = Pick<ButtonProps, 'href' | 'onclick' | 'disabled' | 'variant'> & {
 		label: string;
 		icon: IconNode;
 		active?: boolean;
@@ -77,7 +77,7 @@
 					<Button
 						href={item.href}
 						disabled={item.disabled}
-						variant="ghost"
+						variant={item.variant ?? 'ghost'}
 						aria-current={item.active ? 'page' : undefined}
 						data-part="item"
 						onclick={(event) => {
@@ -85,8 +85,11 @@
 							item.onclick?.(event);
 						}}
 						class={cn(
-							'min-h-11 w-full justify-start gap-3 px-3 py-3 text-sm aria-[current=page]:bg-recess aria-[current=page]:text-action',
-							item.primary && 'mt-3 text-action'
+							'min-h-11 w-full justify-start gap-3 px-3 py-3 text-sm',
+							(!item.variant || item.variant === 'ghost') &&
+								'aria-[current=page]:bg-recess aria-[current=page]:text-action',
+							item.primary && 'mt-3',
+							item.primary && (!item.variant || item.variant === 'ghost') && 'text-action'
 						)}
 					>
 						<Icon img={item.icon} size={22} />
@@ -128,15 +131,22 @@
 									{...props}
 									href={item.href}
 									disabled={item.disabled}
-									variant="ghost"
+									variant={item.variant ?? 'ghost'}
 									size="icon"
 									aria-label={`${item.label}${item.badge ? (typeof item.badge === 'number' ? `, ${item.badge} unread` : ', unread') : ''}`}
 									aria-current={item.active ? 'page' : undefined}
 									data-part="item"
 									class={cn(
-										'relative size-11 rounded-(--atmo-radius-button) text-muted hover:bg-recess/55 aria-[current=page]:text-action max-sm:size-10',
-										item.primary && 'mt-2 text-action hover:text-action max-sm:mt-0',
-										backed && 'bg-recess/45 hover:bg-recess/75'
+										'relative size-11 rounded-(--atmo-radius-button) max-sm:size-10',
+										(!item.variant || item.variant === 'ghost') &&
+											'text-muted hover:bg-recess/55 aria-[current=page]:text-action',
+										item.primary && 'mt-2 max-sm:mt-0',
+										item.primary &&
+											(!item.variant || item.variant === 'ghost') &&
+											'text-action hover:text-action',
+										backed &&
+											(!item.variant || item.variant === 'ghost') &&
+											'bg-recess/45 hover:bg-recess/75'
 									)}
 								>
 									<Icon img={item.icon} size={22} />{#if item.badge}<span

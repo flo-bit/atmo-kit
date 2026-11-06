@@ -15,7 +15,11 @@ export * from './events/conference.js';
 export * from './events/linked-records.js';
 export * from './events/date-format.js';
 export * from './events/theme.js';
-export { getEventThumbnail } from './events/event-media.js';
+export {
+	getEventThumbnail,
+	getEventExternalImage,
+	type ExternalEventImage
+} from './events/event-media.js';
 export { getCDNImageBlobUrl, compressImage } from './events/atproto-helpers.js';
 export { getProfileUrl, getLocalProfileUrl } from './events/profile-url.js';
 export {

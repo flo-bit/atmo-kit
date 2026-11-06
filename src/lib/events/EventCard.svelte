@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
-	import { getEventThumbnail } from './event-media.js';
+	import { getEventThumbnail, getEventExternalImage } from './event-media.js';
 	import { eventUrl, isEventOngoing, type FlatEventRecord } from './contrail.js';
 	import Avatar from 'svelte-boring-avatars';
 	import { Badge, Icon } from '../index.js';
@@ -75,7 +75,7 @@
 			if (url) return { url, alt: banner.alt || event.name };
 		}
 
-		return null;
+		return getEventExternalImage(event);
 	}
 
 	let thumbnail = $derived(getThumbnail(event));

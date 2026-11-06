@@ -36,6 +36,8 @@ export type EventData = EventLexiconMain & {
 	timezone?: string;
 	/** Atmo stores URIs as objects with optional names rather than bare strings. */
 	uris?: Array<{ uri: string; name?: string }>;
+	/** External poster extension used by laugh.town; validated when displayed. */
+	poster?: unknown;
 	media?: Array<{
 		role: string;
 		alt?: string;

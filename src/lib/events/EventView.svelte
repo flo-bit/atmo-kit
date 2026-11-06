@@ -2,7 +2,7 @@
 	import { eventUrl, isEventOngoing, type FlatEventRecord } from './contrail.js';
 	import type { EventViewData } from './view-data.js';
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
-	import { getEventThumbnail } from './event-media.js';
+	import { getEventThumbnail, getEventExternalImage } from './event-media.js';
 	import { Button, ToggleGroup, ToggleGroupItem } from '../index.js';
 	import ShareModal from './ShareModal.svelte';
 	import EventComments from './EventComments.svelte';
@@ -159,8 +159,8 @@
 		return { url, alt: media.alt || eventData.name, aspectRatio: media.aspect_ratio };
 	});
 
-	// Prefer thumbnail, then flyer; fall back to header/banner image.
-	let displayImage = $derived(thumbnailImage ?? bannerImage);
+	// Prefer native media, then external posters.
+	let displayImage = $derived(thumbnailImage ?? bannerImage ?? getEventExternalImage(eventData));
 	let imageAspectRatio = $derived.by(() => {
 		const ratio = displayImage?.aspectRatio;
 		if (!ratio || ratio.width <= 0 || ratio.height <= 0) return null;
