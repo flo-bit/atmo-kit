@@ -2,7 +2,7 @@
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
 	import { getEventThumbnail } from './event-media.js';
 	import { Avatar, Button, ToggleGroup, ToggleGroupItem } from '../index.js';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { InlineEditor, type Editor } from '../index.js';
 	import DateTimePicker from './DateTimePicker.svelte';
 	import TimezonePicker from './TimezonePicker.svelte';
@@ -185,22 +185,17 @@
 		return s.slice(0, 16);
 	}
 
-	// Auto-set end date to 1 hour after start if empty
+	// Only a changed start should move the end. Watching endsAt as well would
+	// overwrite intermediate keystrokes (e.g. entering 6 before switching to PM).
 	$effect(() => {
-		if (startsAt && !endsAt) {
-			endsAt = cdtToDatetimeLocal(parseDateTime(startsAt).add({ hours: 1 }).toString());
-		}
-	});
-
-	// Auto-adjust end date if start moves past it
-	$effect(() => {
-		if (startsAt && endsAt) {
-			const s = parseDateTime(startsAt);
-			const e = parseDateTime(endsAt);
-			if (s.compare(e) >= 0) {
+		const start = startsAt;
+		untrack(() => {
+			if (!start) return;
+			const s = parseDateTime(start);
+			if (!endsAt || s.compare(parseDateTime(endsAt)) >= 0) {
 				endsAt = cdtToDatetimeLocal(s.add({ hours: 1 }).toString());
 			}
-		}
+		});
 	});
 
 	async function handleSubmit() {
@@ -209,6 +204,8 @@
 		if (!name.trim()) return void (error = 'Name is required.');
 		if (!startsAt) return void (error = 'Start date is required.');
 		if (!endsAt) return void (error = 'End date is required.');
+		if (parseDateTime(endsAt).compare(parseDateTime(startsAt)) <= 0)
+			return void (error = 'End time must be after the start time.');
 		if (!viewer.isLoggedIn || !viewer.did) return void (error = 'You must be logged in.');
 
 		submitting = true;

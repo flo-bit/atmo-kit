@@ -98,6 +98,10 @@
 			// to preserve the wall time across DST transitions.
 			const baseStart = parseDateTime(startsAt);
 			const baseEnd = endsAt ? parseDateTime(endsAt) : null;
+			if (baseEnd && baseEnd.compare(baseStart) <= 0) {
+				errorMsg = 'End time must be after the start time.';
+				return;
+			}
 			const durationMs = baseEnd
 				? baseEnd.toDate(timezone).getTime() - baseStart.toDate(timezone).getTime()
 				: 0;

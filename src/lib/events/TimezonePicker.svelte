@@ -4,7 +4,8 @@
 	let { value = $bindable('') }: { value: string } = $props();
 	let isOpen = $state(false);
 	let search = $state('');
-	const allTimezones = ['UTC', ...Intl.supportedValuesOf('timeZone')];
+	// WebKit already includes UTC; duplicate keys crash the list when opened.
+	const allTimezones = [...new Set(['UTC', ...Intl.supportedValuesOf('timeZone')])];
 	// Memoized formatting results are not reactive state.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const offsets = new Map<string, string>();
