@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
 	editorJsonToBlueskyPost,
 	graphemeLength,
-	richTextSegments,
 	safeWebUrl,
 	textToDoc
 } from '../lib/social/richtext.js';
 import { blueskyPostToPostData } from '../lib/social/posts.js';
+import { richTextSegments } from './richtext-helpers.js';
 
 describe('Bluesky rich text', () => {
 	it('round-trips newlines and counts graphemes, not code units', () => {
@@ -48,7 +48,7 @@ describe('Bluesky rich text', () => {
 				},
 				{ index: { byteStart: 3, byteEnd: 999 }, features: [] }
 			])
-		).toEqual([{ text: '' }, { text: 'hello', href: undefined }, { text: ' world' }]);
+		).toEqual([{ text: 'hello world' }]);
 	});
 
 	it.each([null, {}, 'bad', 42, [null, {}, { index: null }, { index: {} }]])(

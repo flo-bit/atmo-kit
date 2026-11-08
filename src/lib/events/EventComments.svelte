@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { NestedComments, blueskyPostToPostData, type PostData } from '../index.js';
+	import { appviewUrl } from './atproto-helpers.js';
 
 	import { socialClientInfo, socialPostUrl, type PreferredSocialClient } from '../social.js';
 
@@ -34,7 +35,7 @@
 		errorMessage = null;
 		try {
 			const res = await fetch(
-				`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=6`,
+				`${appviewUrl()}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=6`,
 				{ signal }
 			);
 			if (!res.ok) throw new Error(`Failed to load thread (${res.status})`);

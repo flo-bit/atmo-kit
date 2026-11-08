@@ -32,6 +32,7 @@
 	import AddToCalendarButton from './event-view/AddToCalendarButton.svelte';
 	import ExternalRsvpNotice from './event-view/ExternalRsvpNotice.svelte';
 	import RichText from '../components/RichText.svelte';
+	import { richTextToPlainText } from '../richtext/document.js';
 	import { getLocalProfileUrl } from './profile-url.js';
 	import { getLocations, resolveGeoLocation, type GeoLocation } from './event-view/locations.js';
 
@@ -109,7 +110,7 @@
 	let canSetEventComments = $state(false);
 	let isHost = $derived(!!viewer.did && viewer.did === did);
 	let hasComments = $derived(!!eventData.bskyPostRef?.showComments && !!eventData.bskyPostRef?.uri);
-	let hasDescription = $derived(!!eventData.description);
+	let hasDescription = $derived(!!eventData.description?.trim());
 	let aboutCommentsTab = $state<string>('about');
 	let photoLinks = $derived(eventData.uris?.filter((link) => parseGrainLink(link.uri)) ?? []);
 	let contentTabs = $derived([
@@ -203,7 +204,9 @@
 	let eventActor = $derived(hostProfile?.handle || did);
 	let conferenceRooms = $derived(getConferenceRooms(eventData));
 	let scheduleEvents = $derived(
-		isConference ? toScheduleEvents(data.conferenceTalks ?? [], eventUri) : []
+		isConference
+			? toScheduleEvents(data.conferenceTalks ?? [], eventUri, data.conferenceTalkDescriptions)
+			: []
 	);
 
 	// Imported events can opt out of atmo's own RSVPs (rsvpMode === 'external_only').
@@ -390,11 +393,13 @@
 						{/if}
 						{#if activeTab === 'about'}
 							<RichText
+								content={data.description}
 								text={eventData.description ?? ''}
 								facets={eventData.facets}
 								mentionUrl={getLocalProfileUrl}
 								socialClient={viewer.preferredSocialClient}
 								detectLinks
+								headingOffset={1}
 								class="text-base-700 dark:text-base-300"
 							/>
 						{:else if activeTab === 'comments' && eventData.bskyPostRef?.uri}
@@ -482,7 +487,9 @@
 	{canSetEventComments}
 	eventDid={did}
 	eventRkey={rkey}
-	eventDescription={eventData.description}
+	eventDescription={data.description
+		? richTextToPlainText(data.description)
+		: eventData.description}
 	{adapter}
 	{viewer}
 />

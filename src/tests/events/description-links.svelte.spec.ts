@@ -5,8 +5,11 @@ import { socialClients, type PreferredSocialClient } from '../../lib/social.js';
 import RichText from '../../lib/components/RichText.svelte';
 import { getLocalProfileUrl } from '../../lib/events/profile-url.js';
 import EventView from '../../lib/events/EventView.svelte';
+import ScheduleEventCell from '../../lib/events/schedule/ScheduleEventCell.svelte';
+import { toScheduleEvents } from '../../lib/events/conference.js';
 import { event, viewer, createAdapter } from './fixtures.js';
 import { descriptionAttacks } from '../richtext-security-fixtures.js';
+import { parseRichText, richTextToPlainText } from '../../lib/richtext.js';
 import './theme.css';
 
 const description = '👋 @alice.test #café';
@@ -59,6 +62,92 @@ describe('description links', () => {
 		}
 	);
 
+	it('renders a server-parsed Markdown description with facets', async () => {
+		const text = `# Schedule\n\n**${description}**\n\n<script>window.__atmoSecurityProbe = 1</script>`;
+		const offset = new TextEncoder().encode('# Schedule\n\n**').length;
+		const shifted = facets.map((facet) => ({
+			...facet,
+			index: {
+				byteStart: facet.index.byteStart + offset,
+				byteEnd: facet.index.byteEnd + offset
+			}
+		}));
+		const { container } = await render(EventView, {
+			data: {
+				eventData: { ...event, description: text, facets: shifted },
+				description: parseRichText(text, { facets: shifted, markdown: true, detectLinks: true }),
+				actorDid: event.did,
+				rkey: event.rkey,
+				hostProfile: { did: event.did, handle: viewer.handle },
+				attendees: { going: [], interested: [], goingCount: 0, interestedCount: 0 }
+			},
+			adapter: createAdapter(),
+			viewer,
+			pageUrl: new URL('https://atmo.rsvp/p/host.test/e/event')
+		});
+		await expect.element(page.getByRole('heading', { level: 2, name: 'Schedule' })).toBeVisible();
+		await expect
+			.element(page.getByRole('link', { name: '@alice.test' }))
+			.toHaveAttribute('href', '/p/did%3Aweb%3Aalice.test');
+		expect(container.querySelector('strong a[href*="hashtag"]')?.textContent).toBe('#café');
+		expect(container.querySelector('script')).toBeNull();
+	});
+
+	it('shares plain text instead of Markdown in the Bluesky link card', async () => {
+		const text = '# Schedule\n\nBring **snacks** and [a friend](https://example.com).';
+		history.replaceState({}, '', '?created');
+		await render(EventView, {
+			data: {
+				eventData: { ...event, description: text },
+				description: parseRichText(text, { markdown: true }),
+				actorDid: event.did,
+				rkey: event.rkey,
+				hostProfile: { did: event.did, handle: viewer.handle },
+				attendees: { going: [], interested: [], goingCount: 0, interestedCount: 0 }
+			},
+			adapter: createAdapter(),
+			viewer,
+			pageUrl: new URL('https://atmo.rsvp/p/host.test/e/event')
+		});
+		await page.getByRole('button', { name: 'Share to Bluesky' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Share to Bluesky' });
+		await expect.element(dialog).toHaveTextContent('Schedule Bring snacks and a friend.');
+		await expect.element(dialog).not.toHaveTextContent('**');
+	});
+
+	it('uses plain-text talk descriptions in conference schedules', async () => {
+		const text = '**Keynote** with [slides](https://example.com)';
+		const talk = {
+			...event,
+			description: text,
+			additionalData: { type: 'talk', parentEvent: { uri: 'at://conference' } }
+		};
+		const plain = richTextToPlainText(parseRichText(text, { markdown: true }));
+		const [scheduled] = toScheduleEvents([talk], 'at://conference', { [talk.uri]: plain });
+		expect(scheduled.description).toBe('Keynote with slides');
+		expect(toScheduleEvents([talk], 'at://conference')[0].description).toBe(text);
+		render(ScheduleEventCell, {
+			event: {
+				...scheduled,
+				startMin: 0,
+				endMin: 60,
+				startRow: 1,
+				spanRows: 12,
+				colStart: 1,
+				colSpan: 1,
+				zIndex: 1
+			},
+			tz: 'UTC',
+			eventActor: viewer.handle!,
+			adapter: createAdapter(),
+			viewer
+		});
+		await page.getByRole('button', { name: event.name, exact: true }).click();
+		await expect
+			.element(page.getByRole('dialog', { name: event.name }))
+			.toHaveTextContent('Keynote with slides');
+	});
+
 	it.each(clients)(
 		'uses $url for hashtags and RSVP profiles for facet mentions',
 		async ({ selection, url }) => {
@@ -89,7 +178,9 @@ describe('description links', () => {
 		expect([...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
 			'/p/alice.test',
 			'https://blacksky.community/hashtag/events',
-			'https://example.com/#keep'
+			'https://example.com/#keep',
+			// Markdown link syntax is shown literally; its URL is still a plain-text link.
+			'https://example.com/'
 		]);
 		expect(container.querySelector('b, strong, code')).toBeNull();
 	});

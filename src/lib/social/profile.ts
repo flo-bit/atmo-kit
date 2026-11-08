@@ -1,4 +1,4 @@
-import { tokenize } from '@atcute/bluesky-richtext-parser';
+import { detectTokens } from '../richtext/detect.js';
 import { safeWebUrl } from './richtext.js';
 import { socialHashtagUrl, socialProfileUrl } from './urls.js';
 import type { PreferredSocialClient } from './preferred-client.js';
@@ -42,7 +42,7 @@ export type ProfileDescriptionOptions = {
 };
 
 export function profileDescriptionSegments(text: string, options: ProfileDescriptionOptions = {}) {
-	return Array.from(tokenize(text), (token) => ({
+	return Array.from(detectTokens(text), (token) => ({
 		text: token.raw,
 		href:
 			token.type === 'autolink'

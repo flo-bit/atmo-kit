@@ -118,6 +118,7 @@ export { default as NestedComments } from './components/NestedComments.svelte';
 export { default as PostContent } from './components/PostContent.svelte';
 export { default as RichText } from './components/RichText.svelte';
 export type { RichTextProps } from './components/RichText.svelte';
+export type { RichTextDocument, RichTextLinkOptions } from './richtext/document.js';
 export { default as ExternalEmbed } from './components/ExternalEmbed.svelte';
 export {
 	defaultExternalEmbedProviders,

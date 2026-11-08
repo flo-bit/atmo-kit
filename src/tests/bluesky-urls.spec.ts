@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { blueskyProfileUrl } from '../lib/social/urls.js';
 import { blueskyPostToPostData } from '../lib/social/posts.js';
-import { richTextSegments } from '../lib/social/richtext.js';
+import { richTextSegments } from './richtext-helpers.js';
 
 describe('Bluesky links', () => {
 	it.each([

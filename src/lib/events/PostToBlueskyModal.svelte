@@ -12,8 +12,9 @@
 		graphemeLength,
 		type Editor
 	} from '../index.js';
-	import { tokenize } from '@atcute/bluesky-richtext-parser';
+	import { detectTokens } from '../richtext/detect.js';
 	import { tokensToFacets } from './editor/save.js';
+	import { appviewUrl } from './atproto-helpers.js';
 	import type { EditorAdapter, EditorViewer } from './editor/adapter.js';
 
 	let {
@@ -44,7 +45,7 @@
 		onPosted?: (ref: { uri: string; cid: string; showComments: boolean }) => void;
 	} = $props();
 
-	const searchActors = createActorSearch();
+	const searchActors = createActorSearch({ host: appviewUrl() });
 	let text = $state('');
 	let editor = $state<Editor | null>(null);
 	let prefilledForOpen = $state(false);
@@ -104,7 +105,7 @@
 				return;
 			}
 			// Also recognize handles typed or pasted without selecting a suggestion.
-			const detected = await tokensToFacets(tokenize(text), (handle) =>
+			const detected = await tokensToFacets(detectTokens(text), (handle) =>
 				adapter.resolveHandle(handle)
 			);
 			for (const facet of detected) {

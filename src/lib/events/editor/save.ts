@@ -1,5 +1,6 @@
 import { compressImage } from '../atproto-helpers.js';
-import { tokenize, type Token } from '@atcute/bluesky-richtext-parser';
+import type { Token } from '@atcute/bluesky-richtext-parser';
+import { detectTokens } from '../../richtext/detect.js';
 import type { Facet } from '../../index.js';
 import { datetimeLocalToISO } from '../date-format.js';
 import { designs, resolveAccentColor } from '../thumbnails/designs.js';
@@ -192,7 +193,7 @@ export async function buildEventRecord(args: {
 	const trimmedDescription = description.trim();
 	if (trimmedDescription) {
 		record.description = trimmedDescription;
-		const tokens = tokenize(trimmedDescription);
+		const tokens = detectTokens(trimmedDescription);
 		const facets = await tokensToFacets(tokens, resolveHandle);
 		if (facets.length > 0) record.facets = facets;
 	}

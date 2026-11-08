@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { richTextSegments } from '../dist/social/richtext.js';
+import { parseRichText } from '@atmo-dev/kit/richtext';
 
 // Import the actual public, built entry point in plain Node (no Vite aliases,
 // Svelte loader, DOM globals, map libraries or CSS transform).
@@ -49,21 +49,21 @@ test('packaged event descriptions use escaped rich text, not the legacy HTML pat
 	assert.match(view, /<RichText\b/);
 	assert.doesNotMatch(view, /\{@html|buildDescriptionHtml|sanitize/);
 	const text = '<script>window.__atmoSecurityProbe = 1</script x>';
-	const segments = richTextSegments(text, [
+	const facets = [
 		null,
 		{
 			index: { byteStart: 0, byteEnd: text.length },
 			features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'javascript:alert(1)' }]
 		}
-	]);
-	assert.equal(segments.map((segment) => segment.text).join(''), text);
-	assert.equal(
-		segments.some((segment) => segment.href),
-		false
-	);
-	assert.equal(
-		richTextSegments('https://example.com', undefined, { detectLinks: true })[0].href,
-		'https://example.com/'
+	];
+	for (const markdown of [false, true]) {
+		const document = JSON.stringify(parseRichText(text, { facets, markdown }));
+		assert.doesNotMatch(document, /"type":"link"/);
+		assert.match(document, /window.__atmoSecurityProbe/);
+	}
+	assert.match(
+		JSON.stringify(parseRichText('https://example.com', { detectLinks: true })),
+		/"url":"https:\/\/example.com\/"/
 	);
 });
 

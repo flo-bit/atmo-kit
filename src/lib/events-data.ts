@@ -20,7 +20,7 @@ export {
 	getEventExternalImage,
 	type ExternalEventImage
 } from './events/event-media.js';
-export { getCDNImageBlobUrl, compressImage } from './events/atproto-helpers.js';
+export { getCDNImageBlobUrl, compressImage, configureAtproto } from './events/atproto-helpers.js';
 export { getProfileUrl, getLocalProfileUrl } from './events/profile-url.js';
 export {
 	normalizeCountryCode,

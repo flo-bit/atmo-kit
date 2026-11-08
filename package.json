@@ -76,6 +76,10 @@
 			"types": "./dist/media.d.ts",
 			"default": "./dist/media.js"
 		},
+		"./richtext": {
+			"types": "./dist/richtext.d.ts",
+			"default": "./dist/richtext.js"
+		},
 		"./social": {
 			"types": "./dist/social.d.ts",
 			"default": "./dist/social.js"
@@ -88,11 +92,11 @@
 		"./theme.css": "./dist/theme.css"
 	},
 	"peerDependencies": {
-		"svelte": ">=5.48.0 <6",
-		"tailwindcss": "^4.0.0",
 		"maplibre-gl": "^6.16.0",
+		"plyr": "^3.8.5",
+		"svelte": ">=5.48.0 <6",
 		"svelte-maplibre-gl": "^2.2.1",
-		"plyr": "^3.8.5"
+		"tailwindcss": "^4.0.0"
 	},
 	"peerDependenciesMeta": {
 		"maplibre-gl": {
@@ -107,10 +111,6 @@
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.14.0",
-		"axe-core": "^4.14.0",
-		"maplibre-gl": "^6.16.0",
-		"svelte-maplibre-gl": "^2.2.1",
-		"plyr": "^3.8.5",
 		"@changesets/cli": "^2.31.1",
 		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.60.0",
@@ -122,19 +122,24 @@
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.3.0",
 		"@types/canvas-confetti": "^1.9.0",
+		"@types/mdast": "^4.0.4",
 		"@types/node": "^24",
 		"@vitest/browser-playwright": "^4.1.8",
+		"axe-core": "^4.14.0",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
 		"globals": "^17.6.0",
+		"maplibre-gl": "^6.16.0",
 		"playwright": "^1.60.0",
+		"plyr": "^3.8.5",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"prettier-plugin-tailwindcss": "^0.8.0",
 		"publint": "^0.3.21",
 		"svelte": "^5.57.1",
 		"svelte-check": "^4.6.0",
+		"svelte-maplibre-gl": "^2.2.1",
 		"tailwindcss": "^4.3.0",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
@@ -151,16 +156,11 @@
 	},
 	"dependencies": {
 		"@atcute/bluesky-richtext-parser": "^2.1.2",
+		"@atcute/lexicons": "^2.1.1",
 		"@atcute/tid": "^1.1.4",
+		"@fontsource-variable/figtree": "^5.3.0",
 		"@internationalized/date": "^3.12.4",
 		"@number-flow/svelte": "^0.4.2",
-		"esm-env": "^1.2.2",
-		"h3-js": "^4.5.0",
-		"i18n-iso-countries": "^7.14.0",
-		"svelte-boring-avatars": "^1.2.6",
-		"valibot": "^1.5.0",
-		"@atcute/lexicons": "^2.1.1",
-		"@fontsource-variable/figtree": "^5.3.0",
 		"@sketchyicons/svelte": "^0.5.0",
 		"@tiptap/core": "^3.32.0",
 		"@tiptap/extension-document": "^3.32.0",
@@ -173,7 +173,15 @@
 		"bits-ui": "^2.20.2",
 		"canvas-confetti": "^1.9.4",
 		"clsx": "^2.1.1",
+		"esm-env": "^1.2.2",
+		"h3-js": "^4.5.0",
 		"hls.js": "^1.7.3",
-		"tailwind-merge": "^3.7.0"
+		"i18n-iso-countries": "^7.14.0",
+		"mdast-util-from-markdown": "^2.1.0",
+		"mdast-util-gfm-strikethrough": "^2.0.1",
+		"micromark-extension-gfm-strikethrough": "^2.1.0",
+		"svelte-boring-avatars": "^1.2.6",
+		"tailwind-merge": "^3.7.0",
+		"valibot": "^1.5.0"
 	}
 }

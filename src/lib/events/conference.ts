@@ -78,11 +78,13 @@ export function parseEventUri(uri: string): { did: string; rkey: string } | null
 /**
  * Normalize the talk records belonging to `conferenceUri` into ScheduleEvents,
  * sorted by start time. Records whose `parentEvent.uri` doesn't match are
- * dropped, so it's safe to pass an over-broad list.
+ * dropped, so it's safe to pass an over-broad list. `descriptions` replaces
+ * record descriptions, keyed by URI, e.g. with plain text from Markdown.
  */
 export function toScheduleEvents(
 	events: FlatEventRecord[],
-	conferenceUri: string
+	conferenceUri: string,
+	descriptions?: Record<string, string>
 ): ScheduleEvent[] {
 	return events
 		.filter((e) => getParentEventRef(e)?.uri === conferenceUri)
@@ -96,7 +98,7 @@ export function toScheduleEvents(
 				start: e.startsAt,
 				end: e.endsAt,
 				room: ad.room as string | undefined,
-				description: e.description,
+				description: descriptions?.[e.uri] ?? e.description,
 				did: e.did,
 				uri: e.uri,
 				cid: e.cid,

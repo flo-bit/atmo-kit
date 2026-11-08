@@ -1,0 +1,5 @@
+---
+'@atmo-dev/kit': minor
+---
+
+Render Markdown with AT Protocol facets in event descriptions and other rich text. Add `@atmo-dev/kit/richtext` with `parseRichText`, which parses CommonMark plus strikethrough, facets and detected links into a JSON `RichTextDocument` without Svelte or a DOM, and `richTextToPlainText` for previews. Parse on the server and pass `content` to `RichText`, or `description` to `EventView`, so the parser stays out of client bundles. `EventView` shares plain text in Bluesky link cards and accepts `conferenceTalkDescriptions`, which `toScheduleEvents` also takes, for plain-text talk previews. Text over 10,000 characters, with more than 1,000 Markdown delimiters or with deeply nested containers renders as plain text, keeping parsing within about 100 ms. Raw HTML is shown as written, images are not loaded and only HTTP(S) links are kept; `RichText` validates documents again when rendering. Plain-text `RichText` usage is unchanged, except that facets without a usable destination no longer split the text.

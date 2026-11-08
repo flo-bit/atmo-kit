@@ -4,6 +4,7 @@ import { page } from 'vitest/browser';
 import RichText from '../lib/components/RichText.svelte';
 import PostContent from '../lib/components/PostContent.svelte';
 import { descriptionAttacks } from './richtext-security-fixtures.js';
+import { parseRichText } from '../lib/richtext.js';
 
 it.each(descriptionAttacks)('renders HTML and Markdown literally: %s', async (text) => {
 	const { container } = await render(RichText, { text, detectLinks: true });
@@ -84,4 +85,28 @@ it('uses the same safe text rendering in Bluesky posts', async () => {
 	});
 	expect(container.querySelector('p')?.textContent).toBe(text);
 	expect(container.querySelector('script, a')).toBeNull();
+});
+
+it('renders pre-parsed Markdown with detected links and offset headings', async () => {
+	const content = parseRichText(
+		'## Plan\n\n- **@alice.test** hosts\n- bring `snacks`\n\n[tickets](https://example.com) <b>raw</b>',
+		{ markdown: true, detectLinks: true }
+	);
+	const { container } = await render(RichText, {
+		content,
+		headingOffset: 1,
+		mentionUrl: (actor) => `/p/${encodeURIComponent(actor)}`
+	});
+	await expect.element(page.getByRole('heading', { level: 3, name: 'Plan' })).toBeVisible();
+	expect(page.getByRole('listitem').elements()).toHaveLength(2);
+	await expect
+		.element(page.getByRole('link', { name: '@alice.test' }))
+		.toHaveAttribute('href', '/p/alice.test');
+	await expect
+		.element(page.getByRole('link', { name: 'tickets' }))
+		.toHaveAttribute('target', '_blank');
+	expect(container.querySelector('strong a')?.textContent).toBe('@alice.test');
+	expect(container.querySelector('code')?.textContent).toBe('snacks');
+	expect(container.querySelector('b')).toBeNull();
+	expect(container.textContent).toContain('<b>raw</b>');
 });

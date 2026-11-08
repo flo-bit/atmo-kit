@@ -121,7 +121,19 @@ The event UI formerly in `@atmo-dev/events-ui` lives in this package:
 - `@atmo-dev/kit/events-data`: structural event types, adapter contracts, conference/date helpers, URL helpers, theme values, linked-record types and thumbnail selection. This entry is safe in plain Node and server routes: no Svelte, CSS, maps or players are loaded. Browser helpers such as `compressImage` only access browser APIs when called.
 - `@atmo-dev/kit/events/editor`: `buildEventRecord` and `buildThumbnailMedia` for hosts that need explicit record construction. This separate entry includes browser-oriented thumbnail code; it is not part of the pure data API.
 
-Event descriptions are plain text with AT Protocol facets, rendered by the shared `RichText` component using Svelte text and links—not HTML. Markdown and raw HTML are displayed literally; existing records are not rewritten. Line breaks are preserved. Facet mentions link to local profiles, hashtags use the viewer's preferred social client, and link facets accept only HTTP(S) URLs without credentials. Malformed, overlapping or invalid UTF-8 facet ranges are ignored without dropping text. Descriptions without facets detect plain-text links, mentions and hashtags, with no network requests or Markdown interpretation. There is no sanitizer or asynchronous browser-only fallback.
+Event descriptions are Markdown with AT Protocol facets. Parse them on the server and pass the result as `data.description`, so the Markdown parser stays out of the client bundle:
+
+```ts
+import { parseRichText } from '@atmo-dev/kit/richtext';
+
+const description = event.description
+	? parseRichText(event.description, { facets: event.facets, markdown: true, detectLinks: true })
+	: null;
+```
+
+Without `data.description`, `EventView` shows the description as plain text with facet links. Description headings render one level below the event title, and the Bluesky share card uses `richTextToPlainText(description)`. Conference schedules show talk descriptions as short previews: pass `conferenceTalkDescriptions`, plain text keyed by talk URI, so Markdown syntax does not appear there. See [Rich text](#rich-text) for what is supported.
+
+Event components read Bluesky's public AppView and CDN by default. Apps using other services call `configureAtproto({ appview, cdn })` from `events-data` once, before rendering, on both the server and the client (for example at the top of the root layout).
 
 Event cards and covers prefer native `media` images, then an HTTPS `poster.url`, then a URI named `Event Image` (laugh.town compatibility). `getEventExternalImage(event)` from `events-data` returns `{ url, alt, aspectRatio? }` or `null`, validating URLs and optional poster dimensions. It performs no IO; apps must apply their own allowlist/redirect policy before fetching an external image server-side.
 
@@ -194,25 +206,43 @@ For now, `createGrainXrpcClient(fetchImpl?)` provides the Grain.social implement
 
 Use `blueskyPostToPostData(postView)` to convert public AppView posts, including `repostCount`. `PostContent` supports images, galleries, external link cards, HLS video, quoted posts (including their embeds), record-with-media combinations, feeds, lists, starter packs, and moderation-service cards. Missing, blocked, and detached quotes have readable placeholders; unknown embed variants show an unavailable fallback. Quote nesting is capped at three levels. Non-post record cards use Bluesky routes, since other clients may not implement them. Apps still own fetching and moderation.
 
-### Plain text and facets
+### Rich text
 
-`RichText` is the text renderer shared by posts and event descriptions:
+`RichText` renders text shared by posts, event descriptions and other user content. Plain text can be passed directly:
 
 ```svelte
-<script lang="ts">
-	import { RichText } from '@atmo-dev/kit';
-</script>
-
 <RichText
-	text={description}
-	{facets}
+	text={post.text}
+	facets={post.facets}
 	{socialClient}
 	mentionUrl={(actor) => `/p/${encodeURIComponent(actor)}`}
-	detectLinks
 />
 ```
 
-Only `text` is required. By default, only explicit facets become links. `detectLinks` enables plain-text URL, mention and hashtag detection when no facets are supplied. `socialClient` selects mention/hashtag destinations; `mentionUrl` overrides mention routing with an app-owned HTTP(S) URL or root-relative path. Local links stay in the same tab; external links use `noopener noreferrer nofollow ugc`. The component renders a paragraph, preserves whitespace, wraps long text, and accepts `class`. Text is never parsed as HTML or Markdown. Post text retains Bluesky facet destinations by default.
+For Markdown, parse with `@atmo-dev/kit/richtext` (no Svelte or DOM; works in Workers) and pass `content`:
+
+```ts
+// +page.server.ts
+import { parseRichText } from '@atmo-dev/kit/richtext';
+
+const content = parseRichText(text, { facets, markdown: true, detectLinks: true });
+```
+
+```svelte
+<RichText {content} {socialClient} headingOffset={1} />
+```
+
+Each feature can be turned on separately:
+
+- `markdown`: CommonMark plus `~~strikethrough~~`. Single newlines are line breaks. Raw HTML is shown as written. Images are never loaded; they become links labeled by their alt text. Tables and other extensions stay literal text. Text over 10,000 characters, with more than 1,000 `*`, `_`, `~` or `[` characters, or with more than 8 nested quote or list markers on a line, is rendered as plain text, because the parser slows down quadratically on some inputs. Without `markdown`, text is plain and whitespace is preserved.
+- `facets`: record facets are validated at runtime. Malformed, overlapping or mid-character ranges are ignored without dropping text. In Markdown, facets apply to formatted text such as `**@alice**`; facets in code, inside Markdown links, across Markdown syntax or on text changed by escapes or entities are ignored.
+- `detectLinks`: detects URLs, mentions and hashtags when there are no facets, outside code and existing links. Detection uses the mention, hashtag and URL rules of `@atcute/bluesky-richtext-parser` in one linear pass. Its `tokenize` also parses emphasis and backtracks badly on runs of `*` (a hundred take minutes), so do not run it on untrusted text; `detectTokens` from `@atmo-dev/kit/richtext` returns compatible tokens.
+
+Links accept only HTTP(S) URLs without credentials. `socialClient` selects mention and hashtag destinations; `mentionUrl` overrides mention routing with an HTTP(S) URL or root-relative path. Local links stay in the same tab; external links use `noopener noreferrer nofollow ugc`. Post text keeps Bluesky destinations by default.
+
+The parsed `RichTextDocument` is plain JSON with a `version`, independent of the viewer, so it can be sent in page data and cached publicly. `RichText` still treats it as untrusted: it renders only known elements, checks every link again and shows unknown nodes as text. Prefer parsing per request (a few milliseconds) over storing documents. `richTextToPlainText(content)` returns text without Markdown syntax for meta descriptions and previews.
+
+To parse in the browser, for example in an editor preview, load the parser on demand with `await import('@atmo-dev/kit/richtext')` so it is not part of the initial bundle.
 
 ### Special link embeds
 

@@ -1,8 +1,15 @@
 import type { AttendeeInfo, FlatEventRecord, HostProfile } from './contrail.js';
+import type { RichTextDocument } from '../richtext/document.js';
 
 /** App-loaded data for EventView; fetching and authorization stay in the host. */
 export interface EventViewData {
 	eventData: FlatEventRecord;
+	/**
+	 * `eventData.description` parsed on the server, usually with
+	 * `parseRichText(description, { facets, markdown: true, detectLinks: true })`.
+	 * Without it, the description renders as plain text.
+	 */
+	description?: RichTextDocument | null;
 	actorDid: string;
 	rkey: string;
 	hostProfile?: HostProfile | null;
@@ -21,6 +28,8 @@ export interface EventViewData {
 	parentScheduleUrl?: string | null;
 	vod?: { playlistUrl: string } | null;
 	conferenceTalks?: FlatEventRecord[];
+	/** Plain-text talk descriptions keyed by talk URI, e.g. from `richTextToPlainText`. */
+	conferenceTalkDescriptions?: Record<string, string>;
 	conferenceTimezone?: string;
 	conferenceRsvpStatuses?: Record<string, string>;
 	conferenceRsvpRkeys?: Record<string, string>;

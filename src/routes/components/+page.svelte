@@ -14,6 +14,7 @@
 		Popover,
 		PostComposer,
 		PostContent,
+		RichText,
 		Select,
 		Subheading,
 		Surface,
@@ -28,6 +29,7 @@
 	} from '#lib';
 	import { ArrowLeft, Moon, Sun, Link, ArrowRight, X } from '@sketchyicons/svelte';
 	import MediaExamples from '../../playground/components/MediaExamples.svelte';
+	import { parseRichText } from '#lib/richtext.js';
 	import coastAsset from '../playground/coast.webp';
 	import forestAsset from '../../playground/mockups/assets/nature3.webp';
 	import {
@@ -39,6 +41,11 @@
 		sampleDoc,
 		searchActors
 	} from '../../playground/components/examples.js';
+
+	const richText = parseRichText(
+		'## Schedule\n\nDoors open ~7pm. Hosted by **@alice.bsky.social** with #smallweb friends.\nBring a laptop, or `ssh` in remotely.\n\n1. Lightning talks\n2. ~~Pizza~~ Tacos\n3. Hacking until late\n\n> Everyone is welcome.\n\nTickets at https://example.com or [the RSVP page](https://atmo.rsvp). <b>Raw HTML</b> stays text.',
+		{ markdown: true, detectLinks: true }
+	);
 	let base = $state<string>('zinc'),
 		accent = $state<string>('pink'),
 		dark = $state(true);
@@ -243,6 +250,10 @@
 						>{/if}
 				</div>
 				<div data-testid="post-preview"><PostContent post={preview} /></div>
+			</section>
+			<section aria-labelledby="richtext-heading">
+				<Subheading id="richtext-heading" class="mb-5">Rich text</Subheading>
+				<RichText content={richText} headingOffset={1} class="text-sm" />
 			</section>
 			<section aria-labelledby="comments-heading">
 				<Subheading id="comments-heading" class="mb-5">Nested comments</Subheading><NestedComments

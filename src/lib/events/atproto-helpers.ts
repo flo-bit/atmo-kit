@@ -3,6 +3,21 @@
  * on any session/client state — those flow through the EditorAdapter.
  */
 
+const services = {
+	appview: 'https://public.api.bsky.app',
+	cdn: 'https://cdn.bsky.app'
+};
+
+/** Configure shared event components before rendering on the server and in the browser. */
+export function configureAtproto(options: { appview?: string; cdn?: string }): void {
+	if (options.appview) services.appview = options.appview.replace(/\/+$/, '');
+	if (options.cdn) services.cdn = options.cdn.replace(/\/+$/, '');
+}
+
+export function appviewUrl(): string {
+	return services.appview;
+}
+
 export function getCDNImageBlobUrl({
 	did,
 	blob,
@@ -15,7 +30,7 @@ export function getCDNImageBlobUrl({
 	};
 	format?: 'webp' | 'jpeg' | 'png';
 }) {
-	return `https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${blob.ref.$link}@${format}`;
+	return `${services.cdn}/img/feed_thumbnail/plain/${did}/${blob.ref.$link}@${format}`;
 }
 
 export function compressImage(
