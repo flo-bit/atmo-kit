@@ -1,5 +1,16 @@
 # @atmo-dev/kit
 
+## 0.9.0
+
+### Minor Changes
+
+- 466040d: Add the framework-free `@atmo-dev/kit/urls` entry with `safeHttpUrl` for credential-free HTTP(S) destinations and `safeLinkHref` for root-relative paths, fragments and intentional mail/phone navigation. Reuse the shared validator in rich text, social content, event links and locations, and legal links. Existing `safeWebUrl` exports remain aliases for compatibility. These helpers validate rendered destinations, not server-fetch/SSRF policies.
+- 466040d: Add AccountMenu for signed-in sidebar footers, with an avatar trigger, Go to profile and Sign out actions, keyboard navigation and inherited portal theming.
+
+### Patch Changes
+
+- 466040d: Validate event record links and imported events' external RSVP URLs as credential-free HTTP(S) destinations before rendering. Omit unsafe links during SSR as well as client rendering; do not rely on target="_blank" to neutralize executable schemes. Preserve equivalent and exact duplicate link entries without using their normalized URLs as Svelte keys, avoiding client-rendering crashes.
+
 ## 0.8.0
 
 ### Minor Changes
