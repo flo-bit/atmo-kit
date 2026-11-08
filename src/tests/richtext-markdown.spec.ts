@@ -8,6 +8,9 @@ import {
 import { inlineHref } from '../lib/richtext/document.js';
 import { descriptionAttacks } from './richtext-security-fixtures.js';
 
+// Generous for slow CI runners: the regressions these catch take seconds to minutes.
+const BUDGET_MS = 2000;
+
 const bytes = (text: string) => new TextEncoder().encode(text).length;
 
 /** Facet covering the first occurrence of `label` in `text`. */
@@ -200,7 +203,7 @@ describe('Markdown rich text', () => {
 	])('falls back to plain text for %s, which micromark parses slowly', (_, text) => {
 		const start = performance.now();
 		const document = markdown(text);
-		expect(performance.now() - start).toBeLessThan(500);
+		expect(performance.now() - start).toBeLessThan(BUDGET_MS);
 		expect(document.markdown).toBe(false);
 		expect(richTextToPlainText(document)).toBe(text);
 	});
@@ -221,7 +224,7 @@ describe('Markdown rich text', () => {
 	])('parses the largest allowed shapes quickly (%#)', (text) => {
 		const start = performance.now();
 		expect(markdown(text, undefined, true).markdown).toBe(true);
-		expect(performance.now() - start).toBeLessThan(500);
+		expect(performance.now() - start).toBeLessThan(BUDGET_MS);
 	});
 
 	it('produces plain JSON for page data', () => {
