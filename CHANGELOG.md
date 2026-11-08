@@ -1,5 +1,16 @@
 # @atmo-dev/kit
 
+## 0.8.0
+
+### Minor Changes
+
+- e25c447: Add `configureAtproto({ appview, cdn })` to `events-data`, so event comments, actor search in the Bluesky composer and image URLs can use services other than Bluesky's public AppView and CDN.
+- e25c447: Render Markdown with AT Protocol facets in event descriptions and other rich text. Add `@atmo-dev/kit/richtext` with `parseRichText`, which parses CommonMark plus strikethrough, facets and detected links into a JSON `RichTextDocument` without Svelte or a DOM, and `richTextToPlainText` for previews. Parse on the server and pass `content` to `RichText`, or `description` to `EventView`, so the parser stays out of client bundles. `EventView` shares plain text in Bluesky link cards and accepts `conferenceTalkDescriptions`, which `toScheduleEvents` also takes, for plain-text talk previews. Text over 10,000 characters, with more than 1,000 Markdown delimiters or with deeply nested containers renders as plain text, keeping parsing within about 100 ms. Raw HTML is shown as written, images are not loaded and only HTTP(S) links are kept; `RichText` validates documents again when rendering. Plain-text `RichText` usage is unchanged, except that facets without a usable destination no longer split the text.
+
+### Patch Changes
+
+- e25c447: Fix a denial of service in link detection. `@atcute/bluesky-richtext-parser`'s `tokenize` backtracks heavily on runs of `*`, so a short event description, profile bio or post could block rendering for minutes. Plain-text link, mention and hashtag detection in `RichText`, profiles, the event editor and the Bluesky composer now uses a linear scanner with the same rules, exported as `detectTokens` from `@atmo-dev/kit/richtext`. Rich text renderers also cap nesting in untrusted documents.
+
 ## 0.7.2
 
 ### Patch Changes
