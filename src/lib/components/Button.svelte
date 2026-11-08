@@ -61,7 +61,7 @@
 		{...rest}
 		bind:this={ref}
 		href={disabled || loading ? undefined : href}
-		role={disabled || loading ? 'link' : undefined}
+		role={disabled || loading ? 'link' : rest.role}
 		class={classes}
 		data-slot="button"
 		data-variant={variant}

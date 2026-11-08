@@ -76,6 +76,10 @@
 			"types": "./dist/media.d.ts",
 			"default": "./dist/media.js"
 		},
+		"./urls": {
+			"types": "./dist/urls.d.ts",
+			"default": "./dist/urls.js"
+		},
 		"./richtext": {
 			"types": "./dist/richtext.d.ts",
 			"default": "./dist/richtext.js"

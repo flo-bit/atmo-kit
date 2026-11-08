@@ -6,7 +6,7 @@
 		type ExternalEmbedProvider,
 		type ExternalPostEmbed
 	} from '../social/external-embeds.js';
-	import { safeWebUrl } from '../social/richtext.js';
+	import { safeHttpUrl as safeWebUrl } from '../urls.js';
 	import { focus } from '../styles.js';
 	import Icon from './Icon.svelte';
 	import LinkCard from './LinkCard.svelte';

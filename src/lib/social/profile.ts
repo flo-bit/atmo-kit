@@ -1,5 +1,5 @@
 import { detectTokens } from '../richtext/detect.js';
-import { safeWebUrl } from './richtext.js';
+import { safeHttpUrl as safeWebUrl } from '../urls.js';
 import { socialHashtagUrl, socialProfileUrl } from './urls.js';
 import type { PreferredSocialClient } from './preferred-client.js';
 

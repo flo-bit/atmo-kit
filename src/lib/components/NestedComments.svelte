@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PostData } from '../social/posts.js';
 	import type { ExternalEmbedProvider } from '../social/external-embeds.js';
-	import { safeWebUrl } from '../social/richtext.js';
+	import { safeHttpUrl as safeWebUrl } from '../urls.js';
 	import { socialPostUrl, socialProfileUrl } from '../social/urls.js';
 	import type { PreferredSocialClient } from '../social/preferred-client.js';
 	import { Heart, MessageCircle, Repeat2 } from '@sketchyicons/svelte';

@@ -1,5 +1,5 @@
 import type { PostEmbed } from './posts.js';
-import { safeWebUrl } from './richtext.js';
+import { safeHttpUrl as safeWebUrl } from '../urls.js';
 
 export type ExternalPostEmbed = Extract<PostEmbed, { type: 'external' }>;
 /** Iframes are always click-to-load. Providers perform no network IO. */

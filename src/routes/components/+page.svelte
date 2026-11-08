@@ -2,6 +2,7 @@
 	import { asset, resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import {
+		AccountMenu,
 		Button,
 		Checkbox,
 		Icon,
@@ -61,6 +62,7 @@
 		videoUnavailable = $state(false);
 	let editor = $state<Editor | null>(null),
 		post = $state(postFromDoc(sampleDoc));
+	let signedIn = $state(true);
 	let status = $state('Local examples. Nothing is published.');
 	const limit = 100;
 	const length = $derived(graphemeLength(draft));
@@ -149,6 +151,22 @@
 		class="mx-auto grid max-w-6xl items-start gap-12 px-5 py-9 sm:px-8 sm:py-11 lg:grid-cols-2 lg:gap-16"
 	>
 		<div class="min-w-0 space-y-11">
+			<section aria-labelledby="account-heading">
+				<Subheading id="account-heading" class="mb-5">Account menu</Subheading>
+				{#if signedIn}
+					<AccountMenu
+						name="Florian"
+						handle="flo-bit.dev"
+						onprofile={() => (status = 'Go to profile selected.')}
+						onsignout={() => {
+							signedIn = false;
+							status = 'Signed out locally.';
+						}}
+					/>
+				{:else}
+					<Button variant="ghost" onclick={() => (signedIn = true)}>Sign in</Button>
+				{/if}
+			</section>
 			<MediaExamples />
 			<section aria-labelledby="popover-heading">
 				<Subheading id="popover-heading" class="mb-5">Popover</Subheading>

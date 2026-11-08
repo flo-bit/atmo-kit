@@ -1,6 +1,10 @@
 import { isActorIdentifier } from '@atcute/lexicons/syntax';
 import { socialHashtagUrl, socialProfileUrl } from '../social/urls.js';
 import type { PreferredSocialClient } from '../social/preferred-client.js';
+import { safeHttpUrl as safeWebUrl } from '../urls.js';
+
+// Backwards-compatible export for existing richtext and social consumers.
+export { safeWebUrl };
 
 /**
  * Parsed rich text. It is plain JSON, so it can be produced on the server and sent in page
@@ -36,18 +40,6 @@ export type RichTextLinkOptions = {
 	/** App-owned mention destination; defaults to the selected social client. */
 	mentionUrl?: (identifier: string) => string;
 };
-
-export function safeWebUrl(url: unknown): string | undefined {
-	if (typeof url !== 'string' || !url) return undefined;
-	try {
-		const parsed = new URL(url);
-		return ['https:', 'http:'].includes(parsed.protocol) && !parsed.username && !parsed.password
-			? parsed.href
-			: undefined;
-	} catch {
-		return undefined;
-	}
-}
 
 /** Only app-relative paths or HTTP(S), including for app-owned mention callbacks. */
 export function mentionHref(actor: unknown, options: RichTextLinkOptions): string | undefined {

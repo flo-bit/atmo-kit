@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { IconRail, IconButton, Icon } from '#lib';
+	import { AccountMenu, IconRail, IconButton, Icon } from '#lib';
 	import { getContext } from 'svelte';
 	const preview = getContext<{ readonly backed: boolean } | undefined>('preview-navigation');
-	import { UserRound } from '@sketchyicons/svelte';
+	import { LogIn } from '@sketchyicons/svelte';
+	let signedIn = $state(true);
 	import { mockupIcon } from './icons.js';
 	let {
 		label,
@@ -31,10 +32,28 @@
 	class="icon-rail"
 	style="--atmo-nav-top:47px;"
 >
-	{#snippet footer()}{#if account}<IconButton
-				label={accountLabel}
-				data-part="item"
-				class="size-11 max-sm:size-10"
-				onclick={account}><Icon img={UserRound} size={22} /></IconButton
-			>{/if}{/snippet}
+	{#snippet footer({ expanded, close })}
+		{#if account}
+			{#if signedIn}
+				<AccountMenu
+					name="Florian"
+					handle="flo-bit.dev"
+					{expanded}
+					label={`Account menu: ${accountLabel}`}
+					onprofile={() => {
+						close();
+						account?.();
+					}}
+					onsignout={() => {
+						signedIn = false;
+						close();
+					}}
+				/>
+			{:else}
+				<IconButton label="Sign in" class="size-11 max-sm:size-10" onclick={() => (signedIn = true)}
+					><Icon img={LogIn} size={22} /></IconButton
+				>
+			{/if}
+		{/if}
+	{/snippet}
 </IconRail>

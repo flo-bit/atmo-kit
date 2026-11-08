@@ -16,6 +16,67 @@ Svelte 5 and Tailwind CSS 4 components for Atmo apps.
 for a separated, filled creation action in the rail, mobile bar or drawer. The
 existing `primary` flag alone retains its subtle accent/spacing behavior.
 
+### Sidebar account menu
+
+Use `AccountMenu` in a signed-in sidebar footer. Its avatar button opens just
+**Go to profile** and **Sign out**; there is no account switching. `expanded`
+adds the name and optional handle for wider sidebars and mobile drawers.
+
+```svelte
+<IconRail label="Navigation" {items}>
+	{#snippet footer({ expanded, close })}
+		{#if viewer}
+			<AccountMenu
+				name={viewer.displayName || viewer.handle}
+				handle={viewer.handle}
+				avatar={viewer.avatar}
+				profileHref={`/p/${encodeURIComponent(viewer.did)}`}
+				{expanded}
+				onprofile={close}
+				onsignout={() => {
+					close();
+					signOut();
+				}}
+			/>
+		{/if}
+	{/snippet}
+</IconRail>
+```
+
+Both components are exported from `@atmo-dev/kit`. Use `profileHref` for a native
+link, or omit it and supply `onprofile` for app-owned navigation. Apps own the
+profile route, session, sign-out request, and signed-out UI. The menu handles
+keyboard navigation, dismissal, focus restoration and portaled theme inheritance.
+
+## Safe link destinations
+
+Use the dependency-free `@atmo-dev/kit/urls` entry in server loaders and components:
+
+```ts
+import { safeHttpUrl, safeLinkHref } from '@atmo-dev/kit/urls';
+
+const website = safeHttpUrl(record.url);
+const navigation = safeLinkHref(card.href);
+```
+
+- `safeHttpUrl(unknown)` accepts absolute HTTP(S) URLs without usernames/passwords
+  and returns their normalized URL. Use it for untrusted external record URLs.
+- `safeLinkHref(unknown)` additionally allows root-relative app paths, fragments,
+  `mailto:` and `tel:` actions. Protocol-relative paths and backslash/control-character
+  local/contact links are rejected. It does not resolve `./` or `../` relative paths.
+- Invalid input returns `undefined`: pass the result to `href`, or omit the link.
+  Never fall back to the original untrusted value. `target="_blank"` is not URL validation.
+
+The helpers perform no IO and import no Svelte, DOM or Markdown parser. They are also
+exported from the main Kit entry. Existing `safeWebUrl` exports from richtext remain
+aliases of `safeHttpUrl`. Rich-text mention callbacks and legal links retain their
+stricter destination policies. Generic UI primitives such as Button still accept
+app-owned routes; validate untrusted values before passing them in.
+
+These are **navigation** policies, not HTML sanitizers or SSRF protection. Image,
+iframe and media sources may require tighter policies. Server-side fetching needs
+separate host/IP, DNS, redirect and response-content checks.
+
 ## AT record metadata (AT Tags)
 
 Use `AtTags` to let other clients discover which AT Protocol records and identities

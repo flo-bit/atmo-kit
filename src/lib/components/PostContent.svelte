@@ -5,7 +5,7 @@
 	import { socialPostUrl } from '../social/urls.js';
 	import { focus } from '../styles.js';
 	import Icon from './Icon.svelte';
-	import { safeWebUrl } from '../social/richtext.js';
+	import { safeHttpUrl as safeWebUrl } from '../urls.js';
 	import RichText from './RichText.svelte';
 	import type { ExternalEmbedProvider } from '../social/external-embeds.js';
 	import ExternalEmbed from './ExternalEmbed.svelte';

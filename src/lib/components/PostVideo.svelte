@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { safeWebUrl } from '../social/richtext.js';
+	import { safeHttpUrl as safeWebUrl } from '../urls.js';
 	import Icon from './Icon.svelte';
 	import { ArrowUpRight } from '@sketchyicons/svelte';
 	let {

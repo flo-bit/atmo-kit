@@ -1,4 +1,5 @@
 import type { LegalFooterLinks, LegalLink } from './types.js';
+import { safeHttpUrl } from '../../urls.js';
 
 /** Same-origin absolute paths and web URLs only. Never executable, credentialed,
  * protocol-relative, or backslash-normalized URLs. Mail is allowed explicitly. */
@@ -14,14 +15,7 @@ export function safeLegalHref(value: string, allowMail = false): string | undefi
 		return undefined;
 	if (value.startsWith('/') && !value.startsWith('//')) return value;
 	if (allowMail && /^mailto:[^@<>?&#%]+@[^@<>?&#%]+\.[^@<>?&#%]+$/.test(value)) return value;
-	try {
-		const url = new URL(value);
-		if (['http:', 'https:'].includes(url.protocol) && !url.username && !url.password)
-			return url.href;
-	} catch {
-		/* Invalid URLs remain non-clickable. */
-	}
-	return undefined;
+	return safeHttpUrl(value);
 }
 
 const labels = {

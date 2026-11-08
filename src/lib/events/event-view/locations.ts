@@ -1,4 +1,5 @@
 import type { EventLocationVariant } from '../event-types.js';
+import { safeHttpUrl as webUrl } from '../../urls.js';
 
 export type Coordinates = { lat: number; lng: number };
 export type LocationData = {
@@ -38,16 +39,6 @@ function coordinateLabel({ lat, lng }: Coordinates): string {
 
 function mapsUrl(query: string): string {
 	return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
-
-function webUrl(uri: string): string | undefined {
-	try {
-		const url = new URL(uri);
-		if (url.protocol === 'https:' || url.protocol === 'http:') return url.href;
-	} catch {
-		// Invalid URLs render as non-interactive location text.
-	}
-	return undefined;
 }
 
 function formatLocation(value: unknown): LocationData | null {

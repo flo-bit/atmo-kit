@@ -1,14 +1,23 @@
 <script lang="ts">
 	import { Icon } from '../../index.js';
 	import { Link } from '@sketchyicons/svelte';
+	import { safeHttpUrl } from '../../urls.js';
 	let { uris = [] }: { uris?: Array<{ uri: string; name?: string }> } = $props();
+	let links = $derived(
+		uris.flatMap((link) => {
+			const uri = safeHttpUrl(link?.uri);
+			return uri ? [{ ...link, uri }] : [];
+		})
+	);
 </script>
 
-{#if uris.length}
+{#if links.length}
 	<div>
 		<p class="mb-3 text-xs font-medium text-muted">Links</p>
 		<div class="space-y-3">
-			{#each uris as link (link.name + link.uri)}
+			<!-- These rows are stateless; equivalent URLs and exact duplicate entries are valid. -->
+			<!-- eslint-disable-next-line svelte/require-each-key -->
+			{#each links as link}
 				<a
 					href={link.uri}
 					target="_blank"

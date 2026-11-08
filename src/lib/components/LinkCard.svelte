@@ -2,7 +2,7 @@
 	import type { HTMLAnchorAttributes } from 'svelte/elements';
 	import { cn } from '../utils.js';
 	import { focus } from '../styles.js';
-	import { safeWebUrl } from '../social/richtext.js';
+	import { safeHttpUrl as safeWebUrl } from '../urls.js';
 	let {
 		href,
 		meta,
