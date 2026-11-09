@@ -40,7 +40,7 @@ async function assertInsetOnly(page: Page) {
 test('toggle-group keyboard navigation skips disabled choices and changes post attachments', async ({
 	page
 }) => {
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const group = page.getByRole('group', { name: 'Post attachment' });
 	const link = group.getByRole('radio', { name: 'Link', exact: true }),
 		quote = group.getByRole('radio', { name: 'Quote', exact: true });
@@ -86,7 +86,7 @@ test('toggle-group keyboard navigation skips disabled choices and changes post a
 test('inline titles support undo/redo, single-line Enter, controlled reset, and disabled state', async ({
 	page
 }) => {
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const title = page.getByRole('textbox', { name: 'Draft title' });
 	const initial = 'A small corner of the web';
 	await title.focus();
@@ -114,7 +114,7 @@ test('inline titles support undo/redo, single-line Enter, controlled reset, and 
 test('composer previews real mention facets and leaves empty/over-limit validation to the app', async ({
 	page
 }) => {
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const editor = page.getByRole('combobox', { name: 'Post text' });
 	await editor.fill('👋 @mi');
 	await expect(
@@ -152,7 +152,7 @@ test('composer previews real mention facets and leaves empty/over-limit validati
 test('popover form preserves its source theme, saves/cancels locally, and restores focus', async ({
 	page
 }) => {
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const trigger = page.getByRole('button', { name: 'Edit link details', exact: true });
 	await trigger.click();
 	const popover = page.getByRole('dialog', { name: 'Link details', exact: true });
@@ -195,7 +195,7 @@ test('popover form preserves its source theme, saves/cancels locally, and restor
 test('nested popover closes before its modal and restores each trigger in order', async ({
 	page
 }) => {
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const trigger = page.getByRole('button', { name: 'Inside a dialog' });
 	await trigger.click();
 	const modal = page.getByRole('dialog', { name: 'Popover inside a dialog', exact: true });
@@ -219,7 +219,7 @@ test('nested popover closes before its modal and restores each trigger in order'
 test('post and comment links remain keyboard reachable with safe outbound policies', async ({
 	page
 }) => {
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const mention = preview(page).getByRole('link', { name: '@mika.example.com', exact: true });
 	await mention.focus();
 	await page.keyboard.press('Tab');
@@ -249,7 +249,7 @@ test('local HLS video does not autoplay, recovers from source failure, and stops
 }) => {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const segments: string[] = [];
 	page.on('request', (request) => {
 		if (request.url().includes('/playground/video/sample-')) segments.push(request.url());
@@ -298,7 +298,7 @@ test('examples pass WCAG, responsive, reduced-motion, and inset-only checks in b
 			external.push(request.url());
 	});
 	for (const mode of ['dark', 'light']) {
-		await page.goto('/components', { waitUntil: 'networkidle' });
+		await page.goto('/examples', { waitUntil: 'networkidle' });
 		if (mode === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
 		await audit(page);
 		await assertInsetOnly(page);

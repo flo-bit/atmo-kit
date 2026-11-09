@@ -98,7 +98,7 @@
 <svelte:head
 	><title>Login · Atmo Kit</title><meta
 		name="description"
-		content="An app-owned AT Protocol login flow built with Atmo Kit."
+		content="Atmosphere account login UI with app-owned callbacks."
 	/></svelte:head
 >
 <div
@@ -113,8 +113,8 @@
 				<h1 class="text-lg font-medium tracking-tight">
 					atmo kit<span class="ml-2 font-normal text-muted">/ login</span>
 				</h1>
-				<Button href={resolve('/')} variant="link" size="sm"
-					><Icon img={ArrowLeft} size={15} />Foundation</Button
+				<Button href={resolve('/components')} variant="link" size="sm"
+					><Icon img={ArrowLeft} size={15} />Components</Button
 				>
 			</div>
 			<div class="flex items-center gap-3">

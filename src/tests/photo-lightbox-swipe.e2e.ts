@@ -5,7 +5,7 @@ test.describe('native touch lightbox', () => {
 	test('photos follow the finger before release, then snap, loop and restore focus', async ({
 		page
 	}) => {
-		await page.goto('/components');
+		await page.goto('/examples');
 		const thumbnail = page.getByRole('button', { name: /View photo 1/ });
 		await thumbnail.click();
 		const dialog = page.getByRole('dialog');
@@ -71,7 +71,7 @@ test.describe('native touch lightbox', () => {
 test('horizontal trackpad scrolling and mouse dragging move the shared lightbox, including after resize', async ({
 	page
 }) => {
-	await page.goto('/components');
+	await page.goto('/examples');
 	await page.getByRole('button', { name: /View photo 1/ }).click();
 	const dialog = page.getByRole('dialog');
 	const track = dialog.locator('[data-slot="photo-lightbox-track"]');

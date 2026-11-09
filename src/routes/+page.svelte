@@ -135,9 +135,6 @@
 				<h1 class="text-lg font-medium tracking-tight">
 					atmo kit<span class="ml-2 font-normal text-muted">/ playground</span>
 				</h1>
-				<Button href={resolve('/preview')} variant="link" size="sm"
-					>Mockups<Icon img={ArrowUpRight} size={15} /></Button
-				>
 				<Button href={resolve('/components')} variant="link" size="sm"
 					>Components<Icon img={ArrowUpRight} size={15} /></Button
 				>

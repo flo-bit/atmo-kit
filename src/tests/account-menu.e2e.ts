@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 test('sidebar account menu works on desktop and mobile in both themes', async ({ page }) => {
-	await page.goto('/preview/bluesky');
+	await page.goto('/navigation');
 	const trigger = page.getByRole('button', { name: 'Account menu: Profile', exact: true });
 	// The first click may land on SSR markup before hydration completes.
 	await expect(async () => {
@@ -39,7 +39,7 @@ test('sidebar account menu works on desktop and mobile in both themes', async ({
 });
 
 test('open account menus follow live theme changes', async ({ page }) => {
-	await page.goto('/components');
+	await page.goto('/examples');
 	const trigger = page.getByRole('button', { name: 'Account menu', exact: true });
 	const menu = page.getByRole('menu');
 	await expect(async () => {

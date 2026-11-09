@@ -14,7 +14,7 @@ test('masonry keeps natural image ratios and zooms subtly unless reduced motion 
 	page
 }) => {
 	await page.emulateMedia({ reducedMotion: 'no-preference' });
-	await page.goto('/components');
+	await page.goto('/examples');
 	const thumbnail = page.getByRole('button', { name: /View photo 1/ });
 	await expect(thumbnail).toBeVisible();
 	const image = thumbnail.locator('img');
@@ -54,7 +54,7 @@ for (const width of [320, 1280]) {
 				reads++;
 				await route.abort();
 			});
-			await page.goto('/components');
+			await page.goto('/examples');
 			await expect(page.getByRole('button', { name: /View photo 1/ })).toBeVisible();
 			if (mode === 'light')
 				await page.getByRole('button', { name: 'Switch to light mode' }).click();

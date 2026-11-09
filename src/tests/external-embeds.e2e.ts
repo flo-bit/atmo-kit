@@ -17,7 +17,7 @@ test('YouTube stays click-to-load and Klipy respects reduced motion', async ({ p
 			body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
 		});
 	});
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const preview = page.getByTestId('post-preview');
 	const attachments = page.getByRole('group', { name: 'Post attachment' });
 	await attachments.getByRole('radio', { name: 'YouTube', exact: true }).click();
@@ -70,7 +70,7 @@ test('Klipy autoplays like a GIF with a pause option, while YouTube still needs 
 			body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
 		});
 	});
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/examples', { waitUntil: 'networkidle' });
 	const preview = page.getByTestId('post-preview');
 	const attachments = page.getByRole('group', { name: 'Post attachment' });
 	await attachments.getByRole('radio', { name: 'Klipy', exact: true }).click();
