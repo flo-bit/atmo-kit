@@ -43,6 +43,25 @@ for (const mode of ['light', 'dark']) {
 	}
 }
 
+it('uses soft corners and a visible mark without losing the native checkbox element', async () => {
+	const { rerender } = render(Checkbox, { 'aria-label': 'Rounded checkbox', checked: true });
+	const checkbox = page.getByRole('checkbox', { name: 'Rounded checkbox' });
+	await expect.element(checkbox).toBeChecked();
+	const input = checkbox.element();
+	expect(input.tagName).toBe('INPUT');
+	expect(getComputedStyle(input).borderRadius).toBe('5px');
+	expect(getComputedStyle(input, '::before').opacity).toBe('1');
+	expect(getComputedStyle(input).backgroundImage).toBe('none');
+	await rerender({ checked: false });
+	await expect.element(checkbox).not.toBeChecked();
+	expect(getComputedStyle(input, '::before').opacity).toBe('0');
+	await rerender({ indeterminate: true });
+	expect(getComputedStyle(input, '::before').opacity).toBe('1');
+	expect(getComputedStyle(input, '::before').height).toBe('2px');
+	await rerender({ class: 'rounded-none' });
+	expect(getComputedStyle(input).borderRadius).toBe('0px');
+});
+
 it('preserves native disabled and indeterminate checkbox semantics', async () => {
 	render(Checkbox, { 'aria-label': 'All notifications', disabled: true, indeterminate: true });
 	const checkbox = page.getByRole('checkbox', { name: 'All notifications' });

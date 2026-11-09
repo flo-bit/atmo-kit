@@ -3,7 +3,7 @@
 	import { DatePicker } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import { untrack } from 'svelte';
-	import { Icon } from '../index.js';
+	import Icon from './Icon.svelte';
 	import { ChevronLeft, ChevronRight } from '@sketchyicons/svelte';
 
 	let {
@@ -138,7 +138,7 @@
 
 	<DatePicker.Content
 		sideOffset={8}
-		class="z-50 max-w-[calc(100vw-2rem)] rounded-panel border border-line bg-page p-3 text-ink"
+		class="z-50 max-w-[calc(100vw-2rem)] rounded-panel border border-line bg-surface p-3 text-ink"
 	>
 		<DatePicker.Calendar>
 			{#snippet children({ months, weekdays })}

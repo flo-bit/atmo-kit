@@ -123,11 +123,13 @@
 		<ul aria-label="Profile links" class="mt-4 flex flex-wrap gap-2">
 			{#each links as link (link.url)}
 				<li class="max-w-full min-w-0">
-					<a
+					<Button
 						href={link.url}
 						target="_blank"
 						rel="noopener noreferrer nofollow ugc"
-						class="inline-flex max-w-full items-center gap-2 rounded-ui border border-line px-3 py-1.5 text-sm hover:bg-recess"
+						variant="secondary"
+						size="sm"
+						class="max-w-full"
 					>
 						{#if link.icon && failedLinkIcons[link.url] !== link.icon}
 							<img
@@ -143,7 +145,7 @@
 							/>
 						{/if}
 						<span class="min-w-0 wrap-anywhere">{link.title || new URL(link.url).hostname}</span>
-					</a>
+					</Button>
 				</li>
 			{/each}
 		</ul>

@@ -56,7 +56,7 @@
 		>
 	</div>
 {:else if name === 'Checkbox'}
-	<div class="space-y-4">
+	<div class="grid justify-items-start gap-4">
 		<Label><Checkbox bind:checked />Notify me about replies</Label>{#if !compact}<Label
 				><Checkbox disabled />Unavailable option</Label
 			>{/if}
@@ -81,7 +81,7 @@
 	<Popover bind:open aria-label="Collection options" align="start" class="w-64"
 		>{#snippet trigger({ props })}<Button {...props} variant="secondary">Collection options</Button
 			>{/snippet}
-		<div class="space-y-4">
+		<div class="grid justify-items-start gap-4">
 			<Label><Checkbox bind:checked />Show photo captions</Label><Button
 				size="sm"
 				onclick={() => (open = false)}>Done</Button

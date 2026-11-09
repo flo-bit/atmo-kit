@@ -12,8 +12,9 @@ export { default as VodPlayer } from './events/VodPlayer.svelte';
 export type { VodPlayerApi } from './events/VodPlayer.svelte';
 export { default as VodTranscript } from './events/VodTranscript.svelte';
 export { default as ConferenceTimetable } from './events/schedule/ConferenceTimetable.svelte';
-export { default as DatePicker } from './events/DatePicker.svelte';
-export { default as TimePicker } from './events/TimePicker.svelte';
-export { default as DateTimePicker } from './events/DateTimePicker.svelte';
-export { default as TimezonePicker } from './events/TimezonePicker.svelte';
-export { default as ImageDropper } from './events/ImageDropper.svelte';
+// Compatibility aliases; general-purpose controls are owned by the main Kit entry.
+export { default as DatePicker } from './components/DatePicker.svelte';
+export { default as TimePicker } from './components/TimePicker.svelte';
+export { default as DateTimePicker } from './components/DateTimePicker.svelte';
+export { default as TimezonePicker } from './components/TimezonePicker.svelte';
+export { default as ImageDropper } from './components/ImageDropper.svelte';

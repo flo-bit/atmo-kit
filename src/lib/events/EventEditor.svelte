@@ -4,8 +4,8 @@
 	import { Avatar, Button, ToggleGroup, ToggleGroupItem } from '../index.js';
 	import { onMount, untrack } from 'svelte';
 	import { InlineEditor, type Editor } from '../index.js';
-	import DateTimePicker from './DateTimePicker.svelte';
-	import TimezonePicker from './TimezonePicker.svelte';
+	import DateTimePicker from '../components/DateTimePicker.svelte';
+	import TimezonePicker from '../components/TimezonePicker.svelte';
 	import { parseDateTime } from '@internationalized/date';
 	import { isoToDatetimeLocalInTz } from './date-format.js';
 	import type { FlatEventRecord } from './contrail.js';

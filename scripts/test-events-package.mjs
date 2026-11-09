@@ -67,6 +67,27 @@ test('packaged event descriptions use escaped rich text, not the legacy HTML pat
 	);
 });
 
+test('core date/time and image-drop controls keep matching event compatibility exports', () => {
+	const main = readFileSync(new URL('../dist/index.js', import.meta.url), 'utf8');
+	const events = readFileSync(new URL('../dist/events.js', import.meta.url), 'utf8');
+	for (const name of [
+		'DatePicker',
+		'TimePicker',
+		'DateTimePicker',
+		'TimezonePicker',
+		'ImageDropper'
+	]) {
+		const entry = `export { default as ${name} } from './components/${name}.svelte';`;
+		assert.ok(main.includes(entry), `${name} must be exported from core`);
+		assert.ok(events.includes(entry), `${name} must keep its event compatibility alias`);
+		const source = readFileSync(
+			new URL(`../dist/components/${name}.svelte`, import.meta.url),
+			'utf8'
+		);
+		assert.doesNotMatch(source, /(?:from\s*|import\s*\(?\s*)['"][^'"]*events/);
+	}
+});
+
 test('the main Kit entry does not load the events module', () => {
 	assert.doesNotMatch(
 		readFileSync(new URL('../dist/index.js', import.meta.url), 'utf8'),

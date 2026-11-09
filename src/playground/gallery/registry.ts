@@ -37,6 +37,10 @@ export const demoGroups: DemoGroup[] = [
 		load: () => import('./Forms.svelte')
 	},
 	{
+		names: ['DatePicker', 'TimePicker', 'DateTimePicker', 'TimezonePicker', 'ImageDropper'],
+		load: () => import('./Controls.svelte')
+	},
+	{
 		names: ['IconRail', 'WorkspaceSidebar', 'AccountMenu'],
 		load: () => import('./Navigation.svelte')
 	},
@@ -79,12 +83,7 @@ export const demoGroups: DemoGroup[] = [
 			'StarterPackButton',
 			'ConferenceTimetable',
 			'VodPlayer',
-			'VodTranscript',
-			'DatePicker',
-			'TimePicker',
-			'DateTimePicker',
-			'TimezonePicker',
-			'ImageDropper'
+			'VodTranscript'
 		],
 		load: () => import('./Events.svelte')
 	}

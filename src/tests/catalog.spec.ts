@@ -19,9 +19,15 @@ it('lists every public Svelte component exactly once with its real source and en
 			([, name, source]) => ({ name, source: `src/lib/${source}`, entry })
 		)
 	);
-	expect(actual.map(({ name }) => name).sort()).toEqual(expected.map(({ name }) => name).sort());
-	for (const item of expected) {
+	// The main entry is canonical when events retains an alias of a core control.
+	const canonical = expected.filter(
+		(item, index) => expected.findIndex(({ name }) => name === item.name) === index
+	);
+	expect(actual.map(({ name }) => name).sort()).toEqual(canonical.map(({ name }) => name).sort());
+	for (const item of canonical)
 		expect(actual.find(({ name }) => name === item.name)).toMatchObject(item);
+	for (const item of expected) {
+		expect(actual.find(({ name }) => name === item.name)?.source).toBe(item.source);
 		expect(existsSync(new URL(item.source, root))).toBe(true);
 	}
 });

@@ -34,6 +34,10 @@ describe('UserProfile', () => {
 		await expect
 			.element(page.getByRole('link', { name: '<script>Work</script>' }))
 			.toHaveAttribute('href', 'https://work.test/');
+		const website = page.getByRole('link', { name: '<script>Work</script>' });
+		await expect.element(website).toHaveAttribute('data-variant', 'secondary');
+		await expect.element(website).toHaveAttribute('data-size', 'sm');
+		await expect.element(website).toHaveAttribute('rel', 'noopener noreferrer nofollow ugc');
 		const section = page.getByRole('region', { name: 'Profile' }).element();
 		expect(section.querySelector('script, img, input, textarea, button')).toBeNull();
 		expect(section.textContent).toContain('<img src=x onerror="alert(1)">');

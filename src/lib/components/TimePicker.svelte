@@ -2,7 +2,9 @@
 	import { TimeField } from 'bits-ui';
 	import { Time } from '@internationalized/date';
 	import { untrack } from 'svelte';
-	import { Icon, IconButton, Popover } from '../index.js';
+	import Icon from './Icon.svelte';
+	import IconButton from './IconButton.svelte';
+	import Popover from './Popover.svelte';
 	import { Clock } from '@sketchyicons/svelte';
 
 	let {

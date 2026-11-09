@@ -2,21 +2,16 @@
 	import { onMount } from 'svelte';
 	import { asset, resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Button, Checkbox, Input, Label, Select } from '#lib';
+	import { Checkbox, Input, Label, Select } from '#lib';
 	import {
 		ConferenceTimetable,
-		DatePicker,
-		DateTimePicker,
 		EventAttendees,
 		EventCard,
 		EventComments,
 		EventEditor,
 		EventRsvp,
 		EventView,
-		ImageDropper,
 		StarterPackButton,
-		TimePicker,
-		TimezonePicker,
 		VodPlayer,
 		VodTranscript,
 		configureAtproto
@@ -36,12 +31,7 @@
 		signedIn = $state(true),
 		thread = $state('normal'),
 		ready = $state(false);
-	let date = $state('2027-06-12'),
-		time = $state('17:00'),
-		dateTime = $state('2027-06-12T17:00'),
-		timezone = $state('Europe/Berlin');
-	let currentTime = $state(0),
-		isDragOver = $state(false);
+	let currentTime = $state(0);
 	const adapter = createDemoAdapter((message) => (status = message));
 	const currentViewer = $derived({ ...viewer, isLoggedIn: signedIn, did: signedIn ? did : null });
 	onMount(() => {
@@ -126,27 +116,6 @@
 				step="0.1"
 				bind:value={currentTime}
 			/>{/if}
-	{:else if name === 'DatePicker'}
-		<div class="max-w-sm"><DatePicker bind:value={date} label="Event date" /></div>
-	{:else if name === 'TimePicker'}
-		<div class="max-w-sm"><TimePicker bind:value={time} label="Start time" /></div>
-	{:else if name === 'DateTimePicker'}
-		<div class="max-w-md"><DateTimePicker bind:value={dateTime} label="Starts at" /></div>
-	{:else if name === 'TimezonePicker'}
-		<div class="max-w-sm"><TimezonePicker bind:value={timezone} /></div>
-	{:else if name === 'ImageDropper'}
-		<ImageDropper
-			bind:isDragOver
-			processImageFile={async (file) => {
-				status = `Received ${file.name}. Nothing was uploaded.`;
-			}}
-		/>
-		<div class="p-6">
-			<Button variant="secondary" onclick={() => (isDragOver = !isDragOver)}
-				>{isDragOver ? 'Hide drop overlay' : 'Show drop overlay'}</Button
-			>
-			<p class="mt-4 text-sm text-muted">Drag an image into this preview. Nothing is uploaded.</p>
-		</div>
 	{/if}
 	{#if status}<p role="status" class="px-1 text-sm text-muted">{status}</p>{/if}
 </div>

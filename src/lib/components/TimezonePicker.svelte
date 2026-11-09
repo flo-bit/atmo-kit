@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { Button, Icon, Input, Popover } from '../index.js';
+	import Button from './Button.svelte';
+	import Icon from './Icon.svelte';
+	import Input from './Input.svelte';
+	import Popover from './Popover.svelte';
 	import { Globe } from '@sketchyicons/svelte';
 	let { value = $bindable('') }: { value: string } = $props();
 	let isOpen = $state(false);

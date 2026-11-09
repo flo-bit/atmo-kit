@@ -12,7 +12,7 @@
 <span
 	{...rest}
 	class={cn(
-		'inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.75 text-[.6875rem] leading-normal font-medium',
+		'inline-flex w-fit items-center gap-1.5 rounded-lg border px-2 py-0.75 text-[.6875rem] leading-normal font-medium',
 		variant === 'soft'
 			? 'border-action/20 bg-accent-soft text-action'
 			: 'border-control-line bg-transparent text-muted',

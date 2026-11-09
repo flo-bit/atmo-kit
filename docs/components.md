@@ -36,6 +36,10 @@ Local examples: `/` for native fields, `/examples` for editors and popovers.
 | `Input`           | Native text inputs                              |
 | `Textarea`        | Multiline inputs                                |
 | `Select`          | Native select fields                            |
+| `DatePicker`      | Calendar date selection                         |
+| `TimePicker`      | Time selection                                  |
+| `DateTimePicker`  | Combined date and time selection                |
+| `TimezonePicker`  | Time-zone selection                             |
 | `Checkbox`        | Checkbox fields                                 |
 | `Label`           | Form-control labels                             |
 | `ToggleGroup`     | Single-selection segmented controls             |
@@ -93,13 +97,14 @@ These are UI components, not an OAuth implementation.
 
 [Guide](media.md) · Local examples: `/examples`.
 
-| Component           | Purpose                                            |
-| ------------------- | -------------------------------------------------- |
-| `PhotoGrid`         | Responsive grid and content-warning gates          |
-| `PhotoLightbox`     | Fullscreen, swipeable photo viewer                 |
-| `GrainAlbumPicker`  | Album selection using app-supplied callbacks       |
-| `GrainAlbumView`    | Album display using an app-supplied provider       |
-| `StreamplacePicker` | Stream selection and app-owned identity resolution |
+| Component           | Purpose                                                 |
+| ------------------- | ------------------------------------------------------- |
+| `PhotoGrid`         | Responsive grid and content-warning gates               |
+| `PhotoLightbox`     | Fullscreen, swipeable photo viewer                      |
+| `ImageDropper`      | Image drag-and-drop overlay and app-owned file callback |
+| `GrainAlbumPicker`  | Album selection using app-supplied callbacks            |
+| `GrainAlbumView`    | Album display using an app-supplied provider            |
+| `StreamplacePicker` | Stream selection and app-owned identity resolution      |
 
 ## Legal and reporting
 
@@ -138,11 +143,9 @@ Types and non-UI helpers are available separately from `@atmo-dev/kit/events-dat
 | `ConferenceTimetable` | Conference tracks and talk schedules                    |
 | `VodPlayer`           | Recording playback                                      |
 | `VodTranscript`       | Transcript with playback navigation                     |
-| `DatePicker`          | Calendar date selection                                 |
-| `TimePicker`          | Time selection                                          |
-| `DateTimePicker`      | Combined date and time selection                        |
-| `TimezonePicker`      | Time-zone selection                                     |
-| `ImageDropper`        | Image selection with drag and drop                      |
+
+The date/time controls and `ImageDropper` are core components. Existing imports
+from `@atmo-dev/kit/events` remain compatibility aliases of the same components.
 
 Event backgrounds, editor sections, maps, and other implementation details are
 internal unless exported by the public entry. Files in the source tree are not

@@ -46,6 +46,10 @@ export const catalog: CatalogGroup[] = [
 			component('Input', 'Native text inputs with shared styling.'),
 			component('Textarea', 'Multiline text inputs.'),
 			component('Select', 'Native select fields.'),
+			component('DatePicker', 'Calendar date selection.'),
+			component('TimePicker', 'Time selection.'),
+			component('DateTimePicker', 'Combined date and time selection.'),
+			component('TimezonePicker', 'Time-zone selection.'),
 			component('Checkbox', 'Checkbox fields and checked states.'),
 			component('Label', 'Labels for form controls.'),
 			component('ToggleGroup', 'Single-selection segmented controls.'),
@@ -134,6 +138,7 @@ export const catalog: CatalogGroup[] = [
 		components: [
 			component('PhotoGrid', 'Responsive photo grid with content-warning gates.'),
 			component('PhotoLightbox', 'Fullscreen, swipeable photo viewer.'),
+			component('ImageDropper', 'Image drag-and-drop overlay with an app-owned file callback.'),
 			component('GrainAlbumPicker', 'Album selection using app-supplied loading callbacks.'),
 			component('GrainAlbumView', 'Album display using an app-supplied provider.'),
 			component('StreamplacePicker', 'Stream selection with app-owned identity resolution.')
@@ -192,12 +197,7 @@ export const catalog: CatalogGroup[] = [
 				'schedule/ConferenceTimetable.svelte'
 			),
 			event('VodPlayer', 'Event recording playback.'),
-			event('VodTranscript', 'Recording transcript with playback navigation.'),
-			event('DatePicker', 'Calendar date selection.'),
-			event('TimePicker', 'Time selection.'),
-			event('DateTimePicker', 'Combined date and time selection.'),
-			event('TimezonePicker', 'Time-zone selection.'),
-			event('ImageDropper', 'Image selection with drag and drop.')
+			event('VodTranscript', 'Recording transcript with playback navigation.')
 		]
 	}
 ];

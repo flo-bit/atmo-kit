@@ -15,7 +15,7 @@ Import shared event UI from the dedicated events entry:
 <EventView {adapter} {viewer} {data} {pageUrl} />
 ```
 
-- `@atmo-dev/kit/events`: event cards, views, editor, RSVP/attendee/comment UI, starter-pack actions, conference timetable, VOD player/transcript and date/time/image controls. Event backgrounds and editor sections stay internal.
+- `@atmo-dev/kit/events`: event cards, views, editor, RSVP/attendee/comment UI, starter-pack actions, conference timetable, VOD player/transcript. General-purpose date/time controls and `ImageDropper` are core exports from `@atmo-dev/kit`; their existing event-entry exports remain compatibility aliases. Event backgrounds and editor sections stay internal.
 - `@atmo-dev/kit/events-data`: structural event types, adapter contracts, conference/date helpers, URL helpers, theme values, linked-record types and thumbnail selection. This entry is safe in plain Node and server routes: no Svelte, CSS, maps or players are loaded. Browser helpers such as `compressImage` only access browser APIs when called.
 - `@atmo-dev/kit/events/editor`: `buildEventRecord` and `buildThumbnailMedia` for hosts that need explicit record construction. This separate entry includes browser-oriented thumbnail code; it is not part of the pure data API.
 

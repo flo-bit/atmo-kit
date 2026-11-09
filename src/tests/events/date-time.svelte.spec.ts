@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Fixture from './DateTimeFixture.svelte';
 import EventEditor from '../../lib/events/EventEditor.svelte';
-import TimezonePicker from '../../lib/events/TimezonePicker.svelte';
+import { TimezonePicker } from '../../lib/index.js';
 import RecurringModal from '../../lib/events/editor/RecurringModal.svelte';
 import { createAdapter, event, viewer } from './fixtures.js';
 import './theme.css';

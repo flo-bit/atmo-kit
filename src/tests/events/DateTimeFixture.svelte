@@ -1,6 +1,5 @@
 <script lang="ts">
-	import DateTimePicker from '../../lib/events/DateTimePicker.svelte';
-	import TimezonePicker from '../../lib/events/TimezonePicker.svelte';
+	import { DateTimePicker, TimezonePicker } from '../../lib/index.js';
 	let value = $state('2030-06-15T10:00');
 	let timezone = $state('Europe/Berlin');
 </script>
