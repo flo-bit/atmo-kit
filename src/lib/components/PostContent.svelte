@@ -34,7 +34,7 @@
 	<div class="mt-3">
 		{#if embed.type === 'external'}<ExternalEmbed {embed} providers={embedProviders} />
 		{:else if embed.type === 'images'}<div
-				class="grid gap-1 overflow-hidden rounded-ui border border-line"
+				class="grid gap-1 overflow-hidden rounded-ui border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 				class:grid-cols-2={embed.images.length > 1}
 			>
 				{#each embed.images as image, imageIndex (imageIndex)}<a
@@ -64,7 +64,7 @@
 				href={safeWebUrl(embed.href)}
 				target="_blank"
 				rel="noopener noreferrer"
-				class={`flex items-start gap-3 rounded-ui border border-line p-3 text-ink no-underline hover:border-control-line ${focus}`}
+				class={`flex items-start gap-3 rounded-ui border border-base-300 p-3 text-base-950 no-underline hover:border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:text-base-50 dark:hover:border-base-800 ${focus}`}
 			>
 				{#if safeWebUrl(embed.image)}<img
 						src={safeWebUrl(embed.image)}
@@ -72,30 +72,32 @@
 						loading="lazy"
 						class="size-10 shrink-0 rounded-ui object-cover"
 					/>{:else}<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-ui bg-surface text-muted"
+						class="flex size-10 shrink-0 items-center justify-center rounded-ui bg-base-50 text-base-600 dark:bg-base-900 dark:text-base-400"
 						><Icon img={kind.icon} size={22} /></span
 					>{/if}
 				<div class="min-w-0">
-					<p class="truncate text-xs text-muted">
+					<p class="truncate text-xs text-base-600 dark:text-base-400">
 						{kind.label}{embed.handle ? ` · @${embed.handle}` : ''}
 					</p>
 					<p class="mt-0.5 text-sm font-medium break-words">{embed.title}</p>
 					{#if embed.description}<p
-							class="mt-1 line-clamp-3 text-xs leading-relaxed break-words text-muted"
+							class="mt-1 line-clamp-3 text-xs leading-relaxed break-words text-base-600 dark:text-base-400"
 						>
 							{embed.description}
 						</p>{/if}
 				</div>
 			</a>
-		{:else if embed.type === 'quote'}<div class="rounded-ui border border-line p-3">
+		{:else if embed.type === 'quote'}<div
+				class="rounded-ui border border-base-300 p-3 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+			>
 				{#if embed.post}<a
 						href={socialPostUrl(embed.post.uri, socialClient) ?? safeWebUrl(embed.post.href)}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="mb-2 block text-xs font-medium text-muted"
+						class="mb-2 block text-xs font-medium text-base-600 dark:text-base-400"
 						>{embed.post.author.name} · @{embed.post.author.handle}</a
 					><PostContent post={embed.post} {socialClient} {embedProviders} />{:else}<p
-						class="text-xs text-muted"
+						class="text-xs text-base-600 dark:text-base-400"
 					>
 						{embed.reason === 'blocked'
 							? 'Post blocked'
@@ -105,7 +107,7 @@
 					</p>{/if}
 			</div>
 		{:else if embed.type === 'unsupported'}<p
-				class="rounded-ui border border-line p-3 text-xs text-muted"
+				class="rounded-ui border border-base-300 p-3 text-xs text-base-600 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:text-base-400"
 			>
 				Embed unavailable
 			</p>{/if}

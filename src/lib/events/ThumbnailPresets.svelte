@@ -49,7 +49,7 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<p class="text-xs font-medium text-muted">Preset thumbnails</p>
+	<p class="text-xs font-medium text-base-600 dark:text-base-400">Preset thumbnails</p>
 	<div class="grid grid-cols-3 gap-2" bind:this={containerEl}>
 		{#each presetKeys as key (key)}
 			<button

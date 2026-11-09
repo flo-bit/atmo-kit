@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import PopoverFixture from './PopoverFixture.svelte';
 import Modal from '../lib/components/Modal.svelte';
-import { observeTheme } from '../lib/theme.js';
+import { observeTheme, readTheme } from '../lib/theme.js';
 import '../routes/layout.css';
 
 it('preserves a popover’s originating palette, updates it while open, and restores keyboard focus', async () => {
@@ -23,19 +23,23 @@ it('preserves a popover’s originating palette, updates it while open, and rest
 	expect(document.activeElement).toBe(trigger.element());
 });
 
-it('refreshes portal themes on system scheme changes and removes the listener on cleanup', () => {
-	const media = new EventTarget();
-	const matchMedia = vi.spyOn(window, 'matchMedia').mockReturnValue(media as MediaQueryList);
+it('observes scoped palettes without snapshotting mode or watching browser preferences', async () => {
+	const matchMedia = vi.spyOn(window, 'matchMedia');
 	const update = vi.fn();
 	const origin = document.createElement('span');
 	document.body.append(origin);
 	const cleanup = observeTheme(origin, update);
 	try {
-		expect(matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
-		media.dispatchEvent(new Event('change'));
-		expect(update).toHaveBeenCalledTimes(1);
+		const snapshot = readTheme(origin);
+		expect(snapshot).toContain('--base-925:');
+		expect(snapshot).toContain('--accent-975:');
+		expect(snapshot).not.toMatch(/--ui-|color-scheme/);
+		expect(matchMedia).not.toHaveBeenCalled();
+		origin.classList.add('blue');
+		await vi.waitFor(() => expect(update).toHaveBeenCalledTimes(1));
 		cleanup();
-		media.dispatchEvent(new Event('change'));
+		origin.classList.replace('blue', 'red');
+		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(update).toHaveBeenCalledTimes(1);
 	} finally {
 		cleanup();

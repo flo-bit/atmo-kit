@@ -8,10 +8,12 @@ import './forms-fixture.css';
 
 afterEach(() => {
 	document.documentElement.style.removeProperty('color-scheme');
+	document.documentElement.classList.remove('light', 'dark');
 });
 
 for (const mode of ['light', 'dark']) {
 	it(`gives native fields inset-only depth in ${mode} mode`, async () => {
+		document.documentElement.classList.add(mode);
 		document.documentElement.style.colorScheme = mode;
 		await render(Input, { 'aria-label': 'Name' });
 		await render(Textarea, { 'aria-label': 'Description' });

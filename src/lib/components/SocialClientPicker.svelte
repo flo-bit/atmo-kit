@@ -42,7 +42,7 @@
 				placeholder="https://your-client.example"
 				aria-describedby={`${id}-hint`}
 			/>
-			<p id={`${id}-hint`} class="text-sm text-muted">
+			<p id={`${id}-hint`} class="text-sm text-base-600 dark:text-base-400">
 				Use a web client with Bluesky-style profile links.
 			</p>
 		</div>

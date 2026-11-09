@@ -87,7 +87,7 @@
 			>{replacing ? 'Replace stream' : 'Add stream'}</Button
 		>
 	</div>
-	{#if replacing}<p class="mt-3 text-sm text-muted">
+	{#if replacing}<p class="mt-3 text-sm text-base-600 dark:text-base-400">
 			This replaces the current Streamplace link.
 		</p>{/if}
 	{#if error}<p class="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>{/if}

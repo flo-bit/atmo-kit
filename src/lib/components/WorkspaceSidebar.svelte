@@ -71,7 +71,7 @@
 		style={style ?? undefined}
 		data-slot="workspace-sidebar"
 		class={cn(
-			'top-[calc(var(--atmo-nav-top,0px)+12px)] bottom-3 left-3 flex h-auto max-h-none w-[min(280px,calc(100%-24px))] max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden rounded-[21px_18px_23px_19px] bg-recess p-3 shadow-(--ui-recess-shadow) sm:p-3 [&>header]:mb-3 [&>header]:px-2 [&>header]:pt-2 [&>header_h2]:text-sm',
+			'top-[calc(var(--atmo-nav-top,0px)+12px)] bottom-3 left-3 flex h-auto max-h-none w-[min(280px,calc(100%-24px))] max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden rounded-[21px_18px_23px_19px] bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-3 shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] sm:p-3 dark:bg-base-950 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002] [&>header]:mb-3 [&>header]:px-2 [&>header]:pt-2 [&>header_h2]:text-sm',
 			className
 		)}
 	>

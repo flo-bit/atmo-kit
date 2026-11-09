@@ -23,7 +23,7 @@ for (const width of [390, 1280]) {
 		expect(done!.y - label.bottom).toBeGreaterThanOrEqual(12);
 		const colors = await dialog.evaluate((element) => {
 			const probe = document.createElement('span');
-			probe.style.backgroundColor = 'var(--ui-surface)';
+			probe.style.backgroundColor = 'var(--base-900)';
 			element.append(probe);
 			const actual = getComputedStyle(element).backgroundColor;
 			const expected = getComputedStyle(probe).backgroundColor;

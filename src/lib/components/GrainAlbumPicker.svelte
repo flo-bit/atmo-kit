@@ -162,10 +162,12 @@
 				/>{/if}
 			<div class="min-w-0 flex-1">
 				<p class="truncate font-medium">{preview.title}</p>
-				<p class="text-sm break-words text-muted">
+				<p class="text-sm break-words text-base-600 dark:text-base-400">
 					@{preview.creator.handle} · {preview.photoCount} photos
 				</p>
-				{#if preview.contentWarning}<p class="text-xs text-muted">Content warning</p>{/if}
+				{#if preview.contentWarning}<p class="text-xs text-base-600 dark:text-base-400">
+						Content warning
+					</p>{/if}
 			</div>
 			<Button disabled={busy || added(preview)} onclick={() => preview && choose(preview)}
 				>{added(preview) ? 'Added' : 'Add album'}</Button
@@ -178,7 +180,7 @@
 			{#each albums as album (album.uri)}
 				<button
 					type="button"
-					class="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-recess disabled:opacity-50"
+					class="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] disabled:opacity-50 dark:hover:bg-base-950"
 					disabled={busy || added(album)}
 					onclick={() => choose(album)}
 					aria-label={`${added(album) ? 'Added' : 'Add'} ${album.title}`}
@@ -189,24 +191,31 @@
 							loading="lazy"
 							class="size-14 shrink-0 rounded-md object-cover"
 						/>{:else}<span
-							class="flex size-14 shrink-0 items-center justify-center rounded-md bg-recess"
+							class="flex size-14 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:bg-base-950"
 							><Icon img={Camera} size={20} /></span
 						>{/if}
 					<span class="min-w-0 flex-1"
 						><span class="block truncate font-medium">{album.title}</span><span
-							class="text-sm text-muted"
+							class="text-sm text-base-600 dark:text-base-400"
 							>{album.photoCount} photos{album.contentWarning ? ' · Content warning' : ''}</span
 						></span
 					>
-					{#if added(album)}<span class="text-xs text-muted">Added</span>{/if}
+					{#if added(album)}<span class="text-xs text-base-600 dark:text-base-400">Added</span>{/if}
 				</button>
 			{/each}
 		</div>
-		{#if listing}<p class="mt-3 text-sm text-muted" role="status">
+		{#if listing}<p class="mt-3 text-sm text-base-600 dark:text-base-400" role="status">
 				Loading albums…
-			</p>{:else if listError}<p class="mt-3 text-sm text-muted" role="status">{listError}</p>
+			</p>{:else if listError}<p
+				class="mt-3 text-sm text-base-600 dark:text-base-400"
+				role="status"
+			>
+				{listError}
+			</p>
 			<Button variant="ghost" size="sm" onclick={() => loadPage(!!cursor)}>Try again</Button
-			>{:else if !albums.length}<p class="text-sm text-muted">No albums yet.</p>{/if}
+			>{:else if !albums.length}<p class="text-sm text-base-600 dark:text-base-400">
+				No albums yet.
+			</p>{/if}
 		{#if cursor && !listError}<Button
 				variant="ghost"
 				class="mt-3"

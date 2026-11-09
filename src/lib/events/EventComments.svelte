@@ -80,11 +80,11 @@
 	{/if}
 
 	{#if loading}
-		<p class="text-sm text-muted">Loading comments…</p>
+		<p class="text-sm text-base-600 dark:text-base-400">Loading comments…</p>
 	{:else if errorMessage}
-		<p class="text-sm text-muted">{errorMessage}</p>
+		<p class="text-sm text-base-600 dark:text-base-400">{errorMessage}</p>
 	{:else if comments.length === 0}
-		<p class="text-sm text-muted">No comments yet.</p>
+		<p class="text-sm text-base-600 dark:text-base-400">No comments yet.</p>
 	{:else}
 		<div class="not-prose comments-no-divider">
 			<NestedComments {comments} {socialClient} />

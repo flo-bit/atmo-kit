@@ -23,7 +23,11 @@
 	<legend class="sr-only">Requested permissions</legend>
 	{#each permissions as permission, index (permission.id)}
 		<div class="flex items-start gap-3">
-			<Icon img={permission.icon ?? ShieldCheck} size={20} class="mt-1 shrink-0 text-muted" />
+			<Icon
+				img={permission.icon ?? ShieldCheck}
+				size={20}
+				class="mt-1 shrink-0 text-base-600 dark:text-base-400"
+			/>
 			<div class="min-w-0 flex-1 space-y-1.5">
 				<Label
 					id={`${uid}-${index}-label`}
@@ -32,7 +36,10 @@
 				>
 					{permission.label}{permission.required ? ' (required)' : ''}
 				</Label>
-				<p id={`${uid}-${index}-description`} class="text-xs leading-relaxed text-muted">
+				<p
+					id={`${uid}-${index}-description`}
+					class="text-xs leading-relaxed text-base-600 dark:text-base-400"
+				>
 					{permission.description}
 				</p>
 			</div>

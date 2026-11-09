@@ -13,13 +13,17 @@
 		{#if physicalLines.length}
 			<li class="flex min-w-0 items-center gap-4">
 				<div
-					class="flex size-12 shrink-0 items-center justify-center rounded-ui bg-recess text-muted [box-shadow:var(--ui-recess-shadow)]"
+					class="flex size-12 shrink-0 items-center justify-center rounded-ui bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] text-base-600 shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] dark:bg-base-950 dark:text-base-400 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002]"
 				>
 					<Icon img={MapPin} size={22} />
 				</div>
 				<div class="min-w-0 [overflow-wrap:anywhere]">
 					{#each physicalLines as line, i (i)}
-						<p class={line.muted ? 'text-sm text-muted' : 'font-semibold text-ink'}>
+						<p
+							class={line.muted
+								? 'text-sm text-base-600 dark:text-base-400'
+								: 'font-semibold text-base-950 dark:text-base-50'}
+						>
 							<svelte:element
 								this={line.href ? 'a' : 'span'}
 								href={line.href}
@@ -45,14 +49,14 @@
 						: ''}"
 				>
 					<div
-						class="flex size-12 shrink-0 items-center justify-center rounded-ui bg-recess text-muted [box-shadow:var(--ui-recess-shadow)]"
+						class="flex size-12 shrink-0 items-center justify-center rounded-ui bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] text-base-600 shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] dark:bg-base-950 dark:text-base-400 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002]"
 					>
 						<Icon img={Link} size={22} />
 					</div>
 					<div class="min-w-0 [overflow-wrap:anywhere]">
-						<p class="font-semibold text-ink">{location.label}</p>
+						<p class="font-semibold text-base-950 dark:text-base-50">{location.label}</p>
 						{#if location.detail}
-							<p class="text-sm text-muted">{location.detail}</p>
+							<p class="text-sm text-base-600 dark:text-base-400">{location.detail}</p>
 						{/if}
 					</div>
 				</svelte:element>

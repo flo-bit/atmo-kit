@@ -37,7 +37,9 @@
 		<Button variant="secondary" onclick={() => (streamOpen = true)}>Choose stream</Button>
 	</div>
 	<GrainAlbumView reference={album.uri} loadAlbum={client.getGallery} />
-	{#if status}<p class="mt-3 text-sm text-muted" role="status">{status}</p>{/if}
+	{#if status}<p class="mt-3 text-sm text-base-600 dark:text-base-400" role="status">
+			{status}
+		</p>{/if}
 </div>
 <GrainAlbumPicker
 	bind:open={pickerOpen}

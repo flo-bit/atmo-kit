@@ -136,7 +136,7 @@
 					<p class="font-medium text-base-900 dark:text-base-50">
 						{getLocationDisplayString(result.location)}
 					</p>
-					<p class="mt-0.5 truncate text-xs text-muted">
+					<p class="mt-0.5 truncate text-xs text-base-600 dark:text-base-400">
 						{result.displayName}
 					</p>
 				</div>

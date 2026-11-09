@@ -51,6 +51,8 @@ test('open account menus follow live theme changes', async ({ page }) => {
 	await page.getByTestId('components-playground').evaluate((el) => {
 		el.classList.remove('dark');
 		el.classList.add('light');
+		document.documentElement.classList.remove('dark');
+		document.documentElement.classList.add('light');
 	});
 	await expect.poll(background).not.toBe(dark);
 	await page.keyboard.press('Escape');

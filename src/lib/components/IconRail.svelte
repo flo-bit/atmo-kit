@@ -87,15 +87,17 @@
 						class={cn(
 							'min-h-11 w-full justify-start gap-3 px-3 py-3 text-sm',
 							(!item.variant || item.variant === 'ghost') &&
-								'aria-[current=page]:bg-recess aria-[current=page]:text-action',
+								'aria-[current=page]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] aria-[current=page]:text-accent-700 dark:aria-[current=page]:bg-base-950 dark:aria-[current=page]:text-accent-300',
 							item.primary && 'mt-3',
-							item.primary && (!item.variant || item.variant === 'ghost') && 'text-action'
+							item.primary &&
+								(!item.variant || item.variant === 'ghost') &&
+								'text-accent-700 dark:text-accent-300'
 						)}
 					>
 						<Icon img={item.icon} size={22} />
 						<span class="min-w-0 flex-1 text-left">{item.label}</span>
 						{#if item.badge}
-							<span class="text-xs text-action">
+							<span class="text-xs text-accent-700 dark:text-accent-300">
 								{#if typeof item.badge === 'number'}{item.badge}<span class="sr-only"> unread</span>
 								{:else}<span class="sr-only">Unread</span><span aria-hidden="true">•</span>{/if}
 							</span>
@@ -115,7 +117,7 @@
 			data-slot="icon-rail"
 			data-backed={backed}
 			class={cn(
-				'fixed top-[var(--atmo-nav-top,0px)] bottom-0 left-0 z-40 flex w-18 flex-col items-center bg-transparent pt-6 pb-5 max-sm:top-auto max-sm:right-0 max-sm:h-[calc(62px+env(safe-area-inset-bottom))] max-sm:w-full max-sm:flex-row max-sm:justify-around max-sm:bg-page max-sm:px-2 max-sm:pt-1.5 max-sm:pb-[calc(6px+env(safe-area-inset-bottom))]',
+				'fixed top-[var(--atmo-nav-top,0px)] bottom-0 left-0 z-40 flex w-18 flex-col items-center bg-transparent pt-6 pb-5 max-sm:top-auto max-sm:right-0 max-sm:h-[calc(62px+env(safe-area-inset-bottom))] max-sm:w-full max-sm:flex-row max-sm:justify-around max-sm:bg-base-50 max-sm:px-2 max-sm:pt-1.5 max-sm:pb-[calc(6px+env(safe-area-inset-bottom))] dark:max-sm:bg-base-925',
 				mobile === 'drawer' && 'max-sm:hidden',
 				className
 			)}
@@ -139,18 +141,18 @@
 									class={cn(
 										'relative size-11 rounded-(--atmo-radius-button) max-sm:size-10',
 										(!item.variant || item.variant === 'ghost') &&
-											'text-muted hover:bg-recess/55 aria-[current=page]:text-action',
+											'text-base-600 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/55 aria-[current=page]:text-accent-700 dark:text-base-400 dark:hover:bg-base-950/55 dark:aria-[current=page]:text-accent-300',
 										item.primary && 'mt-2 max-sm:mt-0',
 										item.primary &&
 											(!item.variant || item.variant === 'ghost') &&
-											'text-action hover:text-action',
+											'text-accent-700 hover:text-accent-700 dark:text-accent-300 dark:hover:text-accent-300',
 										backed &&
 											(!item.variant || item.variant === 'ghost') &&
-											'bg-recess/45 hover:bg-recess/75'
+											'bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/45 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/75 dark:bg-base-950/45 dark:hover:bg-base-950/75'
 									)}
 								>
 									<Icon img={item.icon} size={22} />{#if item.badge}<span
-											class="absolute top-2 right-1.5 size-1.5 rounded-full bg-action"
+											class="absolute top-2 right-1.5 size-1.5 rounded-full bg-accent-700 dark:bg-accent-300"
 											aria-hidden="true"
 										></span>{/if}
 								</Button>
@@ -160,7 +162,7 @@
 							side="right"
 							sideOffset={10}
 							collisionPadding={12}
-							class="z-60 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-field px-2.5 py-1.5 font-sans text-xs text-ink"
+							class="z-60 max-w-[calc(100vw-2rem)] rounded-lg border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] px-2.5 py-1.5 font-sans text-xs text-base-950 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-975 dark:text-base-50"
 							>{item.label}</Tooltip.Content
 						></Tooltip.Root
 					>

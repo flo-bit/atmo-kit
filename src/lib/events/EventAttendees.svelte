@@ -102,7 +102,10 @@
 			>
 				<p class="mb-2 text-sm text-base-900 dark:text-base-50">
 					<span class="font-bold">{goingCount}</span>
-					<span class="text-xs font-semibold tracking-wider text-muted uppercase">Going</span>
+					<span
+						class="text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+						>Going</span
+					>
 				</p>
 				<div class="flex items-center">
 					<div class="flex flex-wrap -space-y-2 -space-x-4 pr-4">
@@ -139,7 +142,10 @@
 			>
 				<p class="mb-2 text-sm text-base-900 dark:text-base-50">
 					<span class="font-bold">{interestedCount}</span>
-					<span class="text-xs font-semibold tracking-wider text-muted uppercase">Interested</span>
+					<span
+						class="text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+						>Interested</span
+					>
 				</p>
 				<div class="flex items-center">
 					<div class="flex flex-wrap -space-y-2 -space-x-4 pr-4">
@@ -188,7 +194,7 @@
 						{person.name}
 					</p>
 					{#if person.handle}
-						<p class="truncate text-xs text-muted">
+						<p class="truncate text-xs text-base-600 dark:text-base-400">
 							@{person.handle}
 						</p>
 					{/if}

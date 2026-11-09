@@ -13,7 +13,7 @@
 
 {#if links.length}
 	<div>
-		<p class="mb-3 text-xs font-medium text-muted">Links</p>
+		<p class="mb-3 text-xs font-medium text-base-600 dark:text-base-400">Links</p>
 		<div class="space-y-3">
 			<!-- These rows are stateless; equivalent URLs and exact duplicate entries are valid. -->
 			<!-- eslint-disable-next-line svelte/require-each-key -->
@@ -22,7 +22,7 @@
 					href={link.uri}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="flex items-center gap-2 rounded-sm text-sm text-muted transition-colors hover:text-action"
+					class="flex items-center gap-2 rounded-sm text-sm text-base-600 transition-colors hover:text-accent-700 dark:text-base-400 dark:hover:text-accent-300"
 					><Icon img={Link} size={15} /><span class="truncate"
 						>{link.name || link.uri.replace(/^https?:\/\//, '')}</span
 					></a

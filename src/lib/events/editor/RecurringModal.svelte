@@ -219,7 +219,9 @@
 </script>
 
 <Modal bind:open title="Recurring events" dismissible={!creating}>
-	<p class="mt-1 text-sm text-muted">Create multiple copies of this event at regular intervals.</p>
+	<p class="mt-1 text-sm text-base-600 dark:text-base-400">
+		Create multiple copies of this event at regular intervals.
+	</p>
 
 	<div class="mt-4 space-y-4">
 		<div>
@@ -276,7 +278,7 @@
 				<Checkbox bind:checked={numberInTitle} disabled={creating} aria-label="Number in title" />
 				<span class="text-sm font-medium text-base-700 dark:text-base-300">Number in title</span>
 			</div>
-			<p class="mt-1 text-xs text-muted">
+			<p class="mt-1 text-xs text-base-600 dark:text-base-400">
 				{#if numberInTitle && detectedStartNumber !== null}
 					Titles will count up from #{detectedStartNumber + 1}
 				{:else if numberInTitle}
@@ -293,13 +295,13 @@
 	{/if}
 
 	{#if creating && created > 0}
-		<p class="mt-4 text-sm text-muted">
+		<p class="mt-4 text-sm text-base-600 dark:text-base-400">
 			Created {created} of {count} events...
 		</p>
 	{/if}
 
 	{#if created > 0 && !creating}
-		<p class="mt-4 text-sm text-action">
+		<p class="mt-4 text-sm text-accent-700 dark:text-accent-300">
 			Successfully created {created} recurring events!
 		</p>
 	{/if}

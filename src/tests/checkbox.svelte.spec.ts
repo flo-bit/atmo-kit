@@ -6,7 +6,7 @@ import './forms-fixture.css';
 
 afterEach(() => {
 	document.documentElement.style.removeProperty('color-scheme');
-	document.documentElement.classList.remove('pink', 'violet');
+	document.documentElement.classList.remove('pink', 'violet', 'light', 'dark');
 });
 
 function visibleShadows(element: Element) {
@@ -18,6 +18,7 @@ function visibleShadows(element: Element) {
 for (const mode of ['light', 'dark']) {
 	for (const accent of ['pink', 'violet']) {
 		it(`keeps checkbox focus themed without the Forms plugin's blue ring in ${mode}/${accent}`, async () => {
+			document.documentElement.classList.add(mode);
 			document.documentElement.style.colorScheme = mode;
 			document.documentElement.classList.add(accent);
 			render(Checkbox, { 'aria-label': 'Notify me', checked: true });
@@ -31,7 +32,7 @@ for (const mode of ['light', 'dark']) {
 			expect(checkbox.element().matches(':focus-visible')).toBe(true);
 			const style = getComputedStyle(checkbox.element());
 			const probe = document.createElement('span');
-			probe.style.color = 'var(--ui-focus)';
+			probe.style.color = `var(--accent-${mode === 'light' ? '700' : '300'})`;
 			document.body.append(probe);
 			expect(style.outlineColor).toBe(getComputedStyle(probe).color);
 			probe.remove();

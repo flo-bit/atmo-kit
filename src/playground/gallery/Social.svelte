@@ -81,5 +81,7 @@
 			<SocialClientPicker />{#if !compact}<Button type="submit">Save preference</Button>{/if}
 		</form>
 	{/if}
-	{#if status}<p role="status" class="mt-4 text-sm text-muted">{status}</p>{/if}
+	{#if status}<p role="status" class="mt-4 text-sm text-base-600 dark:text-base-400">
+			{status}
+		</p>{/if}
 </div>

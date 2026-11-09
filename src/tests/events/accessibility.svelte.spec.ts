@@ -13,8 +13,8 @@ function theme(mode: string) {
 	document.documentElement.classList.add(mode);
 	document.documentElement.style.colorScheme = mode;
 	document.body.style.colorScheme = mode;
-	document.body.style.background = 'var(--ui-page)';
-	document.body.style.color = 'var(--ui-ink)';
+	document.body.style.background = `var(--base-${mode === 'light' ? '50' : '925'})`;
+	document.body.style.color = `var(--base-${mode === 'light' ? '950' : '50'})`;
 }
 async function audit() {
 	await document.fonts.ready;

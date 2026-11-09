@@ -18,9 +18,11 @@ Import the theme after Tailwind in your global CSS:
 @import '@atmo-dev/kit/theme.css';
 ```
 
-Apply `class="atmo zinc pink light"` (or `dark`) to the document or body so
-portaled dialogs inherit the theme. Import components from `@atmo-dev/kit`;
-event components use `@atmo-dev/kit/events`.
+Apply `class="atmo zinc pink light"` (or `dark`) to `<html>`. Omit `light`/`dark`
+to follow browser preferences. Kit supplies `dark:`; no app-specific variant is
+needed. See [colors and dark mode](docs/colors.md).
+
+Import components from `@atmo-dev/kit`; event components use `@atmo-dev/kit/events`.
 
 See the [component overview](docs/components.md) and [guides](docs/README.md)
 for available components, examples, and integration details.

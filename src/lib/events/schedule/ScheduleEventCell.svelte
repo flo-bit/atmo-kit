@@ -89,7 +89,7 @@
 	<Modal bind:open={modalOpen} title={event.title}>
 		<div class="overflow-hidden">
 			{#if event.start}
-				<p class="mt-1 text-sm text-muted">
+				<p class="mt-1 text-sm text-base-600 dark:text-base-400">
 					{formatTime(event.start, tz)}{event.end ? ` – ${formatTime(event.end, tz)}` : ''}
 				</p>
 			{/if}
@@ -107,7 +107,7 @@
 			{/if}
 
 			{#if event.description}
-				<p class="mt-3 line-clamp-3 text-sm break-words text-muted">
+				<p class="mt-3 line-clamp-3 text-sm break-words text-base-600 dark:text-base-400">
 					{event.description}
 				</p>
 			{/if}

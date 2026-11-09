@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DocumentTheme from '../../playground/DocumentTheme.svelte';
 	import { resolve } from '$app/paths';
 	import { Button, Icon, IconButton } from '#lib';
 	import { Moon, Sun } from '@sketchyicons/svelte';
@@ -6,6 +7,8 @@
 	import Preview from '../../playground/gallery/Preview.svelte';
 	let dark = $state(true);
 </script>
+
+<DocumentTheme {dark} />
 
 <svelte:head>
 	<title>Components · Atmo Kit</title>
@@ -19,10 +22,10 @@
 		>Skip to content</a
 	>
 	<header
-		class="flex flex-wrap items-center justify-between gap-4 border-b border-line px-5 py-5 sm:px-8"
+		class="flex flex-wrap items-center justify-between gap-4 border-b border-base-300 px-5 py-5 sm:px-8 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 	>
 		<h1 class="text-lg font-medium tracking-tight">
-			atmo kit <span class="font-normal text-muted">/ components</span>
+			atmo kit <span class="font-normal text-base-600 dark:text-base-400">/ components</span>
 		</h1>
 		<div class="flex items-center gap-3">
 			<Button href={resolve('/')} variant="link" size="sm">Foundation</Button>
@@ -37,7 +40,8 @@
 		<nav aria-label="Component groups" class="flex flex-wrap gap-x-5 gap-y-3 text-sm">
 			{#each catalog as group (group.id)}<a
 					href={`#${group.id}`}
-					class="text-action underline-offset-4 hover:underline">{group.title}</a
+					class="text-accent-700 underline-offset-4 hover:underline dark:text-accent-300"
+					>{group.title}</a
 				>{/each}
 		</nav>
 		<div class="mt-10 space-y-14">
@@ -48,7 +52,7 @@
 						{#each group.components as component (component.name)}
 							<li class="group relative min-w-0">
 								<div
-									class="pointer-events-none flex h-64 items-center overflow-hidden rounded-ui border border-line bg-recess/30 p-5"
+									class="pointer-events-none flex h-64 items-center overflow-hidden rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/30 p-5 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-950/30"
 									inert
 									aria-hidden="true"
 								>
@@ -56,7 +60,7 @@
 								</div>
 								<a
 									href={resolve('/components/[name]', { name: component.name })}
-									class="mt-3 inline-block rounded text-sm font-medium underline-offset-4 hover:text-action hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+									class="mt-3 inline-block rounded text-sm font-medium underline-offset-4 hover:text-accent-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-700 dark:hover:text-accent-300 dark:focus-visible:outline-accent-300"
 									><span class="absolute inset-0 rounded-ui"></span>{component.name}</a
 								>
 							</li>

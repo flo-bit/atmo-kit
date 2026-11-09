@@ -63,11 +63,9 @@
 	</div>
 {:else if name === 'Label'}
 	<div class="w-full max-w-sm">
-		<Label for="label-example">Event name <span class="text-muted">(required)</span></Label><Input
-			id="label-example"
-			placeholder="Give it a name"
-			class="mt-2"
-		/>
+		<Label for="label-example"
+			>Event name <span class="text-base-600 dark:text-base-400">(required)</span></Label
+		><Input id="label-example" placeholder="Give it a name" class="mt-2" />
 	</div>
 {:else if name === 'ToggleGroup' || name === 'ToggleGroupItem'}
 	<ToggleGroup aria-label="Filter events" bind:value={choice}
@@ -93,7 +91,7 @@
 {:else if name === 'PostComposer'}
 	<div class="w-full">
 		<PostComposer bind:value {searchActors} maxLength={300} />{#if !compact}<p
-				class="mt-3 text-xs text-muted"
+				class="mt-3 text-xs text-base-600 dark:text-base-400"
 			>
 				Type @mika to try mentions. Nothing is published.
 			</p>{/if}

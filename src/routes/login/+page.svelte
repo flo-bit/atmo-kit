@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DocumentTheme from '../../playground/DocumentTheme.svelte';
 	import { resolve } from '$app/paths';
 	import {
 		Button,
@@ -95,6 +96,8 @@
 	}
 </script>
 
+<DocumentTheme {dark} />
+
 <svelte:head
 	><title>Login · Atmo Kit</title><meta
 		name="description"
@@ -105,13 +108,15 @@
 	class={cn('atmo min-h-dvh', base, accent, dark ? 'dark' : 'light')}
 	data-testid="login-playground"
 >
-	<header class="border-b border-line">
+	<header
+		class="border-b border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+	>
 		<div
 			class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-5 py-5 sm:px-8"
 		>
 			<div class="flex flex-wrap items-center gap-4">
 				<h1 class="text-lg font-medium tracking-tight">
-					atmo kit<span class="ml-2 font-normal text-muted">/ login</span>
+					atmo kit<span class="ml-2 font-normal text-base-600 dark:text-base-400">/ login</span>
 				</h1>
 				<Button href={resolve('/components')} variant="link" size="sm"
 					><Icon img={ArrowLeft} size={15} />Components</Button
@@ -150,7 +155,7 @@
 					permissions={review ? permissions : []}
 				>
 					{#snippet footer(step)}{#if step === 'login'}<p
-								class="text-xs leading-relaxed text-muted"
+								class="text-xs leading-relaxed text-base-600 dark:text-base-400"
 							>
 								Try “mika” to search, or enter a full handle or DID.
 							</p>{/if}{/snippet}
@@ -172,7 +177,11 @@
 				>
 			</fieldset>
 			<Button variant="secondary" onclick={loadRecents}>Load recent accounts</Button>
-			<p role="status" data-testid="callback-status" class="text-xs leading-relaxed text-muted">
+			<p
+				role="status"
+				data-testid="callback-status"
+				class="text-xs leading-relaxed text-base-600 dark:text-base-400"
+			>
 				{status}
 			</p>
 		</section>

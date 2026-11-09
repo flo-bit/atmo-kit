@@ -69,6 +69,6 @@
 	href={safeWebUrl(href)}
 	target="_blank"
 	rel="noopener noreferrer"
-	class="mt-1 inline-flex items-center gap-1 text-xs text-action hover:underline"
+	class="mt-1 inline-flex items-center gap-1 text-xs text-accent-700 hover:underline dark:text-accent-300"
 	>Watch on Bluesky <Icon img={ArrowUpRight} size={14} /></a
 >

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DocumentTheme from '../../playground/DocumentTheme.svelte';
 	import { resolve } from '$app/paths';
 	import {
 		AccountMenu,
@@ -21,6 +22,8 @@
 		{ label: 'Profile', icon: UserRound, active: profile, onclick: () => (profile = true) }
 	]);
 </script>
+
+<DocumentTheme {dark} />
 
 <svelte:head
 	><title>Navigation · Atmo Kit</title><meta
@@ -96,7 +99,9 @@
 		{/if}
 		<section aria-label={profile ? 'Your profile' : 'Home'} class="mt-10">
 			<h2 class="text-lg font-medium">{profile ? 'Your profile' : 'Home'}</h2>
-			<p class="mt-2 text-sm text-muted">Local example. No account is connected.</p>
+			<p class="mt-2 text-sm text-base-600 dark:text-base-400">
+				Local example. No account is connected.
+			</p>
 		</section>
 	</main>
 </div>

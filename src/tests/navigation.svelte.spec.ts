@@ -54,7 +54,7 @@ it.each([
 		await expect.element(action).toHaveAttribute('data-variant', 'primary');
 		await expect.element(action).toHaveAttribute('aria-current', 'page');
 		await expect.element(action).toHaveClass(/bg-accent-400/);
-		await expect.element(action).not.toHaveClass(/text-action/);
+		await expect.element(action).not.toHaveClass(/text-accent-700|dark:text-accent-300/);
 		await expect
 			.element(page.getByRole('link', { name: 'Home', exact: true }))
 			.toHaveAttribute('data-variant', 'ghost');

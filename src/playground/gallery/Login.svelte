@@ -76,5 +76,5 @@
 	{#if !compact && ['LoginForm', 'LoginDialog', 'SignupPermissions'].includes(name)}<Label
 			><Checkbox bind:checked={fail} />Simulate an error</Label
 		>{/if}
-	{#if status}<p role="status" class="text-sm text-muted">{status}</p>{/if}
+	{#if status}<p role="status" class="text-sm text-base-600 dark:text-base-400">{status}</p>{/if}
 </div>

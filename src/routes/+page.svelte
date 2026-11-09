@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DocumentTheme from '../playground/DocumentTheme.svelte';
 	import {
 		Avatar,
 		Badge,
@@ -114,6 +115,8 @@
 	}
 </script>
 
+<DocumentTheme {dark} />
+
 <svelte:head
 	><title>Atmo Kit · Playground</title><meta
 		name="description"
@@ -127,13 +130,16 @@
 		class="fixed top-3 left-4 z-60 -translate-y-24 rounded-ui bg-accent-400 px-4 py-2 text-base-950 focus:translate-y-0"
 		>Skip to content</a
 	>
-	<header class="border-b border-line">
+	<header
+		class="border-b border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+	>
 		<div
 			class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-5 py-5 sm:px-8"
 		>
 			<div class="flex flex-wrap items-center gap-4">
 				<h1 class="text-lg font-medium tracking-tight">
-					atmo kit<span class="ml-2 font-normal text-muted">/ playground</span>
+					atmo kit<span class="ml-2 font-normal text-base-600 dark:text-base-400">/ playground</span
+					>
 				</h1>
 				<Button href={resolve('/components')} variant="link" size="sm"
 					>Components<Icon img={ArrowUpRight} size={15} /></Button
@@ -143,7 +149,7 @@
 				>
 			</div>
 			<div class="flex items-center gap-3">
-				<label class="flex items-center gap-2 text-xs text-muted"
+				<label class="flex items-center gap-2 text-xs text-base-600 dark:text-base-400"
 					><span class="hidden sm:inline">Base</span><Select
 						aria-label="Base color"
 						bind:value={base}
@@ -152,7 +158,7 @@
 							>{/each}</Select
 					></label
 				>
-				<label class="flex items-center gap-2 text-xs text-muted"
+				<label class="flex items-center gap-2 text-xs text-base-600 dark:text-base-400"
 					><span class="hidden sm:inline">Accent</span><Select
 						aria-label="Accent color"
 						bind:value={accent}
@@ -192,7 +198,7 @@
 					><Button disabled>Disabled</Button><Button loading>Saving</Button><IconButton
 						label={liked ? 'Unlike' : 'Like'}
 						aria-pressed={liked}
-						class={liked ? 'text-action' : ''}
+						class={liked ? 'text-accent-700 dark:text-accent-300' : ''}
 						onclick={() => (liked = !liked)}><Icon img={Heart} size={21} /></IconButton
 					>
 				</div>
@@ -206,7 +212,7 @@
 						>Square corners</Button
 					>
 				</div>
-				<code class="mt-4 block text-[11px] text-muted"
+				<code class="mt-4 block text-[11px] text-base-600 dark:text-base-400"
 					>&lt;Button class="red"&gt;Delete event&lt;/Button&gt;</code
 				>
 			</section>
@@ -215,11 +221,14 @@
 				<Subheading id="profile-heading" class="mb-5">Profile</Subheading><Surface
 					class="p-5 sm:p-6"
 				>
-					<div class="mb-6 flex items-center gap-3 border-b border-line pb-5">
+					<div
+						class="mb-6 flex items-center gap-3 border-b border-base-300 pb-5 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+					>
 						<Avatar {name} size={44} />
 						<div class="min-w-0 flex-1">
 							<strong class="block truncate text-sm font-medium">{name || 'Your name'}</strong><span
-								class="block truncate text-xs text-muted">@{handle || 'your.handle'}</span
+								class="block truncate text-xs text-base-600 dark:text-base-400"
+								>@{handle || 'your.handle'}</span
 							>
 						</div>
 						<IconButton label="Copy handle" size="sm" onclick={copyHandle}
@@ -262,7 +271,9 @@
 								class="min-h-24"
 								aria-describedby="bio-count"
 							/>
-							<p id="bio-count" class="text-right text-[10px] text-muted">{bio.length} / 200</p>
+							<p id="bio-count" class="text-right text-[10px] text-base-600 dark:text-base-400">
+								{bio.length} / 200
+							</p>
 						</div>
 						<div class="space-y-2">
 							<Label for="profile-visibility">Profile visibility</Label><Select
@@ -278,7 +289,7 @@
 							replies</Label
 						>
 						<div
-							class="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5"
+							class="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 pt-5 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 						>
 							<Button variant="ghost" onclick={reset}>Reset</Button><Button
 								type="submit"
@@ -291,7 +302,9 @@
 							>
 						</div>
 					</form>
-					<p class="mt-4 min-h-5 text-[11px] text-muted" role="status">{status}</p>
+					<p class="mt-4 min-h-5 text-[11px] text-base-600 dark:text-base-400" role="status">
+						{status}
+					</p>
 				</Surface>
 			</section>
 
@@ -305,7 +318,10 @@
 							aria-invalid="true"
 							aria-describedby="handle-error"
 						/>
-						<p id="handle-error" class="flex items-center gap-1.5 text-xs text-action">
+						<p
+							id="handle-error"
+							class="flex items-center gap-1.5 text-xs text-accent-700 dark:text-accent-300"
+						>
 							<Icon img={X} size={14} />Enter a handle such as flo-bit.dev.
 						</p>
 					</div>
@@ -348,10 +364,10 @@
 									class="text-xl leading-tight tracking-tight"
 									>{eventTitle || 'Untitled event'}</Heading
 								>
-								<p class="mt-3 flex items-start gap-1.5 text-xs text-muted">
+								<p class="mt-3 flex items-start gap-1.5 text-xs text-base-600 dark:text-base-400">
 									<Icon img={CalendarDays} size={16} />Sat, Oct 25 · 10:00
 								</p>
-								<p class="mt-2 flex items-start gap-1.5 text-xs text-muted">
+								<p class="mt-2 flex items-start gap-1.5 text-xs text-base-600 dark:text-base-400">
 									<Icon img={MapPin} size={16} />Étretat, France
 								</p>
 							</div>
@@ -365,7 +381,7 @@
 									{ value: 'comments', label: `Comments ${1 + replies.length}` }
 								]}
 								>{#snippet children(value)}{#if value === 'about'}<p
-											class="text-sm leading-relaxed text-muted"
+											class="text-sm leading-relaxed text-base-600 dark:text-base-400"
 										>
 											{eventDescription || 'No description yet.'}
 										</p>{:else}<div class="space-y-4">
@@ -373,7 +389,7 @@
 												<Avatar name="Mika" src={mika} size={29} />
 												<div>
 													<strong class="text-xs font-medium">Mika</strong>
-													<p class="mt-1 text-sm text-muted">
+													<p class="mt-1 text-sm text-base-600 dark:text-base-400">
 														Bringing a camera and a very large coffee.
 													</p>
 												</div>
@@ -382,7 +398,9 @@
 													<Avatar {name} size={29} />
 													<div class="min-w-0">
 														<strong class="text-xs font-medium">{name}</strong>
-														<p class="mt-1 text-sm wrap-anywhere text-muted">{text}</p>
+														<p class="mt-1 text-sm wrap-anywhere text-base-600 dark:text-base-400">
+															{text}
+														</p>
 													</div>
 												</div>{/each}
 											<form onsubmit={postReply} class="flex gap-2">
@@ -402,7 +420,9 @@
 										</div>{/if}{/snippet}</Tabs
 							>
 						</div>
-						<div class="mt-6 border-t border-line pt-5">
+						<div
+							class="mt-6 border-t border-base-300 pt-5 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+						>
 							<div class="mb-5 flex items-center gap-3">
 								<div class="flex -space-x-1.5">
 									<Avatar name="Mika" src={mika} size={27} /><Avatar name="Jo" size={27} /><Avatar
@@ -410,19 +430,21 @@
 										size={27}
 									/>
 								</div>
-								<span class="text-[11px] text-muted">{42 + (going ? 1 : 0)} going</span>
+								<span class="text-[11px] text-base-600 dark:text-base-400"
+									>{42 + (going ? 1 : 0)} going</span
+								>
 							</div>
 							<Button class="w-full" aria-pressed={going} onclick={() => (going = !going)}
 								><Icon img={going ? Check : Plus} size={18} />{going
 									? "You're going"
 									: "I'm going"}</Button
 							>
-							<p class="mt-3 text-center text-[10px] text-muted">
+							<p class="mt-3 text-center text-[10px] text-base-600 dark:text-base-400">
 								Demo RSVP. Nothing is published.
 							</p>
 						</div>
 					</Surface>{:else}<Surface class="py-12 text-center"
-						><p class="text-sm text-muted">Sample event removed.</p>
+						><p class="text-sm text-base-600 dark:text-base-400">Sample event removed.</p>
 						<Button
 							variant="secondary"
 							class="mt-5"
@@ -459,7 +481,9 @@
 						/>
 					</div>
 				</div>
-				<p class="mt-3 text-[11px] text-muted">Updates the sample event above.</p>
+				<p class="mt-3 text-[11px] text-base-600 dark:text-base-400">
+					Updates the sample event above.
+				</p>
 			</section>
 
 			<section aria-labelledby="scope-heading">
@@ -468,7 +492,9 @@
 					data-testid="blue-scope"
 					><div class="mb-5 flex items-center justify-between gap-3">
 						<div class="flex items-center gap-2 text-sm">
-							<Icon img={Leaf} size={19} class="text-action" /><span>A blue section</span>
+							<Icon img={Leaf} size={19} class="text-accent-700 dark:text-accent-300" /><span
+								>A blue section</span
+							>
 						</div>
 						<Badge>.blue</Badge>
 					</div>
@@ -487,7 +513,7 @@
 							>Open blue dialog</Button
 						>
 					</div>
-					<p class="mt-5 text-xs leading-relaxed text-muted">
+					<p class="mt-5 text-xs leading-relaxed text-base-600 dark:text-base-400">
 						The red button changes its own accent. Its siblings stay blue, even when the page uses
 						another color.
 					</p></Surface

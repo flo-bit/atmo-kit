@@ -17,6 +17,8 @@
 	this={`h${level}`}
 	{...rest}
 	bind:this={ref}
-	class={cn('m-0 text-lg leading-snug font-medium tracking-tight text-ink', className)}
-	>{@render children?.()}</svelte:element
+	class={cn(
+		'm-0 text-lg leading-snug font-medium tracking-tight text-base-950 dark:text-base-50',
+		className
+	)}>{@render children?.()}</svelte:element
 >

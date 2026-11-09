@@ -18,7 +18,7 @@
 	{...rest}
 	bind:this={ref}
 	class={cn(
-		'm-0 text-[clamp(2rem,4vw,2.75rem)] leading-[1.15] font-medium tracking-[-.035em] text-ink',
+		'm-0 text-[clamp(2rem,4vw,2.75rem)] leading-[1.15] font-medium tracking-[-.035em] text-base-950 dark:text-base-50',
 		className
 	)}>{@render children?.()}</svelte:element
 >

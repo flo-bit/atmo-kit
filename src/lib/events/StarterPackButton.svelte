@@ -46,13 +46,13 @@
 </script>
 
 <div class="mt-4">
-	<p class="mb-1 text-xs text-muted">Follow attendees on {clientLabel}.</p>
+	<p class="mb-1 text-xs text-base-600 dark:text-base-400">Follow attendees on {clientLabel}.</p>
 	{#if packUrl}
 		<a
 			href={packUrl}
 			target="_blank"
 			rel="noopener noreferrer"
-			class="rounded text-sm text-action underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+			class="rounded text-sm text-accent-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-700 dark:text-accent-300 dark:focus-visible:outline-accent-300"
 			>Starter pack ↗</a
 		>
 	{:else}
@@ -67,6 +67,6 @@
 		</Button>
 	{/if}
 	{#if message}
-		<p role="alert" class="mt-2 text-sm text-muted">{message}</p>
+		<p role="alert" class="mt-2 text-sm text-base-600 dark:text-base-400">{message}</p>
 	{/if}
 </div>

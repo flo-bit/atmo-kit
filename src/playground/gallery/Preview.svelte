@@ -13,7 +13,7 @@
 	<div
 		class={compact
 			? 'relative h-full w-full overflow-hidden'
-			: 'h-[min(800px,80dvh)] w-full overflow-hidden rounded-ui border border-line'}
+			: 'h-[min(800px,80dvh)] w-full overflow-hidden rounded-ui border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]'}
 	>
 		<iframe
 			src={`${resolve('/components/[name]/preview', { name })}?theme=${dark ? 'dark' : 'light'}${compact ? '&compact=1' : ''}`}

@@ -5,6 +5,7 @@ gallery shows every public component and links to individual interactive example
 
 | Guide                                          | Contents                                                 |
 | ---------------------------------------------- | -------------------------------------------------------- |
+| [Colors and dark mode](colors.md)              | Base/accent ramps, document mode, migration              |
 | [Navigation](navigation.md)                    | Icon rails, primary actions, sidebar account menus       |
 | [Login](login.md)                              | Handles, DIDs, normalization, callback ownership         |
 | [Profiles](profiles.md)                        | Read-only profiles, links, app-owned actions             |

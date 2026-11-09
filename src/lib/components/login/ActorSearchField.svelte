@@ -145,7 +145,7 @@
 	<Icon
 		img={AtSign}
 		size={18}
-		class="pointer-events-none absolute top-[13px] left-3 z-1 text-muted"
+		class="pointer-events-none absolute top-[13px] left-3 z-1 text-base-600 dark:text-base-400"
 	/>
 	{#if searchActors}
 		<Combobox.Root
@@ -190,12 +190,12 @@
 						sideOffset={6}
 						collisionPadding={12}
 						style={inherited}
-						class="z-70 max-h-[min(20rem,var(--bits-combobox-content-available-height))] w-(--bits-combobox-anchor-width) min-w-52 overflow-y-auto overscroll-contain rounded-ui border border-line bg-field p-1.5 font-sans text-ink outline-none"
+						class="z-70 max-h-[min(20rem,var(--bits-combobox-content-available-height))] w-(--bits-combobox-anchor-width) min-w-52 overflow-y-auto overscroll-contain rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-1.5 font-sans text-base-950 outline-none dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-975 dark:text-base-50"
 					>
 						{#each results as actor (actor.did)}<Combobox.Item
 								value={actor.handle}
 								label={actor.handle}
-								class="flex min-h-14 cursor-pointer items-center gap-3 rounded-ui px-2.5 py-2 outline-none data-highlighted:bg-accent-soft data-highlighted:text-action"
+								class="flex min-h-14 cursor-pointer items-center gap-3 rounded-ui px-2.5 py-2 outline-none data-highlighted:bg-accent-50 data-highlighted:text-accent-700 dark:data-highlighted:bg-[color-mix(in_srgb,var(--accent-950)_65%,var(--base-950))] dark:data-highlighted:text-accent-300"
 								><Avatar
 									name={actorName(actor)}
 									src={actor.avatar}
@@ -203,7 +203,8 @@
 									aria-hidden="true"
 								/><span class="grid min-w-0 gap-0.5"
 									><strong class="truncate text-[.8125rem] font-medium">{actorName(actor)}</strong
-									>{#if actor.displayName}<span class="truncate text-xs text-muted"
+									>{#if actor.displayName}<span
+											class="truncate text-xs text-base-600 dark:text-base-400"
 											>@{actor.handle}</span
 										>{/if}</span
 								></Combobox.Item
@@ -214,7 +215,7 @@
 		{#if status === 'loading'}<Icon
 				img={LoaderCircle}
 				size={16}
-				class="pointer-events-none absolute top-3.5 right-3 text-muted motion-safe:animate-spin"
+				class="pointer-events-none absolute top-3.5 right-3 text-base-600 motion-safe:animate-spin dark:text-base-400"
 			/>{/if}
 	{:else}<Input
 			{id}
@@ -232,7 +233,10 @@
 			data-autofocus
 			class="pl-10"
 		/>{/if}
-	{#if message}<p id={`${uid}-status`} class="mt-2 text-xs leading-relaxed text-muted">
+	{#if message}<p
+			id={`${uid}-status`}
+			class="mt-2 text-xs leading-relaxed text-base-600 dark:text-base-400"
+		>
 			{message}
 		</p>{/if}
 	<span class="sr-only" role="status">{announcement}</span>

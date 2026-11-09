@@ -10,7 +10,9 @@
 </script>
 
 <div>
-	<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Theme</p>
+	<p class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400">
+		Theme
+	</p>
 	<Button variant="secondary" size="sm" onclick={() => (showModal = true)}>
 		<Icon img={Palette} size={16} />
 		{themeBackgrounds[theme.name] || theme.name}

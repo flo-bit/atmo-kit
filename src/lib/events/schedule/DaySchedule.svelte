@@ -97,7 +97,7 @@
 				onclick={() => (roomMenuOpen = false)}
 			></button>
 			<ul
-				class="absolute inset-x-0 top-full z-[10000] max-h-64 overflow-auto border-b border-line bg-page"
+				class="absolute inset-x-0 top-full z-[10000] max-h-64 overflow-auto border-b border-base-300 bg-base-50 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-925"
 			>
 				{#each rooms as room, i (room)}
 					<li>
@@ -209,7 +209,7 @@
 				>
 					{#each rooms as room (room)}
 						<div
-							class="px-2 py-2.5 text-center text-xs font-semibold tracking-wide text-muted uppercase"
+							class="px-2 py-2.5 text-center text-xs font-semibold tracking-wide text-base-600 uppercase dark:text-base-400"
 						>
 							{room}
 						</div>

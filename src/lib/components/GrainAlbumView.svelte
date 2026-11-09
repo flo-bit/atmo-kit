@@ -67,7 +67,7 @@
 					href={`https://grain.social/profile/${encodeURIComponent(gallery.creator.did)}`}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="text-sm break-all text-muted hover:text-action"
+					class="text-sm break-all text-base-600 hover:text-accent-700 dark:text-base-400 dark:hover:text-accent-300"
 					>{gallery.creator.displayName || gallery.creator.handle} · @{gallery.creator.handle}</a
 				>{/if}
 		</div>
@@ -75,20 +75,29 @@
 				href={gallery?.url || ref?.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="text-sm text-action hover:underline">Open on Grain</a
+				class="text-sm text-accent-700 hover:underline dark:text-accent-300">Open on Grain</a
 			>{/if}
 	</div>
-	{#if loading}<p class="py-6 text-sm text-muted" role="status">Loading photos…</p>
-	{:else if failed || !loadAlbum}<p class="mb-2 text-sm text-muted" role="status">
+	{#if loading}<p class="py-6 text-sm text-base-600 dark:text-base-400" role="status">
+			Loading photos…
+		</p>
+	{:else if failed || !loadAlbum}<p
+			class="mb-2 text-sm text-base-600 dark:text-base-400"
+			role="status"
+		>
 			Photos are unavailable. You can still open the album on Grain.
 		</p>
 		{#if loadAlbum}<Button variant="ghost" size="sm" onclick={() => retry++}>Try again</Button>{/if}
 	{:else if gallery}
-		{#if gallery.contentWarning && !revealed}<div class="rounded-lg border border-line p-4">
+		{#if gallery.contentWarning && !revealed}<div
+				class="rounded-lg border border-base-300 p-4 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+			>
 				<p class="mb-3 text-sm">This album has a content warning.</p>
 				<Button variant="secondary" size="sm" onclick={() => (revealed = true)}>Show photos</Button>
 			</div>
-		{:else if !photos.length}<p class="py-4 text-sm text-muted">No photos in this album yet.</p>
+		{:else if !photos.length}<p class="py-4 text-sm text-base-600 dark:text-base-400">
+				No photos in this album yet.
+			</p>
 		{:else}<PhotoGrid {photos} label={gallery.title} />{/if}
 	{/if}
 </section>

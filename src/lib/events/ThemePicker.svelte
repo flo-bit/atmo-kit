@@ -45,7 +45,7 @@
 <div class="flex flex-col gap-6">
 	<!-- Theme background -->
 	<div>
-		<p class="mb-2 text-xs font-medium text-muted">Background style</p>
+		<p class="mb-2 text-xs font-medium text-base-600 dark:text-base-400">Background style</p>
 		<div class="flex flex-wrap gap-2">
 			{#each bgKeys as key (key)}
 				<button
@@ -66,7 +66,7 @@
 
 	<!-- Accent color -->
 	<div>
-		<p class="mb-2 text-xs font-medium text-muted">Accent color</p>
+		<p class="mb-2 text-xs font-medium text-base-600 dark:text-base-400">Accent color</p>
 		<div class="flex flex-wrap gap-2">
 			{#each accentColors as color (color.label)}
 				<button
@@ -75,8 +75,8 @@
 					aria-pressed={theme.accentColor === color.label}
 					class="size-7 cursor-pointer rounded-full border-2 transition-all {color.cls}
 						{theme.accentColor === color.label
-						? 'border-white ring-2 ring-control-line'
-						: 'border-transparent hover:border-control-line'}"
+						? 'border-white ring-2 ring-base-300 dark:ring-base-800'
+						: 'border-transparent hover:border-base-300 dark:hover:border-base-800'}"
 					onclick={() => (theme = { ...theme, accentColor: color.label })}
 				></button>
 			{/each}
@@ -85,7 +85,7 @@
 
 	<!-- Base color -->
 	<div>
-		<p class="mb-2 text-xs font-medium text-muted">Base color</p>
+		<p class="mb-2 text-xs font-medium text-base-600 dark:text-base-400">Base color</p>
 		<div class="flex flex-wrap gap-2">
 			{#each baseColors as color (color.label)}
 				<button
@@ -94,8 +94,8 @@
 					aria-pressed={theme.baseColor === color.label}
 					class="size-7 cursor-pointer rounded-full border-2 transition-all {color.cls}
 						{theme.baseColor === color.label
-						? 'border-white ring-2 ring-control-line'
-						: 'border-transparent hover:border-control-line'}"
+						? 'border-white ring-2 ring-base-300 dark:ring-base-800'
+						: 'border-transparent hover:border-base-300 dark:hover:border-base-800'}"
 					onclick={() => (theme = { ...theme, baseColor: color.label })}
 				></button>
 			{/each}

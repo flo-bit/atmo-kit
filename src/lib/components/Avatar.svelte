@@ -20,7 +20,7 @@
 <span
 	{...rest}
 	class={cn(
-		'inline-grid size-(--ak-avatar-size) shrink-0 place-items-center overflow-hidden rounded-[45%_49%_44%_48%] border border-base-100 bg-accent-soft text-action dark:border-base-800',
+		'inline-grid size-(--ak-avatar-size) shrink-0 place-items-center overflow-hidden rounded-[45%_49%_44%_48%] border border-base-100 bg-accent-50 text-accent-700 dark:border-base-800 dark:bg-[color-mix(in_srgb,var(--accent-950)_65%,var(--base-950))] dark:text-accent-300',
 		className
 	)}
 	style:--ak-avatar-size={`${size}px`}

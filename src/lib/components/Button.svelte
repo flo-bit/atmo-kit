@@ -11,9 +11,10 @@
 	const variants = {
 		primary: 'bg-accent-400 text-base-950 hover:bg-accent-300 active:bg-accent-400',
 		secondary:
-			'border-line bg-surface text-ink hover:border-control-line hover:bg-recess active:bg-recess',
-		ghost: 'bg-transparent text-muted hover:bg-recess hover:text-ink active:bg-recess',
-		link: 'min-h-0 rounded px-0 py-1 text-action hover:underline underline-offset-4'
+			'border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] bg-base-50 dark:bg-base-900 text-base-950 dark:text-base-50 hover:border-base-300 dark:hover:border-base-800 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:hover:bg-base-950 active:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:active:bg-base-950',
+		ghost:
+			'bg-transparent text-base-600 dark:text-base-400 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:hover:bg-base-950 hover:text-base-950 dark:hover:text-base-50 active:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:active:bg-base-950',
+		link: 'min-h-0 rounded px-0 py-1 text-accent-700 dark:text-accent-300 hover:underline underline-offset-4'
 	};
 	const sizes = {
 		sm: 'min-h-8.5 gap-1.5 px-3 py-1.5 text-xs',

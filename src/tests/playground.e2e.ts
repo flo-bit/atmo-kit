@@ -107,9 +107,7 @@ test('Bits UI modal traps/restores focus and commits only submitted edits', asyn
 	await expect(trigger).toBeFocused();
 });
 
-test('real portal preserves scoped palette and follows ancestor theme changes', async ({
-	page
-}) => {
+test('real portal preserves scoped palette and follows document mode changes', async ({ page }) => {
 	await page.getByLabel('Accent color', { exact: true }).selectOption('orange');
 	const blue = page.getByTestId('blue-action');
 	const before = await background(blue);
@@ -131,6 +129,8 @@ test('real portal preserves scoped palette and follows ancestor theme changes', 
 	await page.getByTestId('playground').evaluate((element) => {
 		element.classList.remove('dark');
 		element.classList.add('light');
+		document.documentElement.classList.remove('dark');
+		document.documentElement.classList.add('light');
 	});
 	await expect.poll(() => background(dialog)).not.toBe(dialogBefore);
 	expect(await background(page.getByTestId('modal-action'))).toBe(await background(blue));

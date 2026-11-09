@@ -86,7 +86,7 @@
 
 <a
 	href={eventUrl(event, actor)}
-	class="group grid grid-cols-[5rem_minmax(0,1fr)] gap-3 rounded-ui outline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-focus sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3.5"
+	class="group grid grid-cols-[5rem_minmax(0,1fr)] gap-3 rounded-ui outline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-accent-700 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3.5 dark:focus-visible:outline-accent-300"
 >
 	<div class="w-full">
 		{#if thumbnail}
@@ -94,11 +94,11 @@
 				src={thumbnail.url}
 				alt={thumbnail.alt}
 				loading="lazy"
-				class="block aspect-square w-full rounded-[14px_12px_15px_13px] border border-line object-cover"
+				class="block aspect-square w-full rounded-[14px_12px_15px_13px] border border-base-300 object-cover dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 			/>
 		{:else}
 			<div
-				class="aspect-square w-full overflow-hidden rounded-[14px_12px_15px_13px] border border-line [&>svg]:h-full [&>svg]:w-full"
+				class="aspect-square w-full overflow-hidden rounded-[14px_12px_15px_13px] border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&>svg]:h-full [&>svg]:w-full"
 			>
 				<Avatar
 					size={96}
@@ -112,7 +112,7 @@
 	</div>
 
 	<div class="min-w-0 self-center">
-		<p class="flex items-center gap-1.5 text-xs font-medium text-muted">
+		<p class="flex items-center gap-1.5 text-xs font-medium text-base-600 dark:text-base-400">
 			<Icon img={CalendarDays} size={14} class="shrink-0" />
 			{#if isOngoing && event.endsAt}
 				Ends {formatEndsAt(event.endsAt)}
@@ -132,7 +132,9 @@
 			<span class="line-clamp-2">{event.name}</span>
 		</h3>
 		{#if location || mode}
-			<p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+			<p
+				class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-base-600 dark:text-base-400"
+			>
 				{#if location}
 					<span class="inline-flex max-w-full min-w-0 items-center gap-1.5" title={location}>
 						<Icon img={MapPin} size={14} class="shrink-0" />

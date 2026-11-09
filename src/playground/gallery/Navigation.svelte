@@ -39,7 +39,10 @@
 
 {#if name === 'AccountMenu'}
 	<div class="space-y-5">
-		{@render account(!compact, () => {})}{#if status}<p role="status" class="text-sm text-muted">
+		{@render account(!compact, () => {})}{#if status}<p
+				role="status"
+				class="text-sm text-base-600 dark:text-base-400"
+			>
 				{status}
 			</p>{/if}
 	</div>
@@ -71,7 +74,9 @@
 				onclick={() => (open = true)}>Open sidebar</Button
 			>{/if}
 		<h2 class="text-lg font-medium">{selected}</h2>
-		<p class="mt-3 text-sm text-muted">Local navigation example.</p>
-		{#if status}<p role="status" class="mt-5 text-sm text-muted">{status}</p>{/if}
+		<p class="mt-3 text-sm text-base-600 dark:text-base-400">Local navigation example.</p>
+		{#if status}<p role="status" class="mt-5 text-sm text-base-600 dark:text-base-400">
+				{status}
+			</p>{/if}
 	</div>
 {/if}

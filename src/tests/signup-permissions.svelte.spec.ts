@@ -50,7 +50,7 @@ describe('app-owned signup permissions', () => {
 		});
 	});
 
-	it('keeps required choices native-looking, locked, and free of label hover activation', async () => {
+	it('keeps required choices rounded, locked, and free of label hover activation', async () => {
 		render(SignupPermissions, { open: true, permissions, signup: vi.fn() });
 		const checkbox = page.getByRole('checkbox', { name: 'Events and RSVPs' });
 		await expect.element(checkbox).toBeChecked();
@@ -64,7 +64,8 @@ describe('app-owned signup permissions', () => {
 		await page.getByText('Events and RSVPs (required)', { exact: true }).hover();
 		expect(checkbox.element().matches(':hover')).toBe(false);
 		const style = getComputedStyle(checkbox.element());
-		expect(style.appearance).toBe('auto');
+		expect(checkbox.element().tagName).toBe('INPUT');
+		expect(style.borderRadius).toBe('5px');
 		expect(style.opacity).toBe('1');
 		expect(style.pointerEvents).toBe('none');
 		await page.getByText('Events and RSVPs (required)', { exact: true }).click();

@@ -33,8 +33,8 @@
 />
 <p
 	class={length > maxLength
-		? 'red mt-2 text-right text-xs text-action'
-		: 'mt-2 text-right text-xs text-muted'}
+		? 'red mt-2 text-right text-xs text-accent-700 dark:text-accent-300'
+		: 'mt-2 text-right text-xs text-base-600 dark:text-base-400'}
 	aria-live="polite"
 >
 	{length} / {maxLength}

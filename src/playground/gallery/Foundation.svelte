@@ -34,7 +34,7 @@
 			label={liked ? 'Unlike' : 'Like'}
 			aria-pressed={liked}
 			onclick={() => (liked = !liked)}
-			class={liked ? 'text-action' : ''}><Icon img={Heart} /></IconButton
+			class={liked ? 'text-accent-700 dark:text-accent-300' : ''}><Icon img={Heart} /></IconButton
 		><IconButton label="Settings" variant="secondary"><Icon img={Settings2} /></IconButton
 		><IconButton label="Disabled action" disabled><Icon img={Check} /></IconButton>
 	</div>
@@ -57,11 +57,13 @@
 {:else if name === 'Surface'}
 	<Surface class="w-full p-6"
 		><p class="font-medium">A quiet surface</p>
-		<p class="mt-2 text-sm text-muted">Room for your content.</p></Surface
+		<p class="mt-2 text-sm text-base-600 dark:text-base-400">Room for your content.</p></Surface
 	>
 {:else if name === 'Badge'}
 	<div class="flex flex-wrap gap-3">
-		<Badge>Community</Badge><Badge>12 attending</Badge><Badge class="text-action">New</Badge>
+		<Badge>Community</Badge><Badge>12 attending</Badge><Badge
+			class="text-accent-700 dark:text-accent-300">New</Badge
+		>
 	</div>
 {:else if name === 'Avatar'}
 	<div class="flex items-end gap-4">
@@ -96,7 +98,7 @@
 			{ value: 'photos', label: 'Photos' },
 			{ value: 'notes', label: 'Notes' }
 		]}
-		>{#snippet children(value)}<p class="text-sm text-muted">
+		>{#snippet children(value)}<p class="text-sm text-base-600 dark:text-base-400">
 				{value === 'photos'
 					? 'Photographs from a slow afternoon.'
 					: 'A few things worth remembering.'}

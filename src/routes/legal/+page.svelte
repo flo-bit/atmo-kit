@@ -28,8 +28,9 @@
 
 <main>
 	<div class="mx-auto max-w-3xl px-6 pt-8">
-		<a href={resolve('/components')} class="text-sm text-muted hover:underline"
-			>Back to components</a
+		<a
+			href={resolve('/components')}
+			class="text-sm text-base-600 hover:underline dark:text-base-400">Back to components</a
 		>
 		<nav aria-label="Legal preview" class="mt-6 flex flex-wrap gap-x-5 gap-y-3 text-sm">
 			{#each tabs as tab (tab)}
@@ -46,11 +47,12 @@
 	{#if selected === 'configuration'}
 		<section class="mx-auto max-w-3xl space-y-5 px-6 py-10">
 			<h1 class="text-2xl font-semibold">Example configuration</h1>
-			<p class="text-sm text-muted">
+			<p class="text-sm text-base-600 dark:text-base-400">
 				A fictional app, not a production policy. Save generated drafts in the app, review the
 				wording, then set its own revision date and publication status.
 			</p>
-			<pre class="overflow-auto rounded-ui bg-recess p-4 text-xs">{JSON.stringify(
+			<pre
+				class="overflow-auto rounded-ui bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-4 text-xs dark:bg-base-950">{JSON.stringify(
 					example,
 					null,
 					2
@@ -64,7 +66,8 @@
 				Every link is optional. Omit it or set it to false to hide it; pass a label/href object to
 				rename it. A reportAction snippet can replace the report link.
 			</p>
-			<pre class="overflow-auto rounded-ui bg-recess p-4 text-xs">{JSON.stringify(
+			<pre
+				class="overflow-auto rounded-ui bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-4 text-xs dark:bg-base-950">{JSON.stringify(
 					{ ...links, source: false, moderation: false },
 					null,
 					2

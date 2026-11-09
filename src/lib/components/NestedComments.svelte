@@ -39,11 +39,12 @@
 							{href}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="font-medium text-ink hover:underline">{comment.author.name}</a
-						><span class="truncate text-muted">@{comment.author.handle}</span
+							class="font-medium text-base-950 hover:underline dark:text-base-50"
+							>{comment.author.name}</a
+						><span class="truncate text-base-600 dark:text-base-400">@{comment.author.handle}</span
 						>{#if comment.createdAt && !Number.isNaN(Date.parse(comment.createdAt))}<time
 								datetime={comment.createdAt}
-								class="text-[.6875rem] text-muted"
+								class="text-[.6875rem] text-base-600 dark:text-base-400"
 								>{new Date(comment.createdAt).toLocaleDateString(undefined, {
 									month: 'short',
 									day: 'numeric'
@@ -51,21 +52,23 @@
 							>{/if}
 					</div>
 					<PostContent post={comment} {socialClient} {embedProviders} />
-					<div class="mt-1 flex items-center gap-5 text-xs text-muted">
+					<div class="mt-1 flex items-center gap-5 text-xs text-base-600 dark:text-base-400">
 						{#each [{ icon: MessageCircle, count: comment.replyCount ?? 0, singular: 'reply', plural: 'replies' }, { icon: Repeat2, count: comment.repostCount ?? 0, singular: 'repost', plural: 'reposts' }, { icon: Heart, count: comment.likeCount ?? 0, singular: 'like', plural: 'likes' }] as action (action.singular)}
 							<a
 								{href}
 								target="_blank"
 								rel="noopener noreferrer"
 								aria-label={`${action.count} ${action.count === 1 ? action.singular : action.plural}`}
-								class={`inline-flex min-h-8 items-center gap-1.5 rounded-ui tabular-nums transition-colors hover:text-action ${focus}`}
+								class={`inline-flex min-h-8 items-center gap-1.5 rounded-ui tabular-nums transition-colors hover:text-accent-700 dark:hover:text-accent-300 ${focus}`}
 								><Icon img={action.icon} size={16} /><span>{action.count}</span></a
 							>
 						{/each}
 					</div>
 				</div>
 			</div>
-			{#if comment.replies?.length}<div class="mt-4 border-l border-line pl-3 sm:ml-4 sm:pl-6">
+			{#if comment.replies?.length}<div
+					class="mt-4 border-l border-base-300 pl-3 sm:ml-4 sm:pl-6 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+				>
 					<NestedComments comments={comment.replies} {socialClient} {embedProviders} />
 				</div>{/if}
 		</article>

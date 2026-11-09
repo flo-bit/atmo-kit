@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DocumentTheme from '../../../playground/DocumentTheme.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Button, Icon, IconButton, Select } from '#lib';
@@ -10,6 +11,8 @@
 	let dark = $state(true);
 </script>
 
+<DocumentTheme {dark} />
+
 <svelte:head>
 	{#if data.component.name !== 'PageTitle'}<title>{data.component.name} · Atmo Kit</title>{/if}
 	<meta name="description" content={`Visual example of ${data.component.name}.`} />
@@ -17,7 +20,7 @@
 
 <div class={['atmo zinc pink min-h-dvh', dark ? 'dark' : 'light']}>
 	<header
-		class="flex flex-wrap items-center justify-between gap-4 border-b border-line px-5 py-4 sm:px-8"
+		class="flex flex-wrap items-center justify-between gap-4 border-b border-base-300 px-5 py-4 sm:px-8 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 	>
 		<Button href={resolve('/components')} variant="link" size="sm">All components</Button>
 		<div class="flex items-center gap-3">

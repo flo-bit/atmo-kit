@@ -1,12 +1,11 @@
-// Portals leave their original DOM ancestry. Carry the originating palette,
-// semantic tokens, font, and color scheme with them; behavior stays in Bits UI.
+// Portals inherit the document's light/dark mode normally. Only carry scoped
+// palettes and typography, which would otherwise be lost outside their ancestry.
 export function readTheme(element: HTMLElement): string {
 	const style = getComputedStyle(element);
 	const variables = Array.from(style).filter((name) =>
-		['--base-', '--accent-', '--ui-', '--atmo-'].some((prefix) => name.startsWith(prefix))
+		['--base-', '--accent-', '--atmo-'].some((prefix) => name.startsWith(prefix))
 	);
 	return [
-		`color-scheme:${style.colorScheme}`,
 		`font-family:${style.fontFamily}`,
 		...variables.map((name) => `${name}:${style.getPropertyValue(name)}`)
 	].join(';');
@@ -22,12 +21,5 @@ export function observeTheme(element: HTMLElement, update: () => void): () => vo
 		});
 		parent = parent.parentElement;
 	}
-	// readTheme snapshots computed semantic colors for portals. Those colors
-	// change with the system scheme even when no ancestor attribute changes.
-	const scheme = window.matchMedia('(prefers-color-scheme: dark)');
-	scheme.addEventListener('change', update);
-	return () => {
-		observer.disconnect();
-		scheme.removeEventListener('change', update);
-	};
+	return () => observer.disconnect();
 }

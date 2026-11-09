@@ -29,7 +29,7 @@
 
 <div class="grid gap-2" bind:this={root} aria-label="Recent accounts">
 	{#each accounts as actor, index (actor.did)}<div
-			class="flex min-w-0 items-center gap-1 rounded-ui border border-line bg-field"
+			class="flex min-w-0 items-center gap-1 rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-975"
 		>
 			<Button
 				data-account
@@ -41,8 +41,10 @@
 			>
 				<Avatar name={actorName(actor)} src={actor.avatar} size={34} aria-hidden="true" />
 				<span class="grid min-w-0 flex-1 gap-0.5"
-					><strong class="truncate text-[.8125rem] font-medium text-ink">{actorName(actor)}</strong
-					>{#if actor.displayName}<span class="truncate text-xs text-muted">@{actor.handle}</span
+					><strong class="truncate text-[.8125rem] font-medium text-base-950 dark:text-base-50"
+						>{actorName(actor)}</strong
+					>{#if actor.displayName}<span class="truncate text-xs text-base-600 dark:text-base-400"
+							>@{actor.handle}</span
 						>{/if}</span
 				><Icon img={ArrowRight} size={16} />
 			</Button>

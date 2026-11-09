@@ -62,7 +62,9 @@
 </script>
 
 {#if match && failed !== match}
-	<div class="relative overflow-hidden rounded-ui border border-line">
+	<div
+		class="relative overflow-hidden rounded-ui border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+	>
 		{#if active || (autoplay && match.player.type === 'video' && paused === match)}
 			{#if match.player.type === 'iframe'}
 				<iframe
@@ -105,7 +107,7 @@
 			{/if}
 		{:else if autoplay}
 			<div
-				class="relative max-h-[32rem] w-full bg-surface"
+				class="relative max-h-[32rem] w-full bg-base-50 dark:bg-base-900"
 				style:aspect-ratio={match.player.aspectRatio ?? 16 / 9}
 			>
 				{#if safeWebUrl(embed.image)}<img
@@ -121,7 +123,7 @@
 				type="button"
 				aria-label={`Play ${label} on ${match.provider.label}`}
 				onclick={play}
-				class={`relative flex max-h-[32rem] w-full items-center justify-center overflow-hidden bg-surface text-ink ${focus}`}
+				class={`relative flex max-h-[32rem] w-full items-center justify-center overflow-hidden bg-base-50 text-base-950 dark:bg-base-900 dark:text-base-50 ${focus}`}
 				style:aspect-ratio={match.player.aspectRatio ?? 16 / 9}
 			>
 				{#if safeWebUrl(embed.image)}<img
@@ -131,7 +133,7 @@
 						class="absolute inset-0 size-full object-cover"
 					/>{/if}
 				<span
-					class="relative inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium"
+					class="relative inline-flex items-center gap-2 rounded-full border border-base-300 bg-base-50 px-4 py-2 text-sm font-medium dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-900"
 				>
 					<Icon img={Play} size={18} />Play · {match.provider.label}
 				</span>
@@ -154,7 +156,7 @@
 					href={safeWebUrl(embed.uri)}
 					target="_blank"
 					rel="noopener noreferrer"
-					class={`min-w-0 truncate rounded-ui text-muted hover:text-action ${focus}`}
+					class={`min-w-0 truncate rounded-ui text-base-600 hover:text-accent-700 dark:text-base-400 dark:hover:text-accent-300 ${focus}`}
 					>{embed.title || `Open on ${match.provider.label}`}</a
 				>
 				{#if active}<button
@@ -162,7 +164,8 @@
 						bind:this={stopButton}
 						onclick={stop}
 						aria-label={`Stop ${match.provider.label} embed`}
-						class={`shrink-0 rounded-ui text-muted hover:text-action ${focus}`}>Stop</button
+						class={`shrink-0 rounded-ui text-base-600 hover:text-accent-700 dark:text-base-400 dark:hover:text-accent-300 ${focus}`}
+						>Stop</button
 					>{/if}
 			</div>{/if}
 	</div>

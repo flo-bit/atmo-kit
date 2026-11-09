@@ -28,8 +28,9 @@
 	bind:this={ref}
 	data-slot="surface"
 	class={cn(
-		'rounded-panel p-6 text-ink',
-		variant === 'recessed' && 'border border-line bg-recess shadow-(--ui-recess-shadow)',
+		'rounded-panel p-6 text-base-950 dark:text-base-50',
+		variant === 'recessed' &&
+			'border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-950 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002]',
 		as === 'button' &&
 			cn(
 				'cursor-pointer touch-manipulation disabled:pointer-events-none disabled:opacity-45',

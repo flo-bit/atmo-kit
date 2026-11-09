@@ -49,7 +49,7 @@
 				...(searchActors
 					? [
 							Mention.configure({
-								HTMLAttributes: { class: 'text-action' },
+								HTMLAttributes: { class: 'text-accent-700 dark:text-accent-300' },
 								suggestion: mentionSuggestions(searchActors, () => host)
 							})
 						]
@@ -66,7 +66,7 @@
 						? { 'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-haspopup': 'listbox' }
 						: { 'aria-multiline': String(!singleLine) }),
 					class:
-						'min-h-[1.5em] outline-none whitespace-pre-wrap break-words [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)] [&_p.is-editor-empty:first-child]:before:text-muted [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:pointer-events-none [&_p.is-editor-empty:first-child]:before:h-0'
+						'min-h-[1.5em] outline-none whitespace-pre-wrap break-words [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)] [&_p.is-editor-empty:first-child]:before:text-base-600 dark:[&_p.is-editor-empty:first-child]:before:text-base-400 [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:pointer-events-none [&_p.is-editor-empty:first-child]:before:h-0'
 				},
 				handleKeyDown: (view, event) =>
 					singleLine &&
@@ -111,7 +111,7 @@
 <div
 	bind:this={host}
 	class={cn(
-		'relative min-w-0 rounded-sm focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-focus',
+		'relative min-w-0 rounded-sm focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-accent-700 dark:focus-within:outline-accent-300',
 		className
 	)}
 	data-slot="inline-editor"

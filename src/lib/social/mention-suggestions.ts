@@ -37,7 +37,7 @@ export function mentionSuggestions(search: ActorSearch, host: () => HTMLElement)
 			empty.role = 'option';
 			empty.setAttribute('aria-disabled', 'true');
 			empty.setAttribute('aria-selected', 'false');
-			empty.className = 'p-3 text-xs text-muted';
+			empty.className = 'p-3 text-xs text-base-600 dark:text-base-400';
 			empty.textContent = 'No accounts found';
 			menu.append(empty);
 		}
@@ -48,12 +48,12 @@ export function mentionSuggestions(search: ActorSearch, host: () => HTMLElement)
 			option.id = `${menu!.id}-${index}`;
 			option.setAttribute('aria-selected', String(index === selected));
 			option.className =
-				'block w-full rounded-ui px-3 py-2 text-left text-xs text-ink hover:bg-recess aria-selected:bg-recess';
+				'block w-full rounded-ui px-3 py-2 text-left text-xs text-base-950 dark:text-base-50 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:hover:bg-base-950 aria-selected:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:aria-selected:bg-base-950';
 			const name = document.createElement('strong');
 			name.className = 'block truncate font-medium';
 			name.textContent = actor.displayName || actor.handle;
 			const handle = document.createElement('span');
-			handle.className = 'block truncate text-muted';
+			handle.className = 'block truncate text-base-600 dark:text-base-400';
 			handle.textContent = `@${actor.handle}`;
 			option.append(name, handle);
 			option.onmousedown = (event) => event.preventDefault();
@@ -88,7 +88,7 @@ export function mentionSuggestions(search: ActorSearch, host: () => HTMLElement)
 				menu.role = 'listbox';
 				menu.setAttribute('aria-label', 'Mention suggestions');
 				menu.className =
-					'absolute z-60 w-70 max-w-full overflow-hidden rounded-ui border border-line bg-page p-1 font-sans text-ink';
+					'absolute z-60 w-70 max-w-full overflow-hidden rounded-ui border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] bg-base-50 dark:bg-base-925 p-1 font-sans text-base-950 dark:text-base-50';
 				host().append(menu);
 				draw();
 			},

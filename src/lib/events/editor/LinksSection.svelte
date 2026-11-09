@@ -65,7 +65,7 @@
 		<Icon
 			img={provider === 'grain' ? Camera : provider === 'stream' ? Video : LinkIcon}
 			size={16}
-			class="shrink-0 text-muted"
+			class="shrink-0 text-base-600 dark:text-base-400"
 		/>
 		<div class="min-w-0 flex-1">
 			<p class="truncate text-sm">
@@ -89,13 +89,17 @@
 
 <div>
 	{#if ordinary.length}
-		<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Links</p>
+		<p class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400">
+			Links
+		</p>
 		<div class="mb-4 space-y-3">
 			{#each ordinary as link, i (i)}{@render row(link)}{/each}
 		</div>
 	{/if}
 	{#if linked.length}
-		<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Linked records</p>
+		<p class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400">
+			Linked records
+		</p>
 		<div class="mb-4 space-y-3">
 			{#each linked as link, i (i)}{@render row(
 					link,

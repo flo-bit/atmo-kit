@@ -32,6 +32,6 @@
 	<Icon
 		img={ChevronDown}
 		size={17}
-		class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted"
+		class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-base-600 dark:text-base-400"
 	/>
 </span>

@@ -5,7 +5,7 @@
 </script>
 
 {#await module}
-	<p class="text-sm text-muted" role="status">Loading example…</p>
+	<p class="text-sm text-base-600 dark:text-base-400" role="status">Loading example…</p>
 {:then loaded}
 	{#if loaded}
 		<div data-demo-ready={name} class="w-full min-w-0">
@@ -13,5 +13,7 @@
 		</div>
 	{/if}
 {:catch}
-	<p class="text-sm text-muted" role="alert">Couldn’t load this example. Reload to try again.</p>
+	<p class="text-sm text-base-600 dark:text-base-400" role="alert">
+		Couldn’t load this example. Reload to try again.
+	</p>
 {/await}

@@ -386,7 +386,7 @@
 								<ToggleGroupItem value="public">Public</ToggleGroupItem>
 								<ToggleGroupItem value="unlisted">Unlisted</ToggleGroupItem>
 							</ToggleGroup>
-							<div class="mt-1.5 text-xs text-muted">
+							<div class="mt-1.5 text-xs text-base-600 dark:text-base-400">
 								{#if visibility === 'public'}
 									Anyone can view and it appears in discovery.
 								{:else}
@@ -398,11 +398,11 @@
 						<!-- Date row -->
 						<div class="mb-5 grid min-w-0 gap-2">
 							<div class="flex min-w-0 items-center gap-2">
-								<span class="w-9 shrink-0 text-sm text-muted">Start</span>
+								<span class="w-9 shrink-0 text-sm text-base-600 dark:text-base-400">Start</span>
 								<DateTimePicker bind:value={startsAt} label="Start" required />
 							</div>
 							<div class="flex min-w-0 items-center gap-2">
-								<span class="w-9 shrink-0 text-sm text-muted">End</span>
+								<span class="w-9 shrink-0 text-sm text-base-600 dark:text-base-400">End</span>
 								<DateTimePicker
 									bind:value={endsAt}
 									label="End"
@@ -419,7 +419,11 @@
 
 						<!-- About Event -->
 						<div class="mt-8 mb-8">
-							<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">About</p>
+							<p
+								class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+							>
+								About
+							</p>
 							<textarea
 								aria-label="Event description"
 								bind:value={description}
@@ -427,11 +431,14 @@
 								placeholder="What's this event about? @mentions, #hashtags and links will be detected automatically."
 								class="w-full resize-none border-0 bg-transparent px-0 leading-relaxed text-base-700 placeholder:text-base-500 focus:border-0 focus:ring-0 focus:outline-none dark:text-base-300 dark:placeholder:text-base-500"
 								style="field-sizing: content;"></textarea>
-							<p class="mt-2 text-xs text-muted">
+							<p class="mt-2 text-xs text-base-600 dark:text-base-400">
 								Add a hashtag like <span class="font-medium">#webdev</span> or
 								<span class="font-medium">#music</span>
 								to have this event appear under a
-								<a href="/topics" class="text-action underline underline-offset-2">topic</a>.
+								<a
+									href="/topics"
+									class="text-accent-700 underline underline-offset-2 dark:text-accent-300">topic</a
+								>.
 							</p>
 						</div>
 
@@ -462,7 +469,11 @@
 
 					<!-- Hosted By -->
 					<div class="order-3 md:order-0 md:col-start-1">
-						<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Hosted By</p>
+						<p
+							class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+						>
+							Hosted By
+						</p>
 						<div class="flex items-center gap-2.5">
 							<Avatar src={viewer.avatar} name={hostName} class="size-8 shrink-0" />
 							<span class="truncate text-sm font-medium text-base-900 dark:text-base-100">

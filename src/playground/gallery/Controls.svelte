@@ -36,10 +36,12 @@
 			<Button variant="secondary" onclick={() => (isDragOver = !isDragOver)}
 				>{isDragOver ? 'Hide drop overlay' : 'Show drop overlay'}</Button
 			>
-			{#if !compact}<p class="mt-4 text-sm text-muted">
+			{#if !compact}<p class="mt-4 text-sm text-base-600 dark:text-base-400">
 					Drag an image into this preview. Nothing is uploaded.
 				</p>{/if}
 		</div>
 	{/if}
-	{#if status}<p role="status" class="mt-5 text-sm text-muted">{status}</p>{/if}
+	{#if status}<p role="status" class="mt-5 text-sm text-base-600 dark:text-base-400">
+			{status}
+		</p>{/if}
 </div>

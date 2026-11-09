@@ -136,7 +136,7 @@
 	<div
 		class="flex aspect-video w-full items-center justify-center rounded-xl border border-base-200 bg-base-100 dark:border-base-800 dark:bg-base-900"
 	>
-		<p class="text-sm text-muted">Failed to load video</p>
+		<p class="text-sm text-base-600 dark:text-base-400">Failed to load video</p>
 	</div>
 {:else}
 	<div

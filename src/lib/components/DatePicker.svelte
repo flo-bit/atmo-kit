@@ -124,7 +124,7 @@
 >
 	<DatePicker.Trigger
 		aria-label={`${label}: ${displayText || 'Select date'}`}
-		class="flex h-11 min-w-0 flex-1 cursor-pointer items-center rounded-ui border border-line bg-recess px-2 text-xs text-ink shadow-(--ui-recess-shadow) transition-colors hover:border-control-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus min-[360px]:px-3 min-[360px]:text-sm"
+		class="flex h-11 min-w-0 flex-1 cursor-pointer items-center rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] px-2 text-xs text-base-950 shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] transition-colors hover:border-base-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-700 min-[360px]:px-3 min-[360px]:text-sm dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-950 dark:text-base-50 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002] dark:hover:border-base-700 dark:focus-visible:outline-accent-300"
 	>
 		<span class="truncate select-none">
 			{#if displayText}
@@ -138,7 +138,7 @@
 
 	<DatePicker.Content
 		sideOffset={8}
-		class="z-50 max-w-[calc(100vw-2rem)] rounded-panel border border-line bg-surface p-3 text-ink"
+		class="z-50 max-w-[calc(100vw-2rem)] rounded-panel border border-base-300 bg-base-50 p-3 text-base-950 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-900 dark:text-base-50"
 	>
 		<DatePicker.Calendar>
 			{#snippet children({ months, weekdays })}

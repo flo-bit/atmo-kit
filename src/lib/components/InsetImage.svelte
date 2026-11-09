@@ -18,7 +18,7 @@
 
 <figure
 	class={cn(
-		'relative m-0 aspect-(--ak-image-ratio) overflow-hidden rounded-ui border border-line after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_2px_7px_#0005]',
+		'relative m-0 aspect-(--ak-image-ratio) overflow-hidden rounded-ui border border-base-300 after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_2px_7px_#0005] dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]',
 		className
 	)}
 	{style}

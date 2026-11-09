@@ -90,7 +90,8 @@ describe('app-owned login callbacks', () => {
 		await page.getByText('Events and RSVPs (required)', { exact: true }).click();
 		await expect.element(required).toBeChecked();
 		expect(getComputedStyle(required.element()).pointerEvents).toBe('none');
-		expect(getComputedStyle(required.element()).appearance).toBe('auto');
+		expect(required.element().tagName).toBe('INPUT');
+		expect(getComputedStyle(required.element()).borderRadius).toBe('5px');
 		expect(getComputedStyle(required.element()).opacity).toBe('1');
 		(required.element() as HTMLInputElement).click();
 		await expect.element(required).toBeChecked();

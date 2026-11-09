@@ -61,8 +61,9 @@
 	}
 
 	const linkClass =
-		'text-action underline decoration-action/40 underline-offset-2 hover:decoration-action';
-	const codeClass = 'rounded bg-recess px-1 py-0.5 font-mono text-[0.875em]';
+		'text-accent-700 dark:text-accent-300 underline decoration-accent-700/40 dark:decoration-accent-300/40 underline-offset-2 hover:decoration-accent-700 dark:hover:decoration-accent-300';
+	const codeClass =
+		'rounded bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:bg-base-950 px-1 py-0.5 font-mono text-[0.875em]';
 </script>
 
 {#snippet inlines(children: unknown, inLink: boolean, depth: number)}
@@ -108,7 +109,9 @@
 						: 'text-base'} leading-snug font-semibold"
 				>{@render inlines(node.children, false, depth + 1)}</svelte:element
 			>
-		{:else if node.type === 'blockquote'}<blockquote class="space-y-3 border-l-2 border-line pl-4">
+		{:else if node.type === 'blockquote'}<blockquote
+				class="space-y-3 border-l-2 border-base-300 pl-4 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+			>
 				{@render blocks(node.children, depth + 1)}
 			</blockquote>
 		{:else if node.type === 'list'}<svelte:element
@@ -123,20 +126,29 @@
 				{/each}
 			</svelte:element>
 		{:else if node.type === 'codeBlock'}<pre
-				class="overflow-x-auto rounded-md bg-recess p-3 font-mono text-[0.875em]"><code
+				class="overflow-x-auto rounded-md bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-3 font-mono text-[0.875em] dark:bg-base-950"><code
 					>{string(node.value)}</code
 				></pre>
-		{:else if node.type === 'thematicBreak'}<hr class="border-line" />
+		{:else if node.type === 'thematicBreak'}<hr
+				class="border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+			/>
 		{:else}<p>{inlineText(node, depth)}</p>{/if}
 	{/each}
 {/snippet}
 
 {#if doc.markdown}
-	<div class={cn('space-y-3 leading-relaxed wrap-anywhere text-ink', className)}>
+	<div
+		class={cn('space-y-3 leading-relaxed wrap-anywhere text-base-950 dark:text-base-50', className)}
+	>
 		{@render blocks(doc.children, 0)}
 	</div>
 {:else}
-	<p class={cn('leading-relaxed wrap-anywhere whitespace-pre-wrap text-ink', className)}>
+	<p
+		class={cn(
+			'leading-relaxed wrap-anywhere whitespace-pre-wrap text-base-950 dark:text-base-50',
+			className
+		)}
+	>
 		{#each nodes(doc.children) as block, index (index)}{@render inlines(
 				block.children,
 				false,

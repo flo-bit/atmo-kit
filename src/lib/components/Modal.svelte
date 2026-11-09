@@ -49,7 +49,7 @@
 				escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
 				style={[inherited, style].filter(Boolean).join(';')}
 				class={cn(
-					'fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-3rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-panel border border-line bg-page p-6 font-sans text-ink outline-none sm:p-7',
+					'fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-3rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-panel border border-base-300 bg-base-50 p-6 font-sans text-base-950 outline-none sm:p-7 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-925 dark:text-base-50',
 					className
 				)}
 				onOpenAutoFocus={(event) => {
@@ -74,7 +74,7 @@
 									{title}
 								</h2>{/snippet}
 						</Primitive.Title>{#if description}<Primitive.Description
-								class="mt-2.5 text-[.8125rem] leading-relaxed text-muted"
+								class="mt-2.5 text-[.8125rem] leading-relaxed text-base-600 dark:text-base-400"
 								>{description}</Primitive.Description
 							>{/if}
 					</div>
@@ -82,7 +82,7 @@
 						disabled={!dismissible}
 						aria-label="Close dialog"
 						class={cn(
-							'-mt-1 -mr-2 inline-grid size-9 shrink-0 cursor-pointer place-items-center rounded-ui text-muted hover:bg-recess hover:text-ink disabled:pointer-events-none disabled:opacity-40',
+							'-mt-1 -mr-2 inline-grid size-9 shrink-0 cursor-pointer place-items-center rounded-ui text-base-600 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] hover:text-base-950 disabled:pointer-events-none disabled:opacity-40 dark:text-base-400 dark:hover:bg-base-950 dark:hover:text-base-50',
 							focus
 						)}><Icon img={X} size={19} /></Primitive.Close
 					>

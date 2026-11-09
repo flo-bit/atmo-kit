@@ -98,7 +98,7 @@
 
 {#if rsvpExpected !== false || (viewer.isLoggedIn && rsvpStatus)}
 	<div
-		class="mt-7 mb-2 flex min-h-25 flex-col justify-center rounded-panel bg-recess p-4 [box-shadow:var(--ui-recess-shadow)]"
+		class="mt-7 mb-2 flex min-h-25 flex-col justify-center rounded-panel bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-4 shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] dark:bg-base-950 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002]"
 	>
 		{#if !viewer.isLoggedIn}
 			<div class="flex items-center justify-between gap-4">
@@ -114,8 +114,10 @@
 		{:else if rsvpStatus === 'going'}
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-3">
-					<div class="flex size-8 items-center justify-center rounded-full bg-accent-soft">
-						<Icon img={Check} size={16} class="text-action" />
+					<div
+						class="flex size-8 items-center justify-center rounded-full bg-accent-50 dark:bg-[color-mix(in_srgb,var(--accent-950)_65%,var(--base-950))]"
+					>
+						<Icon img={Check} size={16} class="text-accent-700 dark:text-accent-300" />
 					</div>
 					<p class="font-semibold text-base-900 dark:text-base-50">You're Going</p>
 				</div>
@@ -124,8 +126,10 @@
 		{:else if rsvpStatus === 'interested'}
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-3">
-					<div class="flex size-8 items-center justify-center rounded-full bg-accent-soft">
-						<Icon img={Star} size={16} class="text-action" />
+					<div
+						class="flex size-8 items-center justify-center rounded-full bg-accent-50 dark:bg-[color-mix(in_srgb,var(--accent-950)_65%,var(--base-950))]"
+					>
+						<Icon img={Star} size={16} class="text-accent-700 dark:text-accent-300" />
 					</div>
 					<p class="font-semibold text-base-900 dark:text-base-50">You're Interested</p>
 				</div>
@@ -146,7 +150,7 @@
 		{:else}
 			{#if viewer.isLoggedIn}
 				<div class="mb-4 flex items-center gap-2">
-					<span class="text-sm text-muted">Attend as</span>
+					<span class="text-sm text-base-600 dark:text-base-400">Attend as</span>
 					<Avatar
 						src={viewer.avatar}
 						name={viewer.displayName || viewer.handle || viewer.did || 'Account'}

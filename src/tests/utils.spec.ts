@@ -5,7 +5,7 @@ import { accentColors, baseColors } from '../lib/palettes.js';
 
 describe('Tailwind escape hatch', () => {
 	it('lets caller spacing and radius win without losing palette classes', () => {
-		const classes = cn('px-3 rounded-ui bg-action', 'red px-8 rounded-none');
+		const classes = cn('px-3 rounded-ui bg-accent-700 dark:bg-accent-300', 'red px-8 rounded-none');
 		expect(classes).toContain('red');
 		expect(classes).toContain('px-8');
 		expect(classes).toContain('rounded-none');
@@ -18,6 +18,18 @@ describe('Tailwind escape hatch', () => {
 });
 
 describe('palette shorthand', () => {
+	it('exports only ramp color utilities, including the derived deep shades', () => {
+		const css = readFileSync(new URL('../lib/theme.css', import.meta.url), 'utf8');
+		expect(css).not.toMatch(/--ui-|light-dark\(/);
+		const colors = [...css.matchAll(/--color-([\w-]+):/g)].map(([, name]) => name);
+		expect(colors).toHaveLength(26);
+		expect(colors.every((name) => /^(base|accent)-\d+$/.test(name))).toBe(true);
+		for (const role of ['base', 'accent']) {
+			for (const shade of ['925', '975'])
+				expect(css).toContain(`--color-${role}-${shade}: var(--${role}-${shade})`);
+		}
+		expect(css).toContain('@custom-variant dark');
+	});
 	it('defines every advertised color and all eleven shades', () => {
 		const themeUrl = new URL('../lib/theme.css', import.meta.url);
 		const css = readFileSync(themeUrl, 'utf8').replace(

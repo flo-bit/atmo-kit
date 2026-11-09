@@ -50,11 +50,11 @@
 	let pronouns = $derived(profile.pronouns?.trim().toLowerCase());
 </script>
 
-<section class={cn('min-w-0 text-ink', className)} aria-label="Profile">
+<section class={cn('min-w-0 text-base-950 dark:text-base-50', className)} aria-label="Profile">
 	{#if banner}
 		<div
 			data-slot="profile-banner"
-			class="relative aspect-3/1 w-full overflow-hidden rounded-panel bg-recess"
+			class="relative aspect-3/1 w-full overflow-hidden rounded-panel bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:bg-base-950"
 		>
 			<img
 				src={banner}
@@ -75,7 +75,10 @@
 			{name}
 			src={safeProfileUrl(profile.avatar)}
 			size={96}
-			class={cn('relative size-20 sm:size-24', banner && '-mt-10 ring-4 ring-page sm:-mt-12')}
+			class={cn(
+				'relative size-20 sm:size-24',
+				banner && '-mt-10 ring-4 ring-base-50 sm:-mt-12 dark:ring-base-925'
+			)}
 		/>
 		<div class={cn('flex flex-wrap items-center gap-2', banner && 'pt-3')}>
 			<Button {href} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm">
@@ -88,7 +91,9 @@
 		<h1 class="text-2xl font-semibold tracking-tight wrap-anywhere sm:text-3xl">
 			<bdi>{name}</bdi>
 		</h1>
-		<div class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted">
+		<div
+			class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-base-600 dark:text-base-400"
+		>
 			{#if profile.handle}<a
 					{href}
 					target="_blank"
@@ -103,7 +108,7 @@
 			{#each displayedMetrics as metric (metric.label)}
 				{#if metric.value !== undefined}<div class="flex gap-1">
 						<dd class="font-semibold">{metric.value.toLocaleString('en')}</dd>
-						<dt class="text-muted">{metric.label}</dt>
+						<dt class="text-base-600 dark:text-base-400">{metric.label}</dt>
 					</div>{/if}
 			{/each}
 		</dl>
@@ -114,7 +119,7 @@
 						href={segment.href}
 						target={segment.href.startsWith('/') ? undefined : '_blank'}
 						rel={segment.href.startsWith('/') ? undefined : 'noopener noreferrer nofollow ugc'}
-						class="text-action underline decoration-action/40 underline-offset-2 hover:decoration-action"
+						class="text-accent-700 underline decoration-accent-700/40 underline-offset-2 hover:decoration-accent-700 dark:text-accent-300 dark:decoration-accent-300/40 dark:hover:decoration-accent-300"
 						>{segment.text}</a
 					>{:else}{segment.text}{/if}{/each}
 		</p>

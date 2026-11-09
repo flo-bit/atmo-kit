@@ -13,11 +13,17 @@
 	const uid = $props.id();
 </script>
 
-<article {...rest} class={cn('mx-auto max-w-3xl px-6 py-10 text-sm leading-7 text-ink', className)}>
+<article
+	{...rest}
+	class={cn(
+		'mx-auto max-w-3xl px-6 py-10 text-sm leading-7 text-base-950 dark:text-base-50',
+		className
+	)}
+>
 	<header class="mb-8">
 		<h1 class="m-0 text-3xl font-semibold tracking-tight">{document.title}</h1>
 		{#if document.updated}
-			<p class="mt-3 text-muted">
+			<p class="mt-3 text-base-600 dark:text-base-400">
 				Last updated: <time datetime={document.updated}>{document.updated}</time>
 			</p>
 		{/if}
@@ -44,7 +50,7 @@
 								<li>
 									{#if safeLegalHref(link.href, true)}<a
 											href={safeLegalHref(link.href, true)}
-											class="rounded underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+											class="rounded underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-700 dark:focus-visible:outline-accent-300"
 											>{link.label}</a
 										>{:else}{link.label}{/if}
 								</li>

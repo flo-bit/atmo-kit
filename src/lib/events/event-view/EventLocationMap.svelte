@@ -23,7 +23,9 @@
 {#if geoLocation}
 	<div class="mt-8 mb-8">
 		<div class="mb-3 flex items-baseline gap-2">
-			<p class="text-xs font-semibold tracking-wider text-muted uppercase">Location:</p>
+			<p class="text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400">
+				Location:
+			</p>
 			<button
 				type="button"
 				onclick={copyCoords}
@@ -42,7 +44,7 @@
 		<p class="mt-3 text-sm [overflow-wrap:anywhere] text-base-700 dark:text-base-200">
 			{geoLocation.label}
 		</p>
-		<p class="mt-1 text-xs text-muted">
+		<p class="mt-1 text-xs text-base-600 dark:text-base-400">
 			Open in
 			<a
 				href={geoLocation.googleMapsUrl}

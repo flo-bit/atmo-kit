@@ -39,7 +39,7 @@
 			{sideOffset}
 			style={[inherited, style].filter(Boolean).join(';')}
 			class={cn(
-				'z-50 max-w-[calc(100vw-2rem)] rounded-panel border border-line bg-surface p-4 font-sans text-ink outline-none',
+				'z-50 max-w-[calc(100vw-2rem)] rounded-panel border border-base-300 bg-base-50 p-4 font-sans text-base-950 outline-none dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-900 dark:text-base-50',
 				className
 			)}
 		>

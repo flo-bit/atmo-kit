@@ -61,7 +61,7 @@
 </script>
 
 <div
-	class="flex h-11 items-center gap-1 rounded-ui border border-line bg-recess px-2 text-sm text-ink shadow-(--ui-recess-shadow) focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus hover:border-control-hover"
+	class="flex h-11 items-center gap-1 rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] px-2 text-sm text-base-950 shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent-700 hover:border-base-400 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-950 dark:text-base-50 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002] dark:focus-within:outline-accent-300 dark:hover:border-base-700"
 >
 	<TimeField.Root
 		bind:value={internalValue}
@@ -73,10 +73,11 @@
 		<TimeField.Label class="sr-only">{label}</TimeField.Label>
 		<TimeField.Input class="whitespace-nowrap">
 			{#snippet children({ segments })}{#each segments as segment, i (segment.part + i)}
-					{#if segment.part === 'literal'}<span class="text-muted">{segment.value}</span
+					{#if segment.part === 'literal'}<span class="text-base-600 dark:text-base-400"
+							>{segment.value}</span
 						>{:else}<TimeField.Segment
 							part={segment.part}
-							class="rounded px-0.5 hover:bg-recess focus:bg-accent-soft focus:outline-none"
+							class="rounded px-0.5 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] focus:bg-accent-50 focus:outline-none dark:hover:bg-base-950 dark:focus:bg-[color-mix(in_srgb,var(--accent-950)_65%,var(--base-950))]"
 							>{segment.value}</TimeField.Segment
 						>{/if}
 				{/each}{/snippet}
@@ -103,15 +104,15 @@
 		<div bind:this={listEl}>
 			{#each slots as slot (slot.key)}<button
 					type="button"
-					class="flex w-full items-center justify-between gap-4 rounded-ui px-3 py-1.5 text-left text-sm text-ink hover:bg-recess aria-pressed:bg-accent-soft aria-pressed:text-action"
+					class="flex w-full items-center justify-between gap-4 rounded-ui px-3 py-1.5 text-left text-sm text-base-950 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] aria-pressed:bg-accent-50 aria-pressed:text-accent-700 dark:text-base-50 dark:hover:bg-base-950 dark:aria-pressed:bg-[color-mix(in_srgb,var(--accent-950)_65%,var(--base-950))] dark:aria-pressed:text-accent-300"
 					aria-pressed={value === slot.key}
 					data-selected={value === slot.key ? '' : undefined}
 					onclick={() => {
 						value = slot.key;
 						isOpen = false;
 					}}
-					>{slot.label}{#if durationLabel(slot.key)}<span class="text-xs text-muted"
-							>{durationLabel(slot.key)}</span
+					>{slot.label}{#if durationLabel(slot.key)}<span
+							class="text-xs text-base-600 dark:text-base-400">{durationLabel(slot.key)}</span
 						>{/if}</button
 				>{/each}
 		</div>

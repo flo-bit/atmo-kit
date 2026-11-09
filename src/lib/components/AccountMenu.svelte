@@ -41,7 +41,7 @@
 		return observeTheme(origin, sync);
 	});
 	const itemClass =
-		'min-h-11 w-full justify-start gap-3 px-3 text-sm text-ink outline-none data-highlighted:bg-recess data-highlighted:text-ink';
+		'min-h-11 w-full justify-start gap-3 px-3 text-sm text-base-950 dark:text-base-50 outline-none data-highlighted:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:data-highlighted:bg-base-950 data-highlighted:text-base-950 dark:data-highlighted:text-base-50';
 </script>
 
 <DropdownMenu.Root bind:open>
@@ -54,7 +54,7 @@
 				aria-label={label}
 				data-account-menu-trigger
 				class={cn(
-					'gap-3 p-1.5 data-[state=open]:bg-recess',
+					'gap-3 p-1.5 data-[state=open]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] dark:data-[state=open]:bg-base-950',
 					expanded ? 'w-full justify-start px-2' : 'size-11 max-sm:size-10',
 					className
 				)}
@@ -62,8 +62,8 @@
 				<Avatar {name} src={avatar} size={30} aria-hidden="true" />
 				{#if expanded}
 					<span class="min-w-0 text-left">
-						<span class="block truncate text-sm text-ink">{name}</span>
-						{#if handle}<span class="block truncate text-xs text-muted"
+						<span class="block truncate text-sm text-base-950 dark:text-base-50">{name}</span>
+						{#if handle}<span class="block truncate text-xs text-base-600 dark:text-base-400"
 								>@{handle.replace(/^@/, '')}</span
 							>{/if}
 					</span>
@@ -81,19 +81,19 @@
 			aria-label={label}
 			data-slot="account-menu"
 			style={inherited}
-			class="z-60 w-56 max-w-[calc(100vw-1.5rem)] rounded-panel border border-line bg-page p-1.5 font-sans text-ink outline-none"
+			class="z-60 w-56 max-w-[calc(100vw-1.5rem)] rounded-panel border border-base-300 bg-base-50 p-1.5 font-sans text-base-950 outline-none dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-925 dark:text-base-50"
 		>
 			<DropdownMenu.Item onSelect={onprofile} textValue="Go to profile">
 				{#snippet child({ props })}
 					<Button {...props} href={profileHref} variant="ghost" class={itemClass}>
-						<Icon img={UserRound} size={20} class="text-muted" />Go to profile
+						<Icon img={UserRound} size={20} class="text-base-600 dark:text-base-400" />Go to profile
 					</Button>
 				{/snippet}
 			</DropdownMenu.Item>
 			<DropdownMenu.Item onSelect={onsignout} textValue="Sign out">
 				{#snippet child({ props })}
 					<Button {...props} variant="ghost" class={itemClass}>
-						<Icon img={LogOut} size={20} class="text-muted" />Sign out
+						<Icon img={LogOut} size={20} class="text-base-600 dark:text-base-400" />Sign out
 					</Button>
 				{/snippet}
 			</DropdownMenu.Item>

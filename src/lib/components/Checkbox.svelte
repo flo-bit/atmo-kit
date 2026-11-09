@@ -22,7 +22,7 @@
 	bind:this={ref}
 	data-slot="checkbox"
 	class={cn(
-		'm-0 inline-grid size-4.5 shrink-0 cursor-pointer appearance-none place-content-center rounded-[5px] border border-control-line bg-field bg-none align-middle text-[color:light-dark(var(--base-50),var(--base-950))] accent-action checked:border-action checked:bg-action indeterminate:border-action indeterminate:bg-action focus:ring-0 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-45',
+		'm-0 inline-grid size-4.5 shrink-0 cursor-pointer appearance-none place-content-center rounded-[5px] border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] bg-none align-middle text-base-50 accent-accent-700 checked:border-accent-700 checked:bg-accent-700 indeterminate:border-accent-700 indeterminate:bg-accent-700 focus:ring-0 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-45 dark:border-base-800 dark:bg-base-975 dark:text-base-950 dark:accent-accent-300 dark:checked:border-accent-300 dark:checked:bg-accent-300 dark:indeterminate:border-accent-300 dark:indeterminate:bg-accent-300',
 		focus,
 		className
 	)}

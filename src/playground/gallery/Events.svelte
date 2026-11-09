@@ -83,7 +83,7 @@
 				throw new Error('Local preview only');
 			}}
 		/>
-		{#if !compact}<p class="text-xs text-muted">
+		{#if !compact}<p class="text-xs text-base-600 dark:text-base-400">
 				Preview only. No starter pack is created; opening shows the failure state.
 			</p>{/if}
 	{:else if name === 'ConferenceTimetable'}
@@ -117,5 +117,7 @@
 				bind:value={currentTime}
 			/>{/if}
 	{/if}
-	{#if status}<p role="status" class="px-1 text-sm text-muted">{status}</p>{/if}
+	{#if status}<p role="status" class="px-1 text-sm text-base-600 dark:text-base-400">
+			{status}
+		</p>{/if}
 </div>

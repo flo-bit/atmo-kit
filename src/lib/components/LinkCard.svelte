@@ -20,7 +20,7 @@
 	target="_blank"
 	rel="noopener noreferrer"
 	class={cn(
-		'block overflow-hidden rounded-ui border border-line bg-surface text-ink no-underline hover:border-control-line',
+		'block overflow-hidden rounded-ui border border-base-300 bg-base-50 text-base-950 no-underline hover:border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-900 dark:text-base-50 dark:hover:border-base-800',
 		focus,
 		className
 	)}
@@ -32,15 +32,17 @@
 				class="aspect-[1.91/1] w-full object-cover"
 				loading="lazy"
 			/><span
-				class="pointer-events-none absolute inset-0 [box-shadow:inset_0_0_0_1px_var(--ui-shadow),inset_0_2px_5px_var(--ui-shadow)]"
+				class="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_2px_5px_color-mix(in_srgb,var(--base-950)_8%,transparent)] dark:shadow-[inset_0_0_0_1px_#0006,inset_0_2px_5px_#0006]"
 			></span>
 		</div>{/if}
 	<div class="p-3">
 		<strong class="block text-sm font-medium">{meta.title || href}</strong>
-		{#if meta.description}<p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
+		{#if meta.description}<p
+				class="mt-1 line-clamp-2 text-xs leading-relaxed text-base-600 dark:text-base-400"
+			>
 				{meta.description}
 			</p>{/if}
-		<span class="mt-1 block truncate text-[.6875rem] text-muted"
+		<span class="mt-1 block truncate text-[.6875rem] text-base-600 dark:text-base-400"
 			>{href.replace(/^https?:\/\//, '')}</span
 		>
 	</div>

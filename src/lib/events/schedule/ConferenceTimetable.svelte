@@ -205,7 +205,7 @@
 		{/if}
 	</div>
 
-	<p class="mb-4 text-sm text-muted">All times shown in {tzLabel}.</p>
+	<p class="mb-4 text-sm text-base-600 dark:text-base-400">All times shown in {tzLabel}.</p>
 
 	{#if upNextAll.length > 0}
 		<div class="mb-8">
@@ -235,7 +235,7 @@
 										{ev.title}
 									</p>
 									{#if subtitle(ev)}
-										<p class="mt-0.5 truncate text-xs text-muted">
+										<p class="mt-0.5 truncate text-xs text-base-600 dark:text-base-400">
 											{subtitle(ev)}
 										</p>
 									{/if}
@@ -243,12 +243,12 @@
 								<span
 									class="flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap {w.soon
 										? 'font-semibold text-accent-600 dark:text-accent-400'
-										: 'text-muted'}"
+										: 'text-base-600 dark:text-base-400'}"
 								>
 									{#if rsvpStatuses[ev.uri] === 'going'}
-										<Icon img={Check} size={14} class="text-action" />
+										<Icon img={Check} size={14} class="text-accent-700 dark:text-accent-300" />
 									{:else}
-										<Icon img={Star} size={14} class="text-action" />
+										<Icon img={Star} size={14} class="text-accent-700 dark:text-accent-300" />
 									{/if}
 									{w.text}
 								</span>
@@ -273,7 +273,7 @@
 		<div class="mb-6 space-y-3">
 			{#if dayGroups.length > 1}
 				<div class="flex items-center gap-3">
-					<span class="w-14 text-xs text-muted">Days</span>
+					<span class="w-14 text-xs text-base-600 dark:text-base-400">Days</span>
 					<ToggleGroup
 						type="single"
 						bind:value={
@@ -293,7 +293,7 @@
 			{/if}
 			{#if loggedIn}
 				<div class="flex items-center gap-3">
-					<span class="w-14 text-xs text-muted">Events</span>
+					<span class="w-14 text-xs text-base-600 dark:text-base-400">Events</span>
 					<ToggleGroup
 						type="single"
 						bind:value={

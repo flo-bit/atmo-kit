@@ -250,7 +250,7 @@
 	bind:this={ref}
 	aria-label={rest['aria-label'] ?? headingText}
 	aria-busy={busy}
-	class={cn('grid w-full min-w-0 gap-4 text-ink', className)}
+	class={cn('grid w-full min-w-0 gap-4 text-base-950 dark:text-base-50', className)}
 	data-slot="login-form"
 	novalidate
 	onsubmit={(event) => {
@@ -266,7 +266,9 @@
 				tabindex={step === 'login' ? undefined : -1}
 				class="text-[1.375rem] leading-snug tracking-tight outline-none">{headingText}</Heading
 			>
-			{#if descriptionText}<p class="text-[.8125rem] leading-relaxed text-muted">
+			{#if descriptionText}<p
+					class="text-[.8125rem] leading-relaxed text-base-600 dark:text-base-400"
+				>
 					{descriptionText}
 				</p>{/if}
 		</header>{/if}
@@ -290,7 +292,7 @@
 			>
 		{:else}
 			{#if selected}<div
-					class="flex min-h-15 items-center gap-3 rounded-ui border border-line bg-field py-2 pr-2 pl-3"
+					class="flex min-h-15 items-center gap-3 rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] py-2 pr-2 pl-3 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-975"
 					data-slot="selected-account"
 				>
 					<Avatar
@@ -300,8 +302,8 @@
 						aria-hidden="true"
 					/><span class="grid min-w-0 flex-1 gap-0.5"
 						><strong class="truncate text-[.8125rem] font-medium">{actorName(selected)}</strong
-						>{#if selected.displayName}<span class="truncate text-xs text-muted"
-								>@{selected.handle}</span
+						>{#if selected.displayName}<span
+								class="truncate text-xs text-base-600 dark:text-base-400">@{selected.handle}</span
 							>{/if}</span
 					><IconButton
 						label={`Clear @${selected.handle}`}
@@ -336,8 +338,10 @@
 					/>{/if}</Button
 			>
 		{/if}
-		{#if signup}<div class="grid gap-3 border-t border-line pt-4">
-				<p class="text-[.8125rem] text-muted">Don't have an account?</p>
+		{#if signup}<div
+				class="grid gap-3 border-t border-base-300 pt-4 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+			>
+				<p class="text-[.8125rem] text-base-600 dark:text-base-400">Don't have an account?</p>
 				<Button
 					variant="secondary"
 					disabled={busy}
@@ -346,7 +350,9 @@
 				>
 			</div>{/if}
 	{:else if step === 'permissions'}
-		{#if pending}<p class="flex min-w-0 items-center gap-2 text-xs text-muted">
+		{#if pending}<p
+				class="flex min-w-0 items-center gap-2 text-xs text-base-600 dark:text-base-400"
+			>
 				<span class="shrink-0">Logging in as</span>
 				{#if pending.actor}<Avatar
 						name={actorName(pending.actor)}
@@ -371,7 +377,7 @@
 	{#if error}<p
 			id={`${uid}-error`}
 			role="alert"
-			class="red flex items-start gap-2 text-xs leading-relaxed text-action"
+			class="red flex items-start gap-2 text-xs leading-relaxed text-accent-700 dark:text-accent-300"
 		>
 			<Icon img={TriangleAlert} size={16} class="mt-0.5 shrink-0" />{error}
 		</p>{/if}

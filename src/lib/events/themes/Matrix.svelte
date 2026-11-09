@@ -37,23 +37,28 @@
 		);
 
 		const accentColor = getComputedStyle(document.documentElement)
-			.getPropertyValue('--color-accent-500')
+			.getPropertyValue('--accent-500')
 			.trim();
 
+		const root = document.documentElement;
+		const systemScheme = window.matchMedia('(prefers-color-scheme: dark)');
 		let bgColor = '';
 		function readBgColor() {
-			const isDark = document.documentElement.classList.contains('dark');
-			bgColor = getComputedStyle(document.documentElement)
-				.getPropertyValue(isDark ? '--color-base-900' : '--color-base-50')
+			const isDark =
+				root.matches('.dark, [data-theme="dark"]') ||
+				(!root.matches('.light, [data-theme="light"]') && systemScheme.matches);
+			bgColor = getComputedStyle(root)
+				.getPropertyValue(isDark ? '--base-900' : '--base-50')
 				.trim();
 		}
 		readBgColor();
 
 		const themeObserver = new MutationObserver(readBgColor);
-		themeObserver.observe(document.documentElement, {
+		themeObserver.observe(root, {
 			attributes: true,
-			attributeFilter: ['class']
+			attributeFilter: ['class', 'data-theme', 'style']
 		});
+		systemScheme.addEventListener('change', readBgColor);
 
 		let lastResize = canvas.width;
 		let lastTime = performance.now();
@@ -144,6 +149,7 @@
 			cancelAnimationFrame(animId);
 			window.removeEventListener('resize', resize);
 			themeObserver.disconnect();
+			systemScheme.removeEventListener('change', readBgColor);
 		};
 	});
 </script>

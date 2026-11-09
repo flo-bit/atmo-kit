@@ -24,7 +24,7 @@
 	bind:value
 	data-size={size}
 	class={cn(
-		'inline-flex flex-wrap gap-1 rounded-ui bg-recess p-1 [box-shadow:var(--ui-recess-shadow)]',
+		'inline-flex flex-wrap gap-1 rounded-ui bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-1 shadow-[inset_0_2px_4px_color-mix(in_srgb,var(--base-950)_8%,transparent),inset_0_5px_12px_color-mix(in_srgb,var(--base-950)_2%,transparent)] dark:bg-base-950 dark:shadow-[inset_0_2px_4px_#0006,inset_0_5px_12px_#0002]',
 		className
 	)}
 >

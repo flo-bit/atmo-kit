@@ -75,5 +75,5 @@
 				>{/if}
 		</div>
 	{/if}
-	{#if status}<p class="text-sm text-muted" role="status">{status}</p>{/if}
+	{#if status}<p class="text-sm text-base-600 dark:text-base-400" role="status">{status}</p>{/if}
 </div>

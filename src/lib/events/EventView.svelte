@@ -260,7 +260,7 @@
 				src={displayImage.url}
 				alt={displayImage.alt}
 				loading="eager"
-				class="mb-8 block w-full rounded-panel border border-line object-cover"
+				class="mb-8 block w-full rounded-panel border border-base-300 object-cover dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 				style:aspect-ratio={frameAspectRatio}
 			/>
 		{/if}
@@ -277,12 +277,12 @@
 							src={displayImage.url}
 							alt={displayImage.alt}
 							loading="eager"
-							class="block w-full rounded-panel border border-line object-cover"
+							class="block w-full rounded-panel border border-base-300 object-cover dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 							style:aspect-ratio={frameAspectRatio}
 						/>
 					{:else if !showBanner}
 						<div
-							class="aspect-square w-full overflow-hidden rounded-panel border border-line [&>svg]:h-full [&>svg]:w-full"
+							class="aspect-square w-full overflow-hidden rounded-panel border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&>svg]:h-full [&>svg]:w-full"
 						>
 							<Avatar
 								size={256}
@@ -328,7 +328,11 @@
 					<div
 						class="mt-8 mb-2 justify-center rounded-2xl border border-base-200 bg-base-100 p-4 dark:border-base-800 dark:bg-base-950/50"
 					>
-						<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Part of</p>
+						<p
+							class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+						>
+							Part of
+						</p>
 						<EventCard event={data.parentEvent} actor={parentActor} />
 						<Button
 							href={data.parentScheduleUrl ?? `/p/${parentActor}/e/${data.parentEvent.rkey}`}
@@ -361,7 +365,11 @@
 				<!-- Live stream -->
 				{#if isOngoing && streamPlaceHandle}
 					<div class="mt-8 mb-8">
-						<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Live now</p>
+						<p
+							class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+						>
+							Live now
+						</p>
 						<StreamPlacePlayer handle={streamPlaceHandle} title={eventData.name} />
 					</div>
 				{/if}
@@ -387,7 +395,9 @@
 									>{/each}
 							</ToggleGroup>
 						{:else}
-							<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">
+							<p
+								class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+							>
 								{contentTabs[0].label}
 							</p>
 						{/if}
@@ -423,7 +433,11 @@
 				<!-- Recording -->
 				{#if data.vod}
 					<div class="mt-8 mb-8">
-						<p class="mb-3 text-xs font-semibold tracking-wider text-muted uppercase">Recording</p>
+						<p
+							class="mb-3 text-xs font-semibold tracking-wider text-base-600 uppercase dark:text-base-400"
+						>
+							Recording
+						</p>
 						<VodPlayer
 							playlistUrl={data.vod.playlistUrl}
 							title={eventData.name}

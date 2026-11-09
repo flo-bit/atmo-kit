@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DocumentTheme from '../../playground/DocumentTheme.svelte';
 	import { asset, resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import {
@@ -99,6 +100,8 @@
 	}
 </script>
 
+<DocumentTheme {dark} />
+
 <svelte:head
 	><title>Examples · Atmo Kit</title><meta
 		name="description"
@@ -114,13 +117,15 @@
 		class="fixed top-3 left-4 z-80 -translate-y-24 rounded-ui bg-accent-400 px-4 py-2 text-base-950 focus:translate-y-0"
 		>Skip to content</a
 	>
-	<header class="border-b border-line">
+	<header
+		class="border-b border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+	>
 		<div
 			class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-5 py-5 sm:px-8"
 		>
 			<div class="flex flex-wrap items-center gap-4">
 				<h1 class="text-lg font-medium tracking-tight">
-					atmo kit<span class="ml-2 font-normal text-muted">/ examples</span>
+					atmo kit<span class="ml-2 font-normal text-base-600 dark:text-base-400">/ examples</span>
 				</h1>
 				<Button href={resolve('/components')} variant="link" size="sm"
 					><Icon img={ArrowLeft} size={15} />Components</Button
@@ -215,7 +220,7 @@
 						>Reset title</Button
 					>
 				</div>
-				<p class="mt-3 text-xs leading-relaxed text-muted">
+				<p class="mt-3 text-xs leading-relaxed text-base-600 dark:text-base-400">
 					Single line. Paste, undo, and controlled updates work here.
 				</p>
 			</section>
@@ -225,14 +230,14 @@
 					><form onsubmit={previewPost}>
 						<PostComposer bind:value={draft} bind:editor {searchActors} maxLength={limit} />
 						<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-							<p class="text-xs text-muted">Type @mika to add a mention.</p>
+							<p class="text-xs text-base-600 dark:text-base-400">Type @mika to add a mention.</p>
 							<Button type="submit" disabled={!draft.trim() || length > limit}>Preview post</Button>
 						</div>
 					</form></Surface
 				>
-				<details class="mt-4 text-xs text-muted">
+				<details class="mt-4 text-xs text-base-600 dark:text-base-400">
 					<summary
-						class="w-fit cursor-pointer rounded py-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+						class="w-fit cursor-pointer rounded py-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-700 dark:focus-visible:outline-accent-300"
 						>Serialized post</summary
 					>
 					<pre
@@ -244,7 +249,11 @@
 						)}</pre>
 				</details>
 			</section>
-			<p role="status" data-testid="component-status" class="text-xs leading-relaxed text-muted">
+			<p
+				role="status"
+				data-testid="component-status"
+				class="text-xs leading-relaxed text-base-600 dark:text-base-400"
+			>
 				{status}
 			</p>
 		</div>

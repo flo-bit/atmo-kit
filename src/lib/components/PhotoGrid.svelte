@@ -21,7 +21,7 @@
 		{#if photo.contentWarning && !revealed.has(i)}
 			<button
 				type="button"
-				class="mb-2 block w-full break-inside-avoid-column rounded-lg border border-line p-3 text-sm text-muted"
+				class="mb-2 block w-full break-inside-avoid-column rounded-lg border border-base-300 p-3 text-sm text-base-600 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:text-base-400"
 				style:aspect-ratio={photo.width && photo.height ? `${photo.width} / ${photo.height}` : '1'}
 				onclick={() => (revealed = new Set([...revealed, i]))}
 				>Content warning · Show photo {i + 1}</button
