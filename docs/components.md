@@ -4,10 +4,10 @@ All public Svelte components, grouped by purpose. Import from `@atmo-dev/kit`
 unless noted. Helpers, types, and other entry points are listed in the
 [guide index](README.md#entry-points).
 
-Run `pnpm dev` and open `/components` for the browsable catalog with source links
-and selected live examples. Typed props live alongside each component in
+Run `pnpm dev` and open `/components` for visual previews of every component.
+Select one to open its individual interactive example at `/components/<name>`.
+Typed props live alongside each component in
 [`src/lib/components`](../src/lib/components) and [`src/lib/events`](../src/lib/events).
-Not every component has a dedicated live example; the inventory does not imply demo coverage.
 
 ## Foundation
 

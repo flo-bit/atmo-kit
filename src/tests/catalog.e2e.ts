@@ -2,16 +2,15 @@ import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { catalog } from '../playground/catalog.js';
 
-test('catalog includes every public component, source links, and working group navigation', async ({
-	page
-}) => {
+test('gallery links every public component to its own visual example', async ({ page }) => {
 	await page.goto('/components');
 	for (const group of catalog) {
 		await expect(page.getByRole('heading', { name: group.title, exact: true })).toBeVisible();
 		for (const component of group.components) {
-			await expect(
-				page.getByRole('link', { name: `${component.name} source`, exact: true })
-			).toHaveAttribute('href', new RegExp(`${component.source}$`));
+			await expect(page.getByRole('link', { name: component.name, exact: true })).toHaveAttribute(
+				'href',
+				`/components/${component.name}`
+			);
 		}
 	}
 	await page
@@ -20,15 +19,16 @@ test('catalog includes every public component, source links, and working group n
 		.click();
 	await expect(page).toHaveURL(/#events$/);
 	await expect(page.getByRole('heading', { name: 'Events', exact: true })).toBeInViewport();
-	await page.getByRole('link', { name: 'Photo and picker examples' }).click();
-	await expect(page).toHaveURL(/\/examples$/);
-	await expect(page.getByRole('button', { name: /View photo 1/ })).toBeVisible();
+	await page.getByRole('link', { name: 'DatePicker', exact: true }).click();
+	await expect(
+		page.getByTestId('individual-example').locator('[data-demo-ready="DatePicker"]')
+	).toBeVisible({ timeout: 15_000 });
 });
 
-test('catalog stays accessible and fits mobile and desktop in both themes', async ({ page }) => {
+test('gallery stays accessible and fits mobile and desktop in both themes', async ({ page }) => {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.goto('/components');
+	await page.goto('/components', { waitUntil: 'networkidle' });
 	for (const mode of ['dark', 'light']) {
 		if (mode === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
 		for (const width of [320, 390, 1280]) {
@@ -43,6 +43,19 @@ test('catalog stays accessible and fits mobile and desktop in both themes', asyn
 		).toEqual([]);
 	}
 	expect(errors).toEqual([]);
+});
+
+test('individual examples can be switched without retaining the previous component state', async ({
+	page
+}) => {
+	await page.goto('/components/Input', { waitUntil: 'networkidle' });
+	await page.getByLabel('Display name', { exact: true }).fill('A changed name');
+	await page.getByLabel('Choose component').selectOption('Button');
+	await expect(page.getByRole('button', { name: 'Primary', exact: true })).toBeVisible();
+	await page.getByLabel('Choose component').selectOption('Input');
+	await expect(page.getByLabel('Display name', { exact: true })).toHaveValue(
+		'A small corner of the web'
+	);
 });
 
 test('workspace sidebar opens as a mobile drawer and closes after navigation', async ({ page }) => {

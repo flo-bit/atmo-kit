@@ -32,9 +32,9 @@ corepack pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Browse `/components` for the full catalog, `/` for foundation controls,
-`/examples` for editors and media, `/navigation` for responsive navigation,
-`/login` for login UI, and `/legal` for legal pages.
+Browse `/components` for visual previews of every public component. Select one
+for its interactive example at `/components/<name>`. The combined playgrounds
+remain at `/`, `/examples`, `/navigation`, `/login`, and `/legal`.
 
 Run `pnpm lint`, `pnpm check`, `pnpm test:ci`, and `pnpm build` to validate changes.
 See [development](docs/development.md) for tests and package checks, and

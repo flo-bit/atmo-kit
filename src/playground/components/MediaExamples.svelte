@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button, GrainAlbumPicker, GrainAlbumView, StreamplacePicker, Subheading } from '#lib';
 	import type { GrainClient, GrainGallery } from '#lib/grain.js';
-	import coast from '../../routes/playground/coast.webp';
+	import coast from '../assets/coast.webp';
 	import forest from '../assets/forest.webp';
 	let pickerOpen = $state(false),
 		streamOpen = $state(false);

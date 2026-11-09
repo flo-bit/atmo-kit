@@ -22,7 +22,12 @@
 	]);
 </script>
 
-<svelte:head><title>Navigation · Atmo Kit</title></svelte:head>
+<svelte:head
+	><title>Navigation · Atmo Kit</title><meta
+		name="description"
+		content="Responsive navigation examples for Atmo Kit."
+	/></svelte:head
+>
 <div class={['atmo zinc pink min-h-dvh', dark ? 'dark' : 'light']}>
 	{#snippet account(expanded: boolean, close: () => void)}
 		{#if signedIn}
@@ -80,7 +85,7 @@
 			id="navigation-layout"
 			bind:value={layout}
 			onchange={() => (open = false)}
-			class="max-w-xs"
+			wrapperClass="max-w-xs"
 		>
 			<option value="rail">Icon rail</option><option value="sidebar">Workspace sidebar</option>
 		</Select>

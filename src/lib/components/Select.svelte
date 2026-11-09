@@ -6,6 +6,7 @@
 	import { ChevronDown } from '@sketchyicons/svelte';
 	let {
 		class: className,
+		wrapperClass,
 		value = $bindable<string | undefined>(),
 		ref = $bindable(null),
 		children,
@@ -13,11 +14,13 @@
 	}: Omit<HTMLSelectAttributes, 'value' | 'multiple'> & {
 		value?: string;
 		multiple?: never;
+		/** Layout/width classes for the field and its arrow; class styles the native select. */
+		wrapperClass?: string;
 		ref?: HTMLSelectElement | null;
 	} = $props();
 </script>
 
-<span class="relative block">
+<span data-slot="select-wrapper" class={cn('relative block', wrapperClass)}>
 	<select
 		{...rest}
 		bind:value

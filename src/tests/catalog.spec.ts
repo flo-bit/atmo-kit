@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { expect, it } from 'vitest';
 import { catalog } from '../playground/catalog.js';
+import { demoGroups, isolatedDemos } from '../playground/gallery/registry.js';
 
 const root = new URL('../../', import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
@@ -23,6 +24,15 @@ it('lists every public Svelte component exactly once with its real source and en
 		expect(actual.find(({ name }) => name === item.name)).toMatchObject(item);
 		expect(existsSync(new URL(item.source, root))).toBe(true);
 	}
+});
+
+it('has an individual visual example for every public component', () => {
+	const names = demoGroups.flatMap((group) => group.names);
+	expect(names.sort()).toEqual(
+		catalog.flatMap((group) => group.components.map(({ name }) => name)).sort()
+	);
+	expect(new Set(names).size).toBe(names.length);
+	for (const name of isolatedDemos) expect(names).toContain(name);
 });
 
 it('keeps the Markdown overview in sync and points groups to existing guides and examples', () => {

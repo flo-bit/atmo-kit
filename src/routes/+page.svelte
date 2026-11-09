@@ -36,8 +36,8 @@
 		Plus
 	} from '@sketchyicons/svelte';
 	import { resolve } from '$app/paths';
-	import coast from './playground/coast.webp';
-	import mika from './playground/mika.webp';
+	import coast from '../playground/assets/coast.webp';
+	import mika from '../playground/assets/mika.webp';
 
 	let base = $state<string>('zinc');
 	let accent = $state<string>('pink');

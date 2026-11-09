@@ -13,18 +13,19 @@ Activating external embeds can load third-party media; the HLS video fixture is 
 
 ## Local pages
 
-| Route         | Purpose                                                                  |
-| ------------- | ------------------------------------------------------------------------ |
-| `/components` | All public components, grouped by purpose, with source and example links |
-| `/`           | Foundation controls, themes, forms, tabs, dialogs                        |
-| `/examples`   | Editors, posts, rich text, photos, linked-record pickers                 |
-| `/navigation` | IconRail, WorkspaceSidebar, AccountMenu at desktop and mobile sizes      |
-| `/login`      | Login form/dialog, permission review, recent accounts, errors            |
-| `/legal`      | Document rendering, footer links, authoring configuration                |
+| Route         | Purpose                                                             |
+| ------------- | ------------------------------------------------------------------- |
+| `/components` | Visual previews of every public component, grouped by purpose       |
+| `/`           | Foundation controls, themes, forms, tabs, dialogs                   |
+| `/examples`   | Editors, posts, rich text, photos, linked-record pickers            |
+| `/navigation` | IconRail, WorkspaceSidebar, AccountMenu at desktop and mobile sizes |
+| `/login`      | Login form/dialog, permission review, recent accounts, errors       |
+| `/legal`      | Document rendering, footer links, authoring configuration           |
 
-The catalog lists all exported components, not just those with live examples.
-Event integration is covered in the [event guide](events.md) and browser tests;
-there is no complete event-app demo in this repository.
+Every public component has an individual example at `/components/<name>`, including
+event UI. Viewport-owning components run in isolated iframes. Event comments and
+transcripts use local fixtures; the examples never write to a PDS. Metadata-only
+components show their document-head effects rather than inventing visible UI.
 
 ## Checks
 
@@ -65,8 +66,9 @@ it does not deploy anything.
 - `docs/`: component inventory and integration guides.
 
 When adding a public component, update the relevant entry point,
-`src/playground/catalog.ts`, and [component overview](components.md). Catalog tests
-check that the inventory matches the public Svelte exports.
+`src/playground/catalog.ts`, `src/playground/gallery/registry.ts`, and
+[component overview](components.md). Add a real example in the gallery, not a placeholder.
+Catalog tests check that the inventory and visual examples match the public Svelte exports.
 
 Do not deep-import another app or add its sessions, routes, bindings, or data
 access to shared components. Use app-owned callbacks and adapters instead.

@@ -3,16 +3,13 @@
 	import { Button, Icon, IconButton } from '#lib';
 	import { Moon, Sun } from '@sketchyicons/svelte';
 	import { catalog } from '../../playground/catalog.js';
-
+	import Preview from '../../playground/gallery/Preview.svelte';
 	let dark = $state(true);
 </script>
 
 <svelte:head>
 	<title>Components · Atmo Kit</title>
-	<meta
-		name="description"
-		content="All public Atmo Kit components, grouped by purpose, with source and example links."
-	/>
+	<meta name="description" content="Visual examples of every public Atmo Kit component." />
 </svelte:head>
 
 <div class={['atmo zinc pink min-h-dvh', dark ? 'dark' : 'light']}>
@@ -29,7 +26,7 @@
 		</h1>
 		<div class="flex items-center gap-3">
 			<Button href={resolve('/')} variant="link" size="sm">Foundation</Button>
-			<Button href={resolve('/examples')} variant="link" size="sm">Examples</Button>
+			<Button href={resolve('/examples')} variant="link" size="sm">Playground</Button>
 			<IconButton
 				label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
 				onclick={() => (dark = !dark)}><Icon img={dark ? Sun : Moon} size={20} /></IconButton
@@ -37,44 +34,34 @@
 		</div>
 	</header>
 	<main id="main" class="px-5 py-8 sm:px-8">
-		<p class="text-sm text-muted">
-			Public components only. Source links include typed props; examples cover selected components.
-		</p>
-		<nav aria-label="Component groups" class="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-sm">
-			{#each catalog as group (group.id)}
-				<a href={`#${group.id}`} class="text-action underline-offset-4 hover:underline"
-					>{group.title}</a
-				>
-			{/each}
+		<nav aria-label="Component groups" class="flex flex-wrap gap-x-5 gap-y-3 text-sm">
+			{#each catalog as group (group.id)}<a
+					href={`#${group.id}`}
+					class="text-action underline-offset-4 hover:underline">{group.title}</a
+				>{/each}
 		</nav>
-		<div class="mt-10 grid items-start gap-x-12 gap-y-12 lg:grid-cols-2">
+		<div class="mt-10 space-y-14">
 			{#each catalog as group (group.id)}
 				<section id={group.id} aria-labelledby={`${group.id}-heading`} class="min-w-0 scroll-mt-6">
-					<h2 id={`${group.id}-heading`} class="text-lg font-medium">{group.title}</h2>
-					<code class="mt-1 block text-xs text-muted">{group.entry}</code>
-					<ul class="mt-4 divide-y divide-line border-y border-line">
+					<h2 id={`${group.id}-heading`} class="mb-5 text-lg font-medium">{group.title}</h2>
+					<ul class="grid gap-x-6 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
 						{#each group.components as component (component.name)}
-							<li class="py-3">
-								<a
-									href={`https://github.com/flo-bit/atmo-kit/blob/main/${component.source}`}
-									class="font-mono text-sm text-action underline-offset-4 hover:underline"
-									aria-label={`${component.name} source`}>{component.name}</a
+							<li class="group relative min-w-0">
+								<div
+									class="pointer-events-none flex h-64 items-center overflow-hidden rounded-ui border border-line bg-recess/30 p-5"
+									inert
+									aria-hidden="true"
 								>
-								<p class="mt-1 text-sm text-muted">{component.description}</p>
+									<Preview name={component.name} compact {dark} />
+								</div>
+								<a
+									href={resolve('/components/[name]', { name: component.name })}
+									class="mt-3 inline-block rounded text-sm font-medium underline-offset-4 hover:text-action hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+									><span class="absolute inset-0 rounded-ui"></span>{component.name}</a
+								>
 							</li>
 						{/each}
 					</ul>
-					<div class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-						{#if group.example}<a
-								href={resolve(group.example.href)}
-								class="text-action underline-offset-4 hover:underline">{group.example.label}</a
-							>{/if}
-						{#if group.guide}<a
-								href={`https://github.com/flo-bit/atmo-kit/blob/main/docs/${group.guide}`}
-								class="text-action underline-offset-4 hover:underline"
-								aria-label={`${group.title} guide`}>Guide</a
-							>{/if}
-					</div>
 				</section>
 			{/each}
 		</div>

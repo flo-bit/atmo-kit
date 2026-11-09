@@ -1,2 +1,14 @@
 @import 'tailwindcss';
 @import '../lib/theme.css';
+
+/* The playground's theme switch must also drive legacy dark: event styles. */
+@custom-variant dark {
+	&:is(.dark, .dark *) {
+		@slot;
+	}
+	@media (prefers-color-scheme: dark) {
+		&:not(.light, .light *) {
+			@slot;
+		}
+	}
+}

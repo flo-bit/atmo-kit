@@ -31,7 +31,7 @@
 	import { ArrowLeft, Moon, Sun, Link, ArrowRight, X } from '@sketchyicons/svelte';
 	import MediaExamples from '../../playground/components/MediaExamples.svelte';
 	import { parseRichText } from '#lib/richtext.js';
-	import coastAsset from '../playground/coast.webp';
+	import coastAsset from '../../playground/assets/coast.webp';
 	import forestAsset from '../../playground/assets/forest.webp';
 	import {
 		attachment,

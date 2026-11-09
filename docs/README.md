@@ -1,7 +1,7 @@
 # Guides
 
 Start with the [component overview](components.md). The local `/components`
-catalog links to live examples and component source, including typed props.
+gallery shows every public component and links to individual interactive examples.
 
 | Guide                                          | Contents                                                 |
 | ---------------------------------------------- | -------------------------------------------------------- |
