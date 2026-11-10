@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { eventUrl, isEventOngoing, type FlatEventRecord } from './contrail.js';
+	import {
+		eventUrl,
+		isEventOngoing,
+		type AttendeeListLoader,
+		type FlatEventRecord
+	} from './contrail.js';
 	import type { EventViewData } from './view-data.js';
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
 	import { getEventThumbnail, getEventExternalImage } from './event-media.js';
@@ -44,7 +49,8 @@
 		embedMode = false,
 		shareUrlOverride,
 		extraActions,
-		attendeeActions
+		attendeeActions,
+		loadAttendees
 	}: {
 		data: EventViewData;
 		adapter: EditorAdapter;
@@ -60,6 +66,9 @@
 		extraActions?: Snippet;
 		/** App-owned actions below the attendee lists, with current RSVP counts. */
 		attendeeActions?: Snippet<[AttendeeCounts]>;
+		/** Fetches the complete attendee lists the first time one is opened, when
+		 *  `data.attendees` holds only a sample of the counted RSVPs. */
+		loadAttendees?: AttendeeListLoader;
 	} = $props();
 
 	let eventData: FlatEventRecord = $derived(data.eventData);
@@ -467,6 +476,7 @@
 					goingCount={attendees.goingCount}
 					interestedCount={attendees.interestedCount}
 					footer={embedMode ? undefined : attendeeActions}
+					loadAll={loadAttendees}
 				/>
 			</div>
 		</div>

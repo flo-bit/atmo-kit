@@ -7,6 +7,7 @@ export { default as EventRsvp } from './events/EventRsvp.svelte';
 export { default as EventComments } from './events/EventComments.svelte';
 export { default as EventAttendees } from './events/EventAttendees.svelte';
 export type { AttendeeCounts } from './events/EventAttendees.svelte';
+export type { AttendeeListLoader } from './events/contrail.js';
 export { default as StarterPackButton } from './events/StarterPackButton.svelte';
 export { default as VodPlayer } from './events/VodPlayer.svelte';
 export type { VodPlayerApi } from './events/VodPlayer.svelte';

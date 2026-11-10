@@ -9,7 +9,12 @@ export type {
 	EventStatus,
 	EventMode as EventLexiconMode
 } from './events/event-types.js';
-export type { FlatEventRecord, HostProfile, AttendeeInfo } from './events/contrail.js';
+export type {
+	FlatEventRecord,
+	HostProfile,
+	AttendeeInfo,
+	AttendeeListLoader
+} from './events/contrail.js';
 export { eventUrl, isEventOngoing, RSVP_GOING, RSVP_INTERESTED } from './events/contrail.js';
 export * from './events/conference.js';
 export * from './events/linked-records.js';

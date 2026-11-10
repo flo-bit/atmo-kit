@@ -7,7 +7,7 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { AttendeeInfo } from './contrail.js';
+	import type { AttendeeInfo, AttendeeListLoader } from './contrail.js';
 	import { Avatar } from '../index.js';
 	import { scale } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
@@ -18,13 +18,16 @@
 		interested = [],
 		goingCount: initialGoingCount = going.length,
 		interestedCount: initialInterestedCount = interested.length,
-		footer
+		footer,
+		loadAll
 	}: {
 		going?: AttendeeInfo[];
 		interested?: AttendeeInfo[];
 		goingCount?: number;
 		interestedCount?: number;
 		footer?: Snippet<[AttendeeCounts]>;
+		/** Fetches everyone when a list opens and the counts exceed `going`/`interested`. */
+		loadAll?: AttendeeListLoader;
 	} = $props();
 
 	let goingCountOverride: number | null = $state(null);
@@ -51,11 +54,42 @@
 	let interestedOverflow = $derived(interestedCount - interestedDisplay.length);
 
 	let modalAttendees = $derived(modalGroup === 'going' ? goingAttendees : interestedAttendees);
+	let modalCount = $derived(modalGroup === 'going' ? goingCount : interestedCount);
 	let modalTitle = $derived(modalGroup === 'going' ? 'Going' : 'Interested');
+
+	// The sample passed in may be shorter than the counts. Fetch the rest once,
+	// on first open; a failed attempt retries on the next open.
+	let hasMore = $derived(
+		goingCount > goingAttendees.length || interestedCount > interestedAttendees.length
+	);
+	let loadingAll = $state(false);
+	let loadedAll = $state(false);
+
+	async function loadEveryone() {
+		if (!loadAll || loadedAll || loadingAll || !hasMore) return;
+		loadingAll = true;
+		try {
+			const full = await loadAll();
+			goingAttendeesOverride = full.going;
+			interestedAttendeesOverride = full.interested;
+			goingCountOverride = Math.max(goingCount, full.goingCount ?? 0, full.going.length);
+			interestedCountOverride = Math.max(
+				interestedCount,
+				full.interestedCount ?? 0,
+				full.interested.length
+			);
+			loadedAll = true;
+		} catch {
+			// Keep the sample; the next open tries again.
+		} finally {
+			loadingAll = false;
+		}
+	}
 
 	function openModal(group: 'going' | 'interested') {
 		modalGroup = group;
 		modalOpen = true;
+		void loadEveryone();
 	}
 
 	export function addAttendee(attendee: AttendeeInfo) {
@@ -177,7 +211,7 @@
 	</div>
 {/if}
 
-<Modal bind:open={modalOpen} title={`${modalTitle} (${modalAttendees.length})`}>
+<Modal bind:open={modalOpen} title={`${modalTitle} (${modalCount})`}>
 	<div
 		class="mx-4 mb-4 max-h-80 space-y-1 overflow-y-auto rounded-xl bg-base-200/30 p-2 dark:bg-base-900/50"
 	>
@@ -201,5 +235,14 @@
 				</div>
 			</a>
 		{/each}
+		{#if loadingAll}
+			<p
+				class="px-2 py-2 text-xs text-base-600 dark:text-base-400"
+				role="status"
+				aria-live="polite"
+			>
+				Loading…
+			</p>
+		{/if}
 	</div>
 </Modal>

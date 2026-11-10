@@ -38,6 +38,18 @@ export type AttendeeInfo = {
 	url: string;
 };
 
+/**
+ * Loads the complete attendee lists. `EventAttendees` calls it the first time
+ * a list opens when the counts exceed the attendees it was given, so apps can
+ * render a small hydrated sample and defer the expensive full fetch.
+ */
+export type AttendeeListLoader = () => Promise<{
+	going: AttendeeInfo[];
+	interested: AttendeeInfo[];
+	goingCount?: number;
+	interestedCount?: number;
+}>;
+
 export const RSVP_GOING = 'community.lexicon.calendar.rsvp#going';
 export const RSVP_INTERESTED = 'community.lexicon.calendar.rsvp#interested';
 

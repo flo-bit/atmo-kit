@@ -29,6 +29,8 @@ const description = event.description
 	: null;
 ```
 
+`data.attendees` can be a sample: pass the RSVPs hydrated onto the event record together with the indexed `goingCount`/`interestedCount`, and give `EventView` a `loadAttendees` callback. The avatar strip renders from the sample, and the complete lists are fetched the first time someone opens one, only when the counts exceed the sample.
+
 Without `data.description`, `EventView` shows the description as plain text with facet links. Description headings render one level below the event title, and the Bluesky share card uses `richTextToPlainText(description)`. Conference schedules show talk descriptions as short previews: pass `conferenceTalkDescriptions`, plain text keyed by talk URI, so Markdown syntax does not appear there. See [Rich text](social.md#rich-text) for what is supported.
 
 Event components read Bluesky's public AppView and CDN by default. Apps using other services call `configureAtproto({ appview, cdn })` from `events-data` once, before rendering, on both the server and the client (for example at the top of the root layout).
