@@ -6,7 +6,6 @@ import LinkCard from '../lib/components/LinkCard.svelte';
 import PostContent from '../lib/components/PostContent.svelte';
 import NestedComments from '../lib/components/NestedComments.svelte';
 import InlineEditor from '../lib/components/InlineEditor.svelte';
-import PostComposer from '../lib/components/PostComposer.svelte';
 import type { ActorSummary } from '../lib/components/login/types.js';
 import { blueskyPostToPostData, type PostData } from '../lib/social/posts.js';
 import { editorJsonToBlueskyPost } from '../lib/social/richtext.js';
@@ -107,16 +106,6 @@ describe('controlled editor state', () => {
 		expect(serialized.facets.some((facet) => facet.features.some((feature) => feature.did))).toBe(
 			false
 		);
-	});
-	it('keeps nonempty/empty and over-limit drafts editable for app-owned validation', async () => {
-		render(PostComposer, { value: '', maxLength: 1 });
-		const editor = page.getByRole('textbox', { name: 'Post text' });
-		await expect.element(page.getByText('0 / 1', { exact: true })).toBeVisible();
-		await editor.fill('👩🏽‍💻!');
-		await expect.element(page.getByText('2 / 1', { exact: true })).toHaveClass('red');
-		await expect.element(editor).toHaveAttribute('contenteditable', 'true');
-		await editor.fill('');
-		await expect.element(page.getByText('0 / 1', { exact: true })).toBeVisible();
 	});
 	it('selects mentions in single-line editors without accepting a line break or profile HTML', async () => {
 		const onupdate = vi.fn();

@@ -51,4 +51,8 @@ Import `theme.css` as shown in [Installation](../README.md#installation); it sca
 
 Current host defaults include: `/p/:actor/e/:rkey` event and `/p/:actor` profile links, `/api/geocoding`, Bluesky's public comments API, the `?created` share flow and RSVP's `createdWith` identifier. Hosts currently need compatible routes/endpoints; `shareUrlOverride` changes outbound share links. These defaults are not a universal routing contract; check compatibility before integrating.
 
+A page can also show and edit an event that is not public, such as a record in a permissioned space. `EventCard` takes `href` for a card whose page is not `/p/:actor/e/:rkey`. `EventView` takes `share={false}`, so no share dialog opens after `?created` or an RSVP of Going. In `EditorAdapter.features`, `images: false` removes the cover image section and uploads no image, and `visibility: false` hides the Public / Unlisted switch and leaves the record's `preferences` unchanged.
+
+`eventData.uri` is the address of the event record the page shows, and the kit names the event by it: an RSVP answers it, the calendar file uses it as the event's UID, the schedule shows the talks whose parent it is, and the editor reports it after a delete. A record in its creator's repo has the address `at://<did>/community.lexicon.calendar.event/<rkey>`, and the kit builds that itself when `uri` is empty. A page showing a record stored anywhere else, such as in a space, must set `uri` to that record's own address, or its RSVPs answer a record that doesn't exist.
+
 Event browser tests are in `src/tests/events`; run `pnpm test:unit --run --project events`. `pnpm test:package` checks the actual built server entry and its runtime import graph without Vite aliases.

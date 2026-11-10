@@ -71,6 +71,24 @@ describe('EventView RSVP totals with partial attendee lists', () => {
 		);
 	}
 
+	it('keeps partial-list counts correct when sharing is disabled', async () => {
+		render(EventView, {
+			data: viewData('going'),
+			adapter: createAdapter(),
+			viewer,
+			pageUrl,
+			share: false
+		});
+		await page.getByRole('button', { name: 'Remove', exact: true }).click();
+		await expect.element(countButton(24, 'going')).toBeVisible();
+		await page.getByRole('button', { name: 'Going', exact: true }).click();
+		await expect.element(countButton(25, 'going')).toBeVisible();
+		await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+		await page.getByRole('button', { name: 'Remove', exact: true }).click();
+		await expect.element(countButton(24, 'going')).toBeVisible();
+		await expect.element(countButton(27, 'interested')).toBeVisible();
+	});
+
 	it('does not decrement an attendee group when removing a notgoing RSVP', async () => {
 		render(EventView, { data: viewData('notgoing'), adapter: createAdapter(), viewer, pageUrl });
 		await page.getByRole('button', { name: 'Remove', exact: true }).click();

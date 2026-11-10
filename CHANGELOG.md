@@ -1,5 +1,17 @@
 # @atmo-dev/kit
 
+## 0.11.0
+
+### Minor Changes
+
+- ceb1acc: Add options for showing and editing events that are not public. All are optional and default to the current behavior. `EventCard` takes `href`. `EventView` takes `share`: with `share={false}`, no share dialog opens after the event is created or after an RSVP of Going. `EditorAdapter.features` takes `images` and `visibility`: `images: false` removes the editor's cover image section and uploads no image, and an edit keeps existing media; `visibility: false` hides the Public / Unlisted switch and leaves the record's `preferences` unchanged (`buildEventRecord` accepts `visibility: null` for this). `EventView` and the editor's delete now use `eventData.uri` as the event's URI, so it must be the record's own URI. When it is empty, `at://<did>/community.lexicon.calendar.event/<rkey>` is built as before.
+
+## 0.10.1
+
+### Patch Changes
+
+- 14ffaf7: Add `loadAttendees` to `EventView` (and `loadAll` to `EventAttendees`) so apps can render a hydrated sample of attendees and fetch the complete lists only when someone opens one. The attendee modal title now shows the RSVP count rather than the loaded length.
+
 ## 0.10.0
 
 ### Minor Changes

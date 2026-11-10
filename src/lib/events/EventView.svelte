@@ -48,6 +48,7 @@
 		pageUrl,
 		embedMode = false,
 		shareUrlOverride,
+		share = true,
 		extraActions,
 		attendeeActions,
 		loadAttendees
@@ -62,6 +63,9 @@
 		 *  of the canonical atmo.rsvp event URL. Useful for embedders that want
 		 *  share links to point at their own event page. */
 		shareUrlOverride?: string;
+		/** False for an event with no public page to share, such as a private one: no share pop-up
+		 *  after creating the event or answering Going. */
+		share?: boolean;
 		/** App-owned actions such as private reporting; omitted in embeds. */
 		extraActions?: Snippet;
 		/** App-owned actions below the attendee lists, with current RSVP counts. */
@@ -143,6 +147,7 @@
 			url.searchParams.delete('created');
 			history.replaceState({}, '', url.pathname);
 			launchConfetti();
+			if (!share) return;
 			shareModalTitle = 'Event created!';
 			shareModalText = `I'm hosting "${eventData.name}"!\n\n${shareUrl}`;
 			canSetEventComments = isHost;
@@ -200,7 +205,8 @@
 		return null;
 	});
 
-	let eventUri = $derived(`at://${did}/community.lexicon.calendar.event/${rkey}`);
+	// The record's own address, which isn't in its creator's repo for every event (one in a space).
+	let eventUri = $derived(eventData.uri || `at://${did}/community.lexicon.calendar.event/${rkey}`);
 
 	let ogImageUrl = $derived(data.ogImage ?? `${pageUrl.origin}${pageUrl.pathname}/og.png`);
 
@@ -254,7 +260,7 @@
 			viewerRsvpStatus
 		);
 		viewerRsvpStatusOverride = status;
-		if (status === 'interested') return;
+		if (status === 'interested' || !share) return;
 		shareModalTitle = "You're going!";
 		shareModalText = `I'm going to "${eventData.name}".\n\n${shareUrl}`;
 		canSetEventComments = false;
