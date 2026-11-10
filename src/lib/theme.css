@@ -78,6 +78,7 @@
 		--atmo-radius-panel: 24px 21px 25px 22px / 22px 25px 21px 24px;
 		--atmo-duration: 120ms;
 		color-scheme: light dark;
+		scrollbar-gutter: stable;
 	}
 	:where(.dark, [data-theme='dark']) {
 		color-scheme: dark;
