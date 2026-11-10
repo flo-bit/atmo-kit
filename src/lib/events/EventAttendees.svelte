@@ -7,6 +7,7 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import type { AttendeeInfo, AttendeeListLoader } from './contrail.js';
 	import { Avatar } from '../index.js';
 	import { scale } from 'svelte/transition';
@@ -64,20 +65,32 @@
 	);
 	let loadingAll = $state(false);
 	let loadedAll = $state(false);
+	const localUpdates = new SvelteMap<string, AttendeeInfo | null>();
 
 	async function loadEveryone() {
 		if (!loadAll || loadedAll || loadingAll || !hasMore) return;
 		loadingAll = true;
 		try {
 			const full = await loadAll();
-			goingAttendeesOverride = full.going;
-			interestedAttendeesOverride = full.interested;
-			goingCountOverride = Math.max(goingCount, full.goingCount ?? 0, full.going.length);
-			interestedCountOverride = Math.max(
-				interestedCount,
-				full.interestedCount ?? 0,
-				full.interested.length
-			);
+			// The index may still contain a just-cancelled RSVP (or omit a new
+			// one). Do not let a late lazy load undo successful local mutations.
+			const updates = [...localUpdates.values()].filter((a) => a !== null);
+			goingAttendeesOverride = [
+				...updates.filter((a) => a.status === 'going'),
+				...full.going.filter((a) => !localUpdates.has(a.did))
+			];
+			interestedAttendeesOverride = [
+				...updates.filter((a) => a.status === 'interested'),
+				...full.interested.filter((a) => !localUpdates.has(a.did))
+			];
+			if (localUpdates.size === 0) {
+				goingCountOverride = Math.max(goingCount, full.goingCount ?? 0, full.going.length);
+				interestedCountOverride = Math.max(
+					interestedCount,
+					full.interestedCount ?? 0,
+					full.interested.length
+				);
+			}
 			loadedAll = true;
 		} catch {
 			// Keep the sample; the next open tries again.
@@ -92,9 +105,21 @@
 		void loadEveryone();
 	}
 
-	export function addAttendee(attendee: AttendeeInfo) {
-		const wasGoing = goingAttendees.some((a) => a.did === attendee.did);
-		const wasInterested = interestedAttendees.some((a) => a.did === attendee.did);
+	// A partial list cannot tell us whether an account already contributes to
+	// the totals. Callers that know its previous status must supply it.
+	export function addAttendee(
+		attendee: AttendeeInfo,
+		previousStatus?: 'going' | 'interested' | 'notgoing' | null
+	) {
+		const wasGoing =
+			previousStatus === undefined
+				? goingAttendees.some((a) => a.did === attendee.did)
+				: previousStatus === 'going';
+		const wasInterested =
+			previousStatus === undefined
+				? interestedAttendees.some((a) => a.did === attendee.did)
+				: previousStatus === 'interested';
+		localUpdates.set(attendee.did, attendee);
 		const nextGoing = goingAttendees.filter((a) => a.did !== attendee.did);
 		const nextInterested = interestedAttendees.filter((a) => a.did !== attendee.did);
 
@@ -103,11 +128,11 @@
 			goingAttendeesOverride = [attendee, ...nextGoing];
 			interestedAttendeesOverride = nextInterested;
 			goingCountOverride = goingCount + (wasGoing ? 0 : 1);
-			interestedCountOverride = interestedCount - (wasInterested ? 1 : 0);
+			interestedCountOverride = Math.max(0, interestedCount - (wasInterested ? 1 : 0));
 		} else if (attendee.status === 'interested') {
 			goingAttendeesOverride = nextGoing;
 			interestedAttendeesOverride = [attendee, ...nextInterested];
-			goingCountOverride = goingCount - (wasGoing ? 1 : 0);
+			goingCountOverride = Math.max(0, goingCount - (wasGoing ? 1 : 0));
 			interestedCountOverride = interestedCount + (wasInterested ? 0 : 1);
 		}
 	}
@@ -116,13 +141,23 @@
 		return url?.replace('/avatar/', '/avatar_thumbnail/');
 	}
 
-	export function removeAttendee(did: string) {
-		const wasGoing = goingAttendees.some((a) => a.did === did);
-		const wasInterested = interestedAttendees.some((a) => a.did === did);
+	export function removeAttendee(
+		did: string,
+		previousStatus?: 'going' | 'interested' | 'notgoing' | null
+	) {
+		const wasGoing =
+			previousStatus === undefined
+				? goingAttendees.some((a) => a.did === did)
+				: previousStatus === 'going';
+		const wasInterested =
+			previousStatus === undefined
+				? interestedAttendees.some((a) => a.did === did)
+				: previousStatus === 'interested';
+		localUpdates.set(did, null);
 		goingAttendeesOverride = goingAttendees.filter((a) => a.did !== did);
 		interestedAttendeesOverride = interestedAttendees.filter((a) => a.did !== did);
-		if (wasGoing) goingCountOverride = goingCount - 1;
-		if (wasInterested) interestedCountOverride = interestedCount - 1;
+		if (wasGoing) goingCountOverride = Math.max(0, goingCount - 1);
+		if (wasInterested) interestedCountOverride = Math.max(0, interestedCount - 1);
 	}
 </script>
 

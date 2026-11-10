@@ -232,17 +232,28 @@
 	let vodApi: VodPlayerApi | undefined = $state();
 
 	let attendeesRef: EventAttendees | undefined = $state();
+	let viewerRsvpStatusOverride: 'going' | 'interested' | 'notgoing' | null | undefined =
+		$state(undefined);
+	let viewerRsvpStatus = $derived(
+		viewerRsvpStatusOverride === undefined
+			? (data.viewerRsvpStatus ?? null)
+			: viewerRsvpStatusOverride
+	);
 
 	function handleRsvp(status: 'going' | 'interested') {
 		if (!viewer.did) return;
-		attendeesRef?.addAttendee({
-			did: viewer.did,
-			status,
-			avatar: viewer.avatar,
-			name: viewer.displayName || viewer.handle || viewer.did,
-			handle: viewer.handle,
-			url: `/p/${encodeURIComponent(viewer.handle || viewer.did)}`
-		});
+		attendeesRef?.addAttendee(
+			{
+				did: viewer.did,
+				status,
+				avatar: viewer.avatar,
+				name: viewer.displayName || viewer.handle || viewer.did,
+				handle: viewer.handle,
+				url: `/p/${encodeURIComponent(viewer.handle || viewer.did)}`
+			},
+			viewerRsvpStatus
+		);
+		viewerRsvpStatusOverride = status;
 		if (status === 'interested') return;
 		shareModalTitle = "You're going!";
 		shareModalText = `I'm going to "${eventData.name}".\n\n${shareUrl}`;
@@ -252,7 +263,8 @@
 
 	function handleRsvpCancel() {
 		if (!viewer.did) return;
-		attendeesRef?.removeAttendee(viewer.did);
+		attendeesRef?.removeAttendee(viewer.did, viewerRsvpStatus);
+		viewerRsvpStatusOverride = null;
 	}
 </script>
 
