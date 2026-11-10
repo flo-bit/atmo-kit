@@ -1,6 +1,6 @@
 {
 	"name": "@atmo-dev/kit",
-	"version": "0.10.1",
+	"version": "0.11.0",
 	"description": "The shared UI foundation for Atmo apps.",
 	"license": "MIT",
 	"repository": {
