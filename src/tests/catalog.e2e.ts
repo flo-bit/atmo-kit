@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { catalog } from '../playground/catalog.js';
+import { isolatedDemos } from '../playground/gallery/registry.js';
 
 test('gallery links every public component to its own visual example', async ({ page }) => {
 	await page.goto('/components');
@@ -28,9 +29,16 @@ test('gallery links every public component to its own visual example', async ({ 
 test('gallery stays accessible and fits mobile and desktop in both themes', async ({ page }) => {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.goto('/components', { waitUntil: 'networkidle' });
+	await page.goto('/components', { waitUntil: 'domcontentloaded' });
+	// Wait for the actual previews, not unrelated requests or lazy iframe loading.
+	const inlinePreviews = catalog
+		.flatMap((group) => group.components)
+		.filter((component) => !isolatedDemos.has(component.name));
+	await expect(page.locator('[data-demo-ready]')).toHaveCount(inlinePreviews.length);
+	await page.evaluate(() => document.fonts.ready);
 	for (const mode of ['dark', 'light']) {
 		if (mode === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
+		await expect(page.locator('html')).toHaveClass(new RegExp(`\\b${mode}\\b`));
 		for (const width of [320, 390, 1280]) {
 			await page.setViewportSize({ width, height: 900 });
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
