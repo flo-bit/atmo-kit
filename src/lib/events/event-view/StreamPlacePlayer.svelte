@@ -2,9 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Icon } from '../../index.js';
 	import { ExternalLink } from '@sketchyicons/svelte';
-	import 'plyr/dist/plyr.css';
-	import type PlyrType from 'plyr';
-	import { sketchyPlyrIcons } from './plyr-icons.js';
+	import Player from './Player.svelte';
 
 	let {
 		handle,
@@ -15,12 +13,11 @@
 	} = $props();
 
 	let videoEl: HTMLVideoElement | undefined = $state();
-	let overlayEl: HTMLAnchorElement | undefined = $state();
+	let player: Player | undefined = $state();
 	let error = $state(false);
 	let controlsVisible = $state(true);
 
 	let pc: RTCPeerConnection | null = null;
-	let plyr: PlyrType | null = null;
 
 	const posterUrl = $derived(
 		`https://stream.place/api/playback/${encodeURIComponent(handle)}/stream.jpg`
@@ -36,7 +33,6 @@
 			if (videoEl) {
 				videoEl.srcObject = null;
 			}
-			plyr?.destroy();
 		};
 	});
 
@@ -123,29 +119,6 @@
 
 			const answerSdp = await response.text();
 			await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
-
-			const { default: Plyr } = await import('plyr');
-
-			plyr = new Plyr(videoEl, {
-				...sketchyPlyrIcons(),
-				controls: ['play', 'mute', 'volume', 'fullscreen'],
-				settings: [],
-				ratio: '16:9'
-			});
-
-			plyr.on('controlshidden', () => {
-				controlsVisible = false;
-			});
-			plyr.on('controlsshown', () => {
-				controlsVisible = true;
-			});
-
-			// Move the overlay link inside Plyr's container so mousemove over the
-			// button bubbles into Plyr's activity tracker — otherwise hovering it
-			// hides the controls, which hides the button, which reactivates Plyr
-			// (a flicker loop).
-			const plyrEl = videoEl.closest('.plyr');
-			if (plyrEl && overlayEl) plyrEl.appendChild(overlayEl);
 		} catch {
 			error = true;
 			if (pc) {
@@ -158,11 +131,10 @@
 
 {#snippet watchOnStreamPlace(hidden = false)}
 	<a
-		bind:this={overlayEl}
 		href="https://stream.place/{handle}"
 		target="_blank"
 		rel="noopener noreferrer"
-		onclick={() => plyr?.pause()}
+		onclick={() => player?.pause()}
 		class="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm transition-opacity duration-200 hover:bg-black/75 {hidden
 			? 'pointer-events-none opacity-0'
 			: 'opacity-100'}"
@@ -188,22 +160,17 @@
 	<div
 		class="relative aspect-video w-full max-w-full overflow-hidden rounded-xl border border-base-300 dark:border-base-400/40"
 	>
-		{@render watchOnStreamPlace(!controlsVisible)}
-		<video
-			bind:this={videoEl}
-			class="h-full w-full"
-			aria-label={title}
+		<Player
+			bind:this={player}
+			bind:video={videoEl}
+			bind:controlsVisible
+			{title}
 			poster={posterUrl}
+			live
 			autoplay
-			playsinline
-			muted
-			crossorigin="anonymous"
-		></video>
+		>
+			<!-- Inside the player, so pointing at the link keeps the controls up. -->
+			{@render watchOnStreamPlace(!controlsVisible)}
+		</Player>
 	</div>
 {/if}
-
-<style>
-	* {
-		--plyr-color-main: var(--color-accent-500);
-	}
-</style>

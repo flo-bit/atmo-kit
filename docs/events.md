@@ -44,14 +44,30 @@ Apps implement `EditorAdapter` for authentication prompts, repository IO, upload
 Full event UI requires optional peers (ordinary Kit consumers do not):
 
 ```sh
-pnpm add maplibre-gl@^6.16.0 svelte-maplibre-gl@^2.2.1 plyr@^3.8.5
+pnpm add maplibre-gl@^6.16.0 svelte-maplibre-gl@^2.2.1
 ```
 
 Import `theme.css` as shown in [Installation](../README.md#installation); it scans the packaged event components too, so no separate Tailwind source path is needed. Event exports are intentionally absent from the main Kit entry.
 
-Current host defaults include: `/p/:actor/e/:rkey` event and `/p/:actor` profile links, `/api/geocoding`, Bluesky's public comments API, the `?created` share flow and RSVP's `createdWith` identifier. Hosts currently need compatible routes/endpoints; `shareUrlOverride` changes outbound share links. These defaults are not a universal routing contract; check compatibility before integrating.
+Links inside the event components follow the host's routes. Set `urls` on the adapter for an app whose pages live elsewhere; anything left out keeps the RSVP app's default:
 
-A page can also show and edit an event that is not public, such as a record in a permissioned space. `EventCard` takes `href` for a card whose page is not `/p/:actor/e/:rkey`. `EventView` takes `share={false}`, so no share dialog opens after `?created` or an RSVP of Going. In `EditorAdapter.features`, `images: false` removes the cover image section and uploads no image, and `visibility: false` hides the Public / Unlisted switch and leaves the record's `preferences` unchanged.
+```ts
+const adapter: EditorAdapter = {
+	urls: {
+		profile: (actor) => `/profile/${actor}`, // default /p/:actor
+		event: (actor, rkey) => `/profile/${actor}/event/${rkey}`, // default /p/:actor/e/:rkey
+		edit: () => null, // default: the event's page + /edit; null hides "Edit Event"
+		talks: () => null // default: the event's page + /talks; null hides "Manage talks"
+	}
+	// …
+};
+```
+
+`profile` is used for the host, attendees added by an RSVP and mentions in the description; `event` for the share link, a talk's parent conference and timetable entries. Attendee links in `EventViewData` are the app's own, and `resolveEventUrls(adapter.urls)` from `events-data` builds them the same way. Speakers link to Bluesky.
+
+Other host defaults remain: `/api/geocoding`, Bluesky's public comments API, the `?created` share flow and RSVP's `createdWith` identifier. Hosts need compatible endpoints for those; `shareUrlOverride` changes outbound share links.
+
+A page can also show and edit an event that is not public, such as a record in a permissioned space. `EventCard` takes `href` for a card whose page is not `/p/:actor/e/:rkey` (a card has no adapter, so it does not read `urls`). `EventView` takes `share={false}`, so no share dialog opens after `?created` or an RSVP of Going. In `EditorAdapter.features`, `images: false` removes the cover image section and uploads no image, and `visibility: false` hides the Public / Unlisted switch and leaves the record's `preferences` unchanged.
 
 `eventData.uri` is the address of the event record the page shows, and the kit names the event by it: an RSVP answers it, the calendar file uses it as the event's UID, the schedule shows the talks whose parent it is, and the editor reports it after a delete. A record in its creator's repo has the address `at://<did>/community.lexicon.calendar.event/<rkey>`, and the kit builds that itself when `uri` is empty. A page showing a record stored anywhere else, such as in a space, must set `uri` to that record's own address, or its RSVPs answer a record that doesn't exist.
 

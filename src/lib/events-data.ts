@@ -27,6 +27,7 @@ export {
 } from './events/event-media.js';
 export { getCDNImageBlobUrl, compressImage, configureAtproto } from './events/atproto-helpers.js';
 export { getProfileUrl, getLocalProfileUrl } from './events/profile-url.js';
+export { resolveEventUrls, type EventUrls, type ResolvedEventUrls } from './events/urls.js';
 export {
 	normalizeCountryCode,
 	normalizeEventLocations,

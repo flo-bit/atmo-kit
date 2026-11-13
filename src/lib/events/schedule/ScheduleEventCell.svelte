@@ -10,6 +10,7 @@
 	import { Modal, Button, Icon } from '../../index.js';
 	import EventRsvp from '../EventRsvp.svelte';
 	import VodPlayer from '../VodPlayer.svelte';
+	import { resolveEventUrls } from '../urls.js';
 	import type { EditorAdapter, EditorViewer } from '../editor/adapter.js';
 	import type { Snippet } from 'svelte';
 
@@ -52,7 +53,7 @@
 	);
 	let initialRsvpRkey = $derived(rsvpRkeys[event.uri] ?? null);
 	let isPast = $derived(event.end ? new Date(event.end) < new Date() : false);
-	let eventHref = $derived(`/p/${eventActor}/e/${event.rkey}`);
+	let eventHref = $derived(resolveEventUrls(adapter.urls).event(eventActor, event.rkey));
 </script>
 
 {#if linkableTypes.has(event.type) && event.rkey}

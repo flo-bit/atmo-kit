@@ -33,7 +33,7 @@ test('runtime data imports never pull in components, styles or players', () => {
 			const specifier = match[1];
 			assert.doesNotMatch(
 				specifier,
-				/\.svelte|\.css|^(?:plyr|hls\.js|maplibre-gl|svelte-maplibre-gl)(?:\/|$)/
+				/\.svelte|\.css|^(?:hls\.js|maplibre-gl|svelte-maplibre-gl)(?:\/|$)/
 			);
 			if (specifier.startsWith('.') && specifier.endsWith('.js')) {
 				visit(new URL(specifier, url));

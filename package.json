@@ -97,7 +97,6 @@
 	},
 	"peerDependencies": {
 		"maplibre-gl": "^6.16.0",
-		"plyr": "^3.8.5",
 		"svelte": ">=5.48.0 <6",
 		"svelte-maplibre-gl": "^2.2.1",
 		"tailwindcss": "^4.0.0"
@@ -107,9 +106,6 @@
 			"optional": true
 		},
 		"svelte-maplibre-gl": {
-			"optional": true
-		},
-		"plyr": {
 			"optional": true
 		}
 	},
@@ -136,7 +132,6 @@
 		"globals": "^17.6.0",
 		"maplibre-gl": "^6.16.0",
 		"playwright": "^1.60.0",
-		"plyr": "^3.8.5",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"prettier-plugin-tailwindcss": "^0.8.0",

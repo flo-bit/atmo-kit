@@ -6,10 +6,8 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import 'plyr/dist/plyr.css';
 	import type HlsType from 'hls.js';
-	import type PlyrType from 'plyr';
-	import { sketchyPlyrIcons } from './event-view/plyr-icons.js';
+	import Player from './event-view/Player.svelte';
 
 	let {
 		playlistUrl,
@@ -26,38 +24,30 @@
 	} = $props();
 
 	let videoEl: HTMLVideoElement | undefined = $state();
+	let player: Player | undefined = $state();
 	let error = $state(false);
 
 	let hls: HlsType | null = null;
-	let plyr: PlyrType | null = null;
 
 	api = {
 		seek(time: number) {
-			if (plyr) {
-				plyr.currentTime = time;
-				plyr.play();
-			}
+			player?.seek(time);
 		}
 	};
 
 	onMount(() => {
 		init();
-		return () => {
-			hls?.destroy();
-			plyr?.destroy();
-		};
+		return () => hls?.destroy();
 	});
 
 	async function init() {
 		if (!videoEl) return;
 
 		try {
-			const [{ default: Plyr }, { default: Hls }] = await Promise.all([
-				import('plyr'),
-				import('hls.js')
-			]);
+			const { default: Hls } = await import('hls.js');
 
 			if (Hls.isSupported()) {
+				// Nothing is downloaded until the viewer presses play.
 				hls = new Hls({ autoStartLoad: false });
 				hls.loadSource(playlistUrl);
 				hls.attachMedia(videoEl);
@@ -76,55 +66,6 @@
 				videoEl.src = playlistUrl;
 			} else {
 				error = true;
-				return;
-			}
-
-			plyr = new Plyr(videoEl, {
-				...sketchyPlyrIcons(),
-				controls: [
-					'play-large',
-					'play',
-					'progress',
-					'current-time',
-					'mute',
-					'volume',
-					'captions',
-					'settings',
-					'fullscreen'
-				],
-				settings: ['captions', 'speed'],
-				speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
-				captions: { active: !!subtitlesUrl, language: 'en', update: true },
-				ratio: '16:9'
-			});
-
-			plyr.on('play', () => {
-				hls?.startLoad();
-			});
-
-			plyr.on('timeupdate', () => {
-				currentTime = plyr?.currentTime ?? 0;
-			});
-
-			// Add track after Plyr init and force captions on
-			if (subtitlesUrl) {
-				const media = videoEl;
-				// Remove any existing tracks first
-				media.querySelectorAll('track').forEach((t) => t.remove());
-				// Add fresh track
-				const track = document.createElement('track');
-				track.kind = 'captions';
-				track.label = 'English';
-				track.srclang = 'en';
-				track.src = subtitlesUrl;
-				track.default = true;
-				media.appendChild(track);
-				// Wait for track to load, then activate
-				track.addEventListener('load', () => {
-					plyr!.toggleCaptions(true);
-				});
-				// Also try toggling after a short delay as fallback
-				setTimeout(() => plyr?.toggleCaptions(true), 500);
 			}
 		} catch {
 			error = true;
@@ -142,13 +83,13 @@
 	<div
 		class="aspect-video w-full max-w-full overflow-hidden rounded-xl border border-base-300 dark:border-base-400/40"
 	>
-		<video bind:this={videoEl} class="h-full w-full" aria-label={title} crossorigin="anonymous"
-		></video>
+		<Player
+			bind:this={player}
+			bind:video={videoEl}
+			bind:currentTime
+			{title}
+			captionsUrl={subtitlesUrl}
+			onplay={() => hls?.startLoad()}
+		/>
 	</div>
 {/if}
-
-<style>
-	* {
-		--plyr-color-main: var(--color-accent-500);
-	}
-</style>

@@ -9,6 +9,7 @@
 
 import type { PreferredSocialClient } from '../../social.js';
 import type { LinkedRecordsClient } from '../linked-records.js';
+import type { EventUrls } from '../urls.js';
 
 export type EditorBlobRef = {
 	$type: 'blob';
@@ -30,6 +31,8 @@ export type EditorViewer = {
 };
 
 export type EditorAdapter = {
+	/** The host's routes for profiles, events and editing; see `EventUrls` for the defaults. */
+	urls?: EventUrls;
 	/** Optional public read transport, supplied by the host (also used in embeds). */
 	linkedRecords?: LinkedRecordsClient;
 	features: {

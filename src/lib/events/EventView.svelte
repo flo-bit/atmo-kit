@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		eventUrl,
-		isEventOngoing,
-		type AttendeeListLoader,
-		type FlatEventRecord
-	} from './contrail.js';
+	import { isEventOngoing, type AttendeeListLoader, type FlatEventRecord } from './contrail.js';
 	import type { EventViewData } from './view-data.js';
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
 	import { getEventThumbnail, getEventExternalImage } from './event-media.js';
@@ -38,7 +33,7 @@
 	import ExternalRsvpNotice from './event-view/ExternalRsvpNotice.svelte';
 	import RichText from '../components/RichText.svelte';
 	import { richTextToPlainText } from '../richtext/document.js';
-	import { getLocalProfileUrl } from './profile-url.js';
+	import { resolveEventUrls } from './urls.js';
 	import { getLocations, resolveGeoLocation, type GeoLocation } from './event-view/locations.js';
 
 	let {
@@ -83,8 +78,12 @@
 
 	let theme: EventTheme = $derived(eventData.theme ?? defaultTheme);
 
-	let hostUrl = $derived(`/p/${hostProfile?.handle || did}`);
-	let eventPath = $derived(eventUrl(eventData, hostProfile?.handle || did));
+	let urls = $derived(resolveEventUrls(adapter.urls));
+	let hostActor = $derived(hostProfile?.handle || did);
+	let hostUrl = $derived(urls.profile(hostActor));
+	let eventPath = $derived(urls.event(hostActor, rkey));
+	let editUrl = $derived(urls.edit(hostActor, rkey));
+	let talksUrl = $derived(urls.talks(hostActor, rkey));
 	let shareUrl = $derived(
 		shareUrlOverride
 			? shareUrlOverride
@@ -216,6 +215,8 @@
 
 	// Conference: when this event is a conference, render its talks as a timetable.
 	let isConference = $derived(isConferenceEvent(eventData));
+	// An app without an editor has nothing to offer the owner here.
+	let ownerActions = $derived(isOwner && !!(editUrl || (isConference && talksUrl)));
 	let eventActor = $derived(hostProfile?.handle || did);
 	let conferenceRooms = $derived(getConferenceRooms(eventData));
 	let scheduleEvents = $derived(
@@ -255,7 +256,7 @@
 				avatar: viewer.avatar,
 				name: viewer.displayName || viewer.handle || viewer.did,
 				handle: viewer.handle,
-				url: `/p/${encodeURIComponent(viewer.handle || viewer.did)}`
+				url: urls.profile(viewer.handle || viewer.did)
 			},
 			viewerRsvpStatus
 		);
@@ -297,7 +298,7 @@
 			class="grid grid-cols-1 gap-8 md:grid-cols-[14rem_1fr] md:grid-rows-[auto_1fr] md:gap-x-10 md:gap-y-6 lg:grid-cols-[16rem_1fr]"
 		>
 			<!-- Thumbnail image and owner controls (left column) -->
-			{#if !showBanner || isOwner}
+			{#if !showBanner || ownerActions}
 				<div class="order-1 max-w-sm md:order-0 md:col-start-1 md:max-w-none">
 					{#if displayImage && !showBanner}
 						<img
@@ -320,14 +321,14 @@
 							/>
 						</div>
 					{/if}
-					{#if isOwner}
-						<Button href="./{rkey}/edit" class={showBanner ? 'w-full' : 'mt-9 w-full'}>
-							Edit Event
-						</Button>
-						{#if isConference}
-							<Button href="./{rkey}/talks" variant="secondary" class="mt-2 w-full">
-								Manage talks
+					{#if ownerActions}
+						{#if editUrl}
+							<Button href={editUrl} class={showBanner ? 'w-full' : 'mt-9 w-full'}>
+								Edit Event
 							</Button>
+						{/if}
+						{#if isConference && talksUrl}
+							<Button href={talksUrl} variant="secondary" class="mt-2 w-full">Manage talks</Button>
 						{/if}
 					{/if}
 				</div>
@@ -360,9 +361,13 @@
 						>
 							Part of
 						</p>
-						<EventCard event={data.parentEvent} actor={parentActor} />
+						<EventCard
+							event={data.parentEvent}
+							actor={parentActor}
+							href={urls.event(parentActor, data.parentEvent.rkey)}
+						/>
 						<Button
-							href={data.parentScheduleUrl ?? `/p/${parentActor}/e/${data.parentEvent.rkey}`}
+							href={data.parentScheduleUrl ?? urls.event(parentActor, data.parentEvent.rkey)}
 							size="lg"
 							class="mt-6 w-full"
 						>
@@ -433,7 +438,7 @@
 								content={data.description}
 								text={eventData.description ?? ''}
 								facets={eventData.facets}
-								mentionUrl={getLocalProfileUrl}
+								mentionUrl={urls.profile}
 								socialClient={viewer.preferredSocialClient}
 								detectLinks
 								headingOffset={1}
