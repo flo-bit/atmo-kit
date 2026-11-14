@@ -1,5 +1,31 @@
 # @atmo-dev/kit
 
+## 0.15.0
+
+### Minor Changes
+
+- 6e5ddcf: `PostComposer` is now a full composer: threads, images, video with captions, GIFs, emoji, link previews, content warnings, languages, reply and quote settings, and drafts. `onsubmit` receives the content to publish. Controls can be turned off with `features`, and `limits`, `labels`, the GIF search, link previews, drafts, content warnings and languages are all props. `PostComposerDialog` is the same composer in a dialog that fills small screens and stays above the on-screen keyboard. `CharRing`, `blueskyGifSearch` and `blueskyLinkPreview` are exported too.
+
+  **Breaking:** the old `PostComposer` (a text field with a counter, taking `value`, `editor` and `maxLength`) is gone. Use `InlineEditor` with `CharRing` for that.
+
+  `LinkCard` has a new look: the image fills the card with the site and title over it, and links without an image are a text card. `localHref` opens a path in the app in the same tab instead.
+
+  `ExternalEmbed` takes `embeds` and `PostContent` takes `linkEmbeds` to show links as link embeds instead of cards.
+
+  Fix `LinkEmbed` being exported as a type only, which made `import { LinkEmbed } from '@atmo-dev/kit'` fail type checks in apps.
+
+- 6e5ddcf: Add `RichTextEditor`, the editing counterpart of `RichText` with the same switches. With `markdown` it is a Notion-like editor for the kit's Markdown: shortcuts such as `# `, `- `, `> ` and `**bold**` turn into formatting as they are typed, pasted Markdown is read, and `value` is the Markdown source. With `embeds`, an embeddable link pasted on an empty line (or typed and followed by Enter) is shown as its embed right away; the stored text just has the URL on its own line. `InlineEditor` is now the plain-text mode of the same editor. The event editor uses it for descriptions.
+
+  Add one list of link embeds for viewing and editing. `RichText` takes `embeds` and shows a bare link alone on its line as an embed, now in plain text as well as Markdown. The defaults are posts, profiles, YouTube and Klipy GIFs; `setLinkEmbeds` chooses the embeds (and `clickToLoad`) for a whole app, `LinkEmbed` renders one link, and `eventLinkEmbed` from `@atmo-dev/kit/events` adds event cards. Event descriptions now also embed YouTube links. `embedLink`/`linkEmbed` on `RichText` keep working.
+
+  `@atmo-dev/kit/richtext` adds `richTextToMarkdown` and `sameRichText`. Code blocks keep their language (`lang`), and link detection no longer includes a trailing `>` in a URL.
+
+  The YouTube player is now only the player: a black frame with a round play button, without the caption row and Stop button below it.
+
+  Mention suggestions look like the login form's account search, with avatars. They wait for two letters after the `@` and show nothing, rather than "No accounts found", when a search has no results.
+
+  Add `configureActorSearch` to choose the account search for a whole app: `actorSearchProviders.bluesky` (default), `actorSearchProviders.waow`, any `{ host }` with the typeahead endpoint, or a function. `createActorSearch()` without a `host` follows it.
+
 ## 0.14.0
 
 ### Minor Changes
