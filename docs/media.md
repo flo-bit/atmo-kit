@@ -1,4 +1,4 @@
-# Photos, Grain albums and Streamplace
+# Photos, Grain albums, Semble collections and Streamplace
 
 `PhotoGrid` and `PhotoLightbox` work with provider-neutral `Photo[]` data (`src`, optional `thumbnail`, `alt`, dimensions and `contentWarning`). The grid preserves natural image proportions in responsive masonry columns, with a subtle 2% hover zoom disabled for reduced motion. It gates warned images before mounting them and opens a borderless fullscreen viewer. The viewer has a dimmed backdrop, previous/next arrows, close and a small photo-position counter; native horizontal scrolling with CSS scroll snap makes photos follow your finger or trackpad, with inertia rather than switching only on release. Mouse/pen drags also move the track directly. Swipes loop like the arrows; vertical pans do not navigate and controls are separate from the drag surface. Native pinch zoom, arrow keys, Escape, focus trapping and restoration are preserved; release animations respect reduced motion. `PhotoLightbox` also works independently with `bind:open` and `bind:index`; callers using it directly must first filter or reveal any warned photos. Apps own URL validation and moderation policy.
 
@@ -26,3 +26,20 @@
 For now, `createGrainXrpcClient(fetchImpl?)` provides the Grain.social implementation: its fixed public `social.grain.unspecced.getGallery` and `dev.hatk.getFeed` endpoints, response normalization, CDN validation, content-warning flags, five-second timeouts and no redirects. It performs no IO until a method is called. Apps choose where it runs and own any proxy endpoint, cache, authentication or additional moderation. No arbitrary-origin proxy option is exposed.
 
 `parseGrainLink` is exported from `@atmo-dev/kit/grain`, `parseStreamplaceLink` from `@atmo-dev/kit/streamplace`, and `Photo` from `@atmo-dev/kit/media`. The main entry point exports these too. Grain URLs normalize to DID-based links after loading; handles and percent-encoded DID identifiers are accepted. These helpers validate syntax only, not account existence.
+
+## Semble collections
+
+`SembleCollectionPicker` and `SembleCollectionView` follow the same pattern for [Semble](https://semble.so) link collections:
+
+```svelte
+<SembleCollectionPicker
+	bind:open
+	actor={viewer.did}
+	listCollections={links.listCollections}
+	loadCollection={links.getCollection}
+	onselect={(collection) => attach(collection.url)}
+/>
+<SembleCollectionView reference={collectionUrl} loadCollection={links.getCollection} />
+```
+
+`links` implements `SembleClient` from `@atmo-dev/kit/semble`. `createSembleXrpcClient(fetchImpl?)` reads Semble's public `network.cosmik.collection.getByAtUri` and `listByUser` endpoints on `api.semble.so`, with the same timeouts and no redirects. A collection view holds its 50 most recently updated cards (title, site, description or note, preview image) and links to Semble for the rest. Preview images are the linked pages' own, loaded directly from their HTTPS hosts without a referrer, as on Semble itself; a failed image falls back to an icon. Anyone can add cards to an open collection, so cards from other people name who added them. `parseSembleLink` accepts `https://semble.so/profile/<handle or DID>/collections/<rkey>` and `at://…/network.cosmik.collection/<rkey>`.

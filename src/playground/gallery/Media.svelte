@@ -7,9 +7,11 @@
 		Label,
 		PhotoGrid,
 		PhotoLightbox,
+		SembleCollectionPicker,
+		SembleCollectionView,
 		StreamplacePicker
 	} from '#lib';
-	import { album, did, photos, pause } from './fixtures.js';
+	import { album, collection, did, photos, pause } from './fixtures.js';
 	let { name, compact = false }: { name: string; compact?: boolean } = $props();
 	let open = $state(false),
 		index = $state(0),
@@ -27,6 +29,16 @@
 		await pause();
 		if (fail) throw new Error('Demo failure');
 		return { albums: empty ? [] : [album] };
+	});
+	const loadCollection = $derived(async () => {
+		await pause();
+		if (fail) throw new Error('Demo failure');
+		return { ...collection, cards: empty ? [] : collection.cards };
+	});
+	const listCollections = $derived(async () => {
+		await pause();
+		if (fail) throw new Error('Demo failure');
+		return { collections: empty ? [] : [collection] };
 	});
 </script>
 
@@ -51,6 +63,18 @@
 		/>
 	{:else if name === 'GrainAlbumView'}
 		<GrainAlbumView reference={album.uri} {loadAlbum} />
+	{:else if name === 'SembleCollectionPicker'}
+		<Button onclick={() => (open = true)}>Choose collection</Button><SembleCollectionPicker
+			bind:open
+			actor={did}
+			{listCollections}
+			{loadCollection}
+			onselect={(selected) => {
+				status = `Selected ${selected.name}.`;
+			}}
+		/>
+	{:else if name === 'SembleCollectionView'}
+		<SembleCollectionView reference={collection.uri} {loadCollection} />
 	{:else if name === 'StreamplacePicker'}
 		<Button onclick={() => (open = true)}>Choose stream</Button><StreamplacePicker
 			bind:open
@@ -65,13 +89,13 @@
 			}}
 		/>
 	{/if}
-	{#if !compact && ['GrainAlbumView', 'GrainAlbumPicker', 'StreamplacePicker'].includes(name)}
+	{#if !compact && name !== 'PhotoGrid' && name !== 'PhotoLightbox'}
 		<div class="flex flex-wrap gap-5">
 			<Label><Checkbox bind:checked={fail} />Simulate an error</Label
 			>{#if name !== 'StreamplacePicker'}<Label
-					><Checkbox bind:checked={empty} />Empty album{name === 'GrainAlbumPicker'
-						? ' list'
-						: ''}</Label
+					><Checkbox bind:checked={empty} />Empty {name.startsWith('Semble')
+						? 'collection'
+						: 'album'}{name.endsWith('Picker') ? ' list' : ''}</Label
 				>{/if}
 		</div>
 	{/if}

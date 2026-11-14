@@ -66,6 +66,8 @@ export const demoGroups: DemoGroup[] = [
 			'PhotoLightbox',
 			'GrainAlbumPicker',
 			'GrainAlbumView',
+			'SembleCollectionPicker',
+			'SembleCollectionView',
 			'StreamplacePicker'
 		],
 		load: () => import('./Media.svelte')

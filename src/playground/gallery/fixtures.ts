@@ -1,5 +1,6 @@
 import type { ActorSummary, LoginPermission, Photo, ProfileData } from '#lib';
 import type { GrainGallery } from '#lib/grain.js';
+import type { SembleCollectionPage } from '#lib/semble.js';
 import type {
 	AttendeeInfo,
 	EditorAdapter,
@@ -73,6 +74,32 @@ export const album: GrainGallery = {
 		height: photo.height,
 		contentWarning: false
 	}))
+};
+export const collection: SembleCollectionPage = {
+	uri: `at://${did}/network.cosmik.collection/reading`,
+	url: `https://semble.so/profile/${did}/collections/reading`,
+	name: 'Reading before the meetup',
+	description: 'A few things worth a look beforehand.',
+	creator: { did, handle: actors[0].handle, displayName: 'Mika Chen' },
+	cardCount: 3,
+	cards: [
+		{
+			id: 'one',
+			url: 'https://example.com/small-web',
+			title: 'Notes on the small web',
+			site: 'example.com',
+			description: 'Why personal sites are worth the effort.',
+			image: coast,
+			note: 'Start with this one.'
+		},
+		{
+			id: 'two',
+			url: 'https://example.org/walks',
+			title: 'Long walks, mapped',
+			site: 'example.org',
+			addedBy: { did: 'did:plc:guest', handle: actors[1].handle }
+		}
+	]
 };
 export const viewer: EditorViewer = {
 	isLoggedIn: true,

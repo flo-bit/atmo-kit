@@ -85,6 +85,44 @@ function string(value: unknown): string {
 	return typeof value === 'string' ? value : '';
 }
 
+export type ParagraphPart = { children: Record<string, unknown>[]; embed?: string };
+
+/**
+ * Split a paragraph into runs of lines, so that a bare link alone on its line can be shown as
+ * an embed. Labeled links and links inside a sentence stay ordinary links.
+ */
+export function paragraphParts(
+	children: unknown,
+	isEmbed?: (url: string) => boolean
+): ParagraphPart[] {
+	const all = nodes(children);
+	if (!isEmbed) return [{ children: all }];
+	const parts: ParagraphPart[] = [];
+	let text: ParagraphPart | undefined;
+	for (let start = 0; start <= all.length; start++) {
+		let end = start;
+		while (end < all.length && all[end].type !== 'break') end++;
+		const line = all.slice(start, end);
+		const content = line.filter((node) => node.type !== 'text' || string(node.value).trim());
+		const link = content.length === 1 && content[0].type === 'link' ? content[0] : undefined;
+		const label = link && nodes(link.children);
+		const url =
+			link && label?.length === 1 && label[0].type === 'text' && label[0].value === link.url
+				? safeWebUrl(link.url)
+				: undefined;
+		if (url && isEmbed(url)) {
+			parts.push({ children: line, embed: url });
+			text = undefined;
+		} else if (text) {
+			text.children.push({ type: 'break' }, ...line);
+		} else if (line.length || end < all.length) {
+			parts.push((text = { children: line }));
+		}
+		start = end;
+	}
+	return parts;
+}
+
 /** Documents from the parser nest far less; deeper (tampered) nodes are cut off. */
 export const MAX_RENDER_DEPTH = 32;
 

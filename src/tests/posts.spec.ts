@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { blueskyPostToPostData, type BlueskyPostView } from '../lib/social/posts.js';
+import {
+	blueskyPostToPostData,
+	hasModerationLabel,
+	type BlueskyPostView
+} from '../lib/social/posts.js';
 
 const author = { did: 'did:web:alice.example', handle: 'alice.example', displayName: 'Alice' };
 const base: BlueskyPostView = {
@@ -256,5 +260,38 @@ describe('Bluesky post embeds', () => {
 			blueskyPostToPostData({ ...base, embed: { record: { $type: 'app.bsky.future#view' } } })
 				.embeds
 		).toEqual([{ type: 'unsupported' }]);
+	});
+});
+
+describe('hasModerationLabel', () => {
+	const label = { val: 'porn' };
+	it('finds labels on the post, its author, quotes and self-labeled records', () => {
+		expect(hasModerationLabel(base)).toBe(false);
+		expect(hasModerationLabel({ ...base, labels: [] })).toBe(false);
+		expect(hasModerationLabel({ ...base, labels: [{ ...label, neg: true }] })).toBe(false);
+		expect(hasModerationLabel({ ...base, labels: [label] })).toBe(true);
+		expect(hasModerationLabel({ ...base, author: { ...author, labels: [label] } })).toBe(true);
+		expect(
+			hasModerationLabel({
+				...base,
+				embed: {
+					$type: 'app.bsky.embed.recordWithMedia#view',
+					record: { record: { ...quote, embeds: [{ record: { ...quote, labels: [label] } }] } }
+				}
+			})
+		).toBe(true);
+		expect(
+			hasModerationLabel({
+				...base,
+				record: { text: 'x', labels: { values: [{ val: 'sexual' }] } }
+			})
+		).toBe(true);
+	});
+	it('treats implausibly deep data as labeled and ignores non-objects', () => {
+		let deep: unknown = {};
+		for (let i = 0; i < 20; i++) deep = { child: deep };
+		expect(hasModerationLabel(deep)).toBe(true);
+		expect(hasModerationLabel(null)).toBe(false);
+		expect(hasModerationLabel('labels')).toBe(false);
 	});
 });

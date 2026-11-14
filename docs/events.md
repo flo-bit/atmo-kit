@@ -35,6 +35,16 @@ Supply `data.viewerRsvpStatus` for signed-in viewers even when they are absent f
 
 Without `data.description`, `EventView` shows the description as plain text with facet links. Description headings render one level below the event title, and the Bluesky share card uses `richTextToPlainText(description)`. Conference schedules show talk descriptions as short previews: pass `conferenceTalkDescriptions`, plain text keyed by talk URI, so Markdown syntax does not appear there. See [Rich text](social.md#rich-text) for what is supported.
 
+A link to a Bluesky post alone on its own line of a Markdown description (also on mu, Blacksky and Witchsky, or any client added to `socialClients`) is shown as the post itself. It is read in the browser from the public AppView set with `configureAtproto`; posts that are missing, hidden from logged-out viewers, or carry a moderation label (on the post, its author, or anything it quotes, at any depth) stay ordinary links. Clicking the post opens it in the viewer's preferred social client.
+
+`EventComments` applies the same rule to the comment thread: a labeled reply is left out together with the replies beneath it.
+
+A link to a profile on one of those clients, alone on its line, is shown as a small card with avatar, name and handle, under the same rules.
+
+A link to another event page (`/p/<handle or DID>/e/<rkey>` on `https://atmo.rsvp` or the page's own origin), also alone on its line, is shown as an `EventCard` when the adapter's `linkedRecords` supplies `getEvent(actor, rkey)`. The host decides which events that returns; anything it rejects stays a link. `parseEventLink` from `@atmo-dev/kit/events-data` recognizes these links.
+
+Semble collections in `uris` get a **Collections** tab, loaded on its first visit, when the adapter's `linkedRecords` supplies `getSembleCollection`; `listSembleCollections` adds the viewer's own collections to the editor's picker. Without them, collection links stay ordinary links. See [Photos and linked media](media.md).
+
 Event components read Bluesky's public AppView and CDN by default. Apps using other services call `configureAtproto({ appview, cdn })` from `events-data` once, before rendering, on both the server and the client (for example at the top of the root layout).
 
 Event cards and covers prefer native `media` images, then an HTTPS `poster.url`, then a URI named `Event Image` (laugh.town compatibility). `getEventExternalImage(event)` from `events-data` returns `{ url, alt, aspectRatio? }` or `null`, validating URLs and optional poster dimensions. It performs no IO; apps must apply their own allowlist/redirect policy before fetching an external image server-side.

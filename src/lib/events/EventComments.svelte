@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { NestedComments, blueskyPostToPostData, type PostData } from '../index.js';
+	import {
+		NestedComments,
+		blueskyPostToPostData,
+		hasModerationLabel,
+		type PostData
+	} from '../index.js';
 	import { appviewUrl } from './atproto-helpers.js';
 
 	import { socialClientInfo, socialPostUrl, type PreferredSocialClient } from '../social.js';
@@ -16,9 +21,17 @@
 	let loading = $state(true);
 	let errorMessage = $state<string | null>(null);
 
+	/**
+	 * Comments are shown to everyone without their moderation preferences, so a reply that carries
+	 * a moderation label (itself, its author, or a post it quotes) is left out, with the replies
+	 * beneath it.
+	 */
 	function threadToComments(replies: unknown[]): PostData[] {
 		return (replies as Array<{ $type?: string; post?: unknown; replies?: unknown[] }>)
-			.filter((r) => r.$type === 'app.bsky.feed.defs#threadViewPost' && r.post)
+			.filter(
+				(r) =>
+					r.$type === 'app.bsky.feed.defs#threadViewPost' && r.post && !hasModerationLabel(r.post)
+			)
 			.map((r) => {
 				const postData = blueskyPostToPostData(
 					r.post as Parameters<typeof blueskyPostToPostData>[0]

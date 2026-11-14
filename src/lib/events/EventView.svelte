@@ -27,11 +27,20 @@
 	import EventLocationMap from './event-view/EventLocationMap.svelte';
 	import EventHostedBy from './event-view/EventHostedBy.svelte';
 	import EventLinksList from './event-view/EventLinksList.svelte';
-	import { GrainAlbumView } from '../index.js';
-	import { eventStreamLink, parseGrainLink } from './linked-records.js';
+	import { GrainAlbumView, SembleCollectionView } from '../index.js';
+	import {
+		eventStreamLink,
+		eventTabLink,
+		parseEventLink,
+		parseSembleLink
+	} from './linked-records.js';
 	import AddToCalendarButton from './event-view/AddToCalendarButton.svelte';
 	import ExternalRsvpNotice from './event-view/ExternalRsvpNotice.svelte';
 	import RichText from '../components/RichText.svelte';
+	import PostLinkEmbed from './event-view/PostLinkEmbed.svelte';
+	import EventLinkEmbed from './event-view/EventLinkEmbed.svelte';
+	import ProfileLinkEmbed from './event-view/ProfileLinkEmbed.svelte';
+	import { parseSocialPostUrl, parseSocialProfileUrl } from '../social/urls.js';
 	import { richTextToPlainText } from '../richtext/document.js';
 	import { resolveEventUrls } from './urls.js';
 	import { getLocations, resolveGeoLocation, type GeoLocation } from './event-view/locations.js';
@@ -124,20 +133,49 @@
 	let hasComments = $derived(!!eventData.bskyPostRef?.showComments && !!eventData.bskyPostRef?.uri);
 	let hasDescription = $derived(!!eventData.description?.trim());
 	let aboutCommentsTab = $state<string>('about');
-	let photoLinks = $derived(eventData.uris?.filter((link) => parseGrainLink(link.uri)) ?? []);
+	let photoLinks = $derived(eventData.uris?.filter((l) => eventTabLink(l.uri) === 'photos') ?? []);
+	// Without a loader the collection stays an ordinary link.
+	let showCollections = $derived(!!adapter.linkedRecords?.getSembleCollection);
+	let collectionLinks = $derived(
+		showCollections
+			? (eventData.uris?.filter((l) => eventTabLink(l.uri) === 'collections') ?? [])
+			: []
+	);
+	// Links without a tab of their own. A collection that can't be loaded stays a link, by its web
+	// address: the list shows only HTTP(S) destinations, and the record may hold an AT URI.
+	let sidebarLinks = $derived(
+		eventData.uris?.flatMap((link) => {
+			const tab = eventTabLink(link.uri);
+			if (tab === 'photos' || (tab === 'collections' && showCollections)) return [];
+			return [tab === 'collections' ? { ...link, uri: parseSembleLink(link.uri)!.url } : link];
+		})
+	);
 	let contentTabs = $derived([
 		...(hasDescription ? [{ value: 'about', label: 'About' }] : []),
 		...(hasComments ? [{ value: 'comments', label: 'Comments' }] : []),
-		...(photoLinks.length ? [{ value: 'photos', label: 'Photos' }] : [])
+		...(photoLinks.length ? [{ value: 'photos', label: 'Photos' }] : []),
+		...(collectionLinks.length ? [{ value: 'collections', label: 'Collections' }] : [])
 	]);
 	let activeTab = $derived(
 		contentTabs.some((tab) => tab.value === aboutCommentsTab)
 			? aboutCommentsTab
 			: contentTabs[0]?.value
 	);
+	// Event links are recognized on the canonical site and on this page's own origin.
+	let eventOrigins = $derived([...new Set(['https://atmo.rsvp', pageUrl.origin])]);
+	let loadEvent = $derived(adapter.linkedRecords?.getEvent);
+	/** A link to another event, when the host can load it. */
+	function otherEvent(url: string): boolean {
+		const link = loadEvent && parseEventLink(url, eventOrigins);
+		return (
+			!!link && !(link.rkey === rkey && (link.actor === did || link.actor === hostProfile?.handle))
+		);
+	}
 	let photosOpened = $state(false);
+	let collectionsOpened = $state(false);
 	$effect(() => {
 		if (activeTab === 'photos') photosOpened = true;
+		if (activeTab === 'collections') collectionsOpened = true;
 	});
 
 	onMount(() => {
@@ -406,7 +444,7 @@
 					</div>
 				{/if}
 
-				<!-- About, comments and linked photo albums -->
+				<!-- About, comments, linked photo albums and link collections -->
 				{#if contentTabs.length}
 					<div class="mt-8 mb-8">
 						{#if contentTabs.length > 1}
@@ -442,8 +480,28 @@
 								socialClient={viewer.preferredSocialClient}
 								detectLinks
 								headingOffset={1}
+								embedLink={(url) =>
+									!!parseSocialPostUrl(url) || !!parseSocialProfileUrl(url) || otherEvent(url)}
 								class="text-base-700 dark:text-base-300"
-							/>
+							>
+								{#snippet linkEmbed(url, fallback)}
+									{#if loadEvent && otherEvent(url)}<EventLinkEmbed
+											{url}
+											origins={eventOrigins}
+											local={!embedMode}
+											{loadEvent}
+											{fallback}
+										/>{:else if parseSocialProfileUrl(url)}<ProfileLinkEmbed
+											{url}
+											{fallback}
+											socialClient={viewer.preferredSocialClient}
+										/>{:else}<PostLinkEmbed
+											{url}
+											{fallback}
+											socialClient={viewer.preferredSocialClient}
+										/>{/if}
+								{/snippet}
+							</RichText>
 						{:else if activeTab === 'comments' && eventData.bskyPostRef?.uri}
 							<EventComments
 								postUri={eventData.bskyPostRef.uri}
@@ -456,6 +514,15 @@
 										reference={link.uri}
 										title={link.name}
 										loadAlbum={adapter.linkedRecords?.getGrainGallery}
+									/>{/each}
+							</div>
+						{/if}
+						{#if collectionsOpened && collectionLinks.length}
+							<div hidden={activeTab !== 'collections'} class="space-y-8">
+								{#each collectionLinks as link, i (`${link.uri}-${i}`)}<SembleCollectionView
+										reference={link.uri}
+										title={link.name}
+										loadCollection={adapter.linkedRecords?.getSembleCollection}
 									/>{/each}
 							</div>
 						{/if}
@@ -487,7 +554,7 @@
 			<div class="order-3 space-y-6 md:order-0 md:col-start-1">
 				<EventHostedBy {hostProfile} {hostUrl} {did} {speakers} />
 
-				<EventLinksList uris={eventData.uris?.filter((link) => !parseGrainLink(link.uri))} />
+				<EventLinksList uris={sidebarLinks} />
 
 				<AddToCalendarButton {eventData} {eventUri} pageHref={pageUrl.href} />
 				{@render extraActions?.()}

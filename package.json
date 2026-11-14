@@ -68,6 +68,10 @@
 			"types": "./dist/grain.d.ts",
 			"default": "./dist/grain.js"
 		},
+		"./semble": {
+			"types": "./dist/semble.d.ts",
+			"default": "./dist/semble.js"
+		},
 		"./streamplace": {
 			"types": "./dist/streamplace.d.ts",
 			"default": "./dist/streamplace.js"

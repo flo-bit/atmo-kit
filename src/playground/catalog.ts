@@ -141,6 +141,11 @@ export const catalog: CatalogGroup[] = [
 			component('ImageDropper', 'Image drag-and-drop overlay with an app-owned file callback.'),
 			component('GrainAlbumPicker', 'Album selection using app-supplied loading callbacks.'),
 			component('GrainAlbumView', 'Album display using an app-supplied provider.'),
+			component(
+				'SembleCollectionPicker',
+				'Link-collection selection using app-supplied loading callbacks.'
+			),
+			component('SembleCollectionView', 'Link-collection display using an app-supplied provider.'),
 			component('StreamplacePicker', 'Stream selection with app-owned identity resolution.')
 		]
 	},

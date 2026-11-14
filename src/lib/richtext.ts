@@ -16,7 +16,7 @@ export function parseRichText(text: string, options: RichTextParseOptions = {}):
 }
 
 export { parseMarkdown, parsePlainText };
-export { richTextToPlainText, safeWebUrl } from './richtext/document.js';
+export { richTextToPlainText, safeWebUrl, paragraphParts } from './richtext/document.js';
 export type {
 	RichTextDocument,
 	RichTextBlock,
