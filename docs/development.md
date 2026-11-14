@@ -41,10 +41,9 @@ built-package tests. Install headless Chromium with
 `pnpm exec playwright install --only-shell chromium` if it is not available locally.
 Use `--with-deps` on Linux when system libraries are missing.
 
-CI runs lint/type/build/package checks alongside the unit/component/browser tests
-in two parallel jobs. Package tests reuse the build output; Chromium is installed
-only in the browser job. New PR pushes cancel superseded runs. The existing
-“Check, test, and build” status requires both jobs to pass.
+CI runs lint/type/build/package checks, the Vitest projects (two jobs), and the
+Playwright suite (two shards) in parallel. Package tests reuse the build output.
+New PR pushes cancel superseded runs.
 
 For focused work:
 
@@ -61,6 +60,11 @@ pnpm test:package
 server-safe import graphs. After `pnpm build`, use `pnpm test:package:built` to
 check the existing `dist/` without rebuilding it. `pnpm build` also builds the local
 SvelteKit site; it does not deploy anything.
+
+Locally, Playwright starts (or reuses) the dev server. With `CI` set it builds the
+site and serves it with `vite preview`: each test opens a fresh browser context,
+and bundled assets load much faster than hundreds of unbundled dev modules. Use
+`CI=1 pnpm test:e2e` to reproduce that locally.
 
 Browser tests wait for the playground's hydration marker via `openPage`, then
 assert the UI state they need, rather than waiting for network idleness. Playwright

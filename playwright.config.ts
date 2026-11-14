@@ -1,5 +1,11 @@
 import { defineConfig } from '@playwright/test';
 
+// CI serves a production build: every test opens a fresh browser context, and the
+// dev server would make each one re-request hundreds of unbundled modules.
+const server = process.env.CI
+	? 'pnpm exec vite build && pnpm exec vite preview'
+	: 'pnpm exec vite dev';
+
 export default defineConfig({
 	testDir: './src/tests',
 	testMatch: '**/*.e2e.ts',
@@ -13,7 +19,7 @@ export default defineConfig({
 		reducedMotion: 'reduce'
 	},
 	webServer: {
-		command: 'pnpm dev --host 127.0.0.1 --port 5190 --strictPort',
+		command: `${server} --host 127.0.0.1 --port 5190 --strictPort`,
 		url: 'http://127.0.0.1:5190',
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000

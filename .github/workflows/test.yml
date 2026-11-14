@@ -36,10 +36,18 @@ jobs:
       # build already runs prepack; test that output instead of packaging it again.
       - run: pnpm test:package:built
 
-  browser:
-    name: Unit, component, and browser tests
+  unit:
+    name: Unit and component tests (${{ matrix.name }})
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: core
+            projects: --project server --project client
+          - name: events
+            projects: --project events
     steps:
       - uses: actions/checkout@v7
         with:
@@ -53,20 +61,31 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps --only-shell chromium
-      - run: pnpm test:unit --run --no-file-parallelism
-      - run: pnpm test:e2e
+      # The runner image already has Chromium's libraries; --with-deps only adds fallback fonts.
+      - run: pnpm exec playwright install --only-shell chromium
+      - run: pnpm test:unit --run --no-file-parallelism ${{ matrix.projects }}
 
-  test:
-    # Keep the existing required status check, covering both parallel jobs.
-    name: Check, test, and build
-    needs: [check, browser]
-    if: always()
+  e2e:
+    name: Browser tests (${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
-    timeout-minutes: 1
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
-      - name: Require all checks to pass
-        env:
-          CHECK_RESULT: ${{ needs.check.result }}
-          BROWSER_RESULT: ${{ needs.browser.result }}
-        run: test "$CHECK_RESULT" = success && test "$BROWSER_RESULT" = success
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      # The runner image already has Chromium's libraries; --with-deps only adds fallback fonts.
+      - run: pnpm exec playwright install --only-shell chromium
+      - run: pnpm test:e2e --shard=${{ matrix.shard }}/2
