@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Avatar from '../../components/Avatar.svelte';
-	import Surface from '../../components/Surface.svelte';
-	import { blueskyProfileToProfileData, type ProfileData } from '../../social/profile.js';
-	import type { PreferredSocialClient } from '../../social/preferred-client.js';
-	import { parseSocialProfileUrl, socialProfileUrl } from '../../social/urls.js';
-	import { focus } from '../../styles.js';
-	import { appviewUrl } from '../atproto-helpers.js';
+	import Avatar from '../components/Avatar.svelte';
+	import Surface from '../components/Surface.svelte';
+	import { blueskyProfileToProfileData, type ProfileData } from '../social/profile.js';
+	import type { PreferredSocialClient } from '../social/preferred-client.js';
+	import { parseSocialProfileUrl, socialProfileUrl } from '../social/urls.js';
+	import { focus } from '../styles.js';
+	import { appviewUrl } from '../events/atproto-helpers.js';
 
 	let {
 		url,

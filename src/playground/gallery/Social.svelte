@@ -2,6 +2,7 @@
 	import {
 		Button,
 		ExternalEmbed,
+		LinkEmbed,
 		LinkCard,
 		NestedComments,
 		PostContent,
@@ -70,6 +71,8 @@
 				image
 			}}
 		/>
+	{:else if name === 'LinkEmbed'}
+		<LinkEmbed url="https://www.youtube.com/watch?v=M7lc1UVf-VE" />
 	{:else if name === 'SocialClientPicker'}
 		<form
 			class="space-y-5"

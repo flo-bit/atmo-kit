@@ -1,49 +1,31 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
 	import Surface from '../../components/Surface.svelte';
+	import type { LinkEmbedProps } from '../../embeds/types.js';
 	import EventCard from '../EventCard.svelte';
 	import type { FlatEventRecord } from '../contrail.js';
-	import { parseEventLink, type LinkedRecordsClient } from '../linked-records.js';
+	import type { EventLinkEmbedRef } from '../event-link-embed.js';
 
-	let {
-		url,
-		origins,
-		local,
-		loadEvent,
-		fallback
-	}: {
-		url: string;
-		origins: readonly string[];
-		/** Whether this app serves event pages itself; otherwise the card opens the linked URL. */
-		local: boolean;
-		loadEvent: NonNullable<LinkedRecordsClient['getEvent']>;
-		/** The ordinary link, shown until the event loads and whenever it can't be shown. */
-		fallback: Snippet;
-	} = $props();
+	let { url, ref, fallback }: LinkEmbedProps<EventLinkEmbedRef> = $props();
 
-	let ref = $derived(parseEventLink(url, origins));
 	let event = $state<FlatEventRecord | null>(null);
 	$effect(() => {
-		const link = parseEventLink(url, origins);
-		const transport = loadEvent;
+		const { actor, rkey, loadEvent } = ref;
 		let current = true;
 		event = null;
-		if (link) {
-			void Promise.resolve()
-				.then(() => transport(link.actor, link.rkey))
-				.then((result) => {
-					if (current && result?.rkey === link.rkey && result.startsAt) event = result;
-				})
-				.catch(() => {});
-		}
+		void Promise.resolve()
+			.then(() => loadEvent(actor, rkey))
+			.then((result) => {
+				if (current && result?.rkey === rkey && result.startsAt) event = result;
+			})
+			.catch(() => {});
 		return () => {
 			current = false;
 		};
 	});
 </script>
 
-{#if event && ref}
+{#if event}
 	<Surface class="p-4"
-		><EventCard {event} actor={ref.actor} href={local ? ref.path : url} /></Surface
+		><EventCard {event} actor={ref.actor} href={ref.local ? ref.path : url} /></Surface
 	>
 {:else}{@render fallback()}{/if}

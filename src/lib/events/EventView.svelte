@@ -28,19 +28,12 @@
 	import EventHostedBy from './event-view/EventHostedBy.svelte';
 	import EventLinksList from './event-view/EventLinksList.svelte';
 	import { GrainAlbumView, SembleCollectionView } from '../index.js';
-	import {
-		eventStreamLink,
-		eventTabLink,
-		parseEventLink,
-		parseSembleLink
-	} from './linked-records.js';
+	import { eventStreamLink, eventTabLink, parseSembleLink } from './linked-records.js';
 	import AddToCalendarButton from './event-view/AddToCalendarButton.svelte';
 	import ExternalRsvpNotice from './event-view/ExternalRsvpNotice.svelte';
 	import RichText from '../components/RichText.svelte';
-	import PostLinkEmbed from './event-view/PostLinkEmbed.svelte';
-	import EventLinkEmbed from './event-view/EventLinkEmbed.svelte';
-	import ProfileLinkEmbed from './event-view/ProfileLinkEmbed.svelte';
-	import { parseSocialPostUrl, parseSocialProfileUrl } from '../social/urls.js';
+	import { linkEmbedOptions, selectLinkEmbeds } from '../embeds/context.js';
+	import { eventLinkEmbed } from './event-link-embed.js';
 	import { richTextToPlainText } from '../richtext/document.js';
 	import { resolveEventUrls } from './urls.js';
 	import { getLocations, resolveGeoLocation, type GeoLocation } from './event-view/locations.js';
@@ -164,13 +157,22 @@
 	// Event links are recognized on the canonical site and on this page's own origin.
 	let eventOrigins = $derived([...new Set(['https://atmo.rsvp', pageUrl.origin])]);
 	let loadEvent = $derived(adapter.linkedRecords?.getEvent);
-	/** A link to another event, when the host can load it. */
-	function otherEvent(url: string): boolean {
-		const link = loadEvent && parseEventLink(url, eventOrigins);
-		return (
-			!!link && !(link.rkey === rkey && (link.actor === did || link.actor === hostProfile?.handle))
-		);
-	}
+	const embedOptions = linkEmbedOptions();
+	/** The app's embeds, plus cards for links to other events when the host can load them. */
+	let descriptionEmbeds = $derived([
+		...(loadEvent
+			? [
+					eventLinkEmbed({
+						loadEvent,
+						origins: eventOrigins,
+						local: !embedMode,
+						skip: (link) =>
+							link.rkey === rkey && (link.actor === did || link.actor === hostProfile?.handle)
+					})
+				]
+			: []),
+		...selectLinkEmbeds(true, embedOptions())
+	]);
 	let photosOpened = $state(false);
 	let collectionsOpened = $state(false);
 	$effect(() => {
@@ -482,28 +484,9 @@
 								socialClient={viewer.preferredSocialClient}
 								detectLinks
 								headingOffset={1}
-								embedLink={(url) =>
-									!!parseSocialPostUrl(url) || !!parseSocialProfileUrl(url) || otherEvent(url)}
+								embeds={descriptionEmbeds}
 								class="text-base-700 dark:text-base-300"
-							>
-								{#snippet linkEmbed(url, fallback)}
-									{#if loadEvent && otherEvent(url)}<EventLinkEmbed
-											{url}
-											origins={eventOrigins}
-											local={!embedMode}
-											{loadEvent}
-											{fallback}
-										/>{:else if parseSocialProfileUrl(url)}<ProfileLinkEmbed
-											{url}
-											{fallback}
-											socialClient={viewer.preferredSocialClient}
-										/>{:else}<PostLinkEmbed
-											{url}
-											{fallback}
-											socialClient={viewer.preferredSocialClient}
-										/>{/if}
-								{/snippet}
-							</RichText>
+							/>
 						{:else if activeTab === 'comments' && eventData.bskyPostRef?.uri}
 							<EventComments
 								postUri={eventData.bskyPostRef.uri}

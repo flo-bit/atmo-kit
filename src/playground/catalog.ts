@@ -56,7 +56,22 @@ export const catalog: CatalogGroup[] = [
 			component('ToggleGroupItem', 'An option within a toggle group.'),
 			component('Popover', 'Anchored, portaled content with dismissal and focus handling.'),
 			component('InlineEditor', 'In-place text editing, optionally single-line.'),
-			component('PostComposer', 'Post editing with mentions and character limits.')
+			component('RichTextEditor', 'Notion-like Markdown or plain-text editing with live embeds.'),
+			component(
+				'PostComposer',
+				'Threads with media, GIFs, emoji, languages and reply settings.',
+				'components/composer/PostComposer.svelte'
+			),
+			component(
+				'PostComposerDialog',
+				'The composer in a dialog that fills small screens.',
+				'components/composer/PostComposerDialog.svelte'
+			),
+			component(
+				'CharRing',
+				'Remaining characters as a ring.',
+				'components/composer/CharRing.svelte'
+			)
 		]
 	},
 	{
@@ -126,6 +141,7 @@ export const catalog: CatalogGroup[] = [
 			component('NestedComments', 'Threaded replies with foldable branches.'),
 			component('LinkCard', 'External link previews.'),
 			component('ExternalEmbed', 'Provider-based media with playback and privacy controls.'),
+			component('LinkEmbed', 'A link shown as a post, profile, player, or app-defined embed.'),
 			component('SocialClientPicker', 'Preferred social-client form fields.')
 		]
 	},

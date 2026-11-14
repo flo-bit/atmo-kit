@@ -26,6 +26,8 @@ export function editorJsonToBlueskyPost(doc: JSONContent): { text: string; facet
 	function visit(node: JSONContent) {
 		if (node.type === 'text') text += node.text ?? '';
 		else if (node.type === 'hardBreak') text += '\n';
+		else if (node.type === 'linkEmbed')
+			text += typeof node.attrs?.url === 'string' ? node.attrs.url : '';
 		else if (node.type === 'mention') {
 			const label = `@${node.attrs?.label ?? node.attrs?.id ?? ''}`;
 			const byteStart = bytes(text);

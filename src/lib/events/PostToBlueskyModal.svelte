@@ -4,7 +4,8 @@
 		Button,
 		Checkbox,
 		Label,
-		PostComposer,
+		InlineEditor,
+		CharRing,
 		editorJsonToBlueskyPost,
 		createActorSearch,
 		LinkCard,
@@ -12,6 +13,7 @@
 		graphemeLength,
 		type Editor
 	} from '../index.js';
+	import { configuredActorSearch } from '../components/login/search.js';
 	import { detectTokens } from '../richtext/detect.js';
 	import { tokensToFacets } from './editor/save.js';
 	import { appviewUrl } from './atproto-helpers.js';
@@ -45,7 +47,10 @@
 		onPosted?: (ref: { uri: string; cid: string; showComments: boolean }) => void;
 	} = $props();
 
-	const searchActors = createActorSearch({ host: appviewUrl() });
+	// The app's account search if it chose one, otherwise the configured AppView.
+	const searchActors = createActorSearch({
+		host: configuredActorSearch() ? undefined : appviewUrl()
+	});
 	let text = $state('');
 	let editor = $state<Editor | null>(null);
 	let prefilledForOpen = $state(false);
@@ -203,13 +208,16 @@
 		<div
 			class="space-y-3 rounded-xl border border-base-200 bg-base-50 p-3 dark:border-base-800 dark:bg-base-950/30"
 		>
-			<PostComposer
+			<InlineEditor
 				bind:editor
 				bind:value={text}
+				label="Post text"
+				placeholder="What’s happening?"
 				{searchActors}
 				disabled={posting}
-				maxLength={300}
+				class="min-h-24 text-sm leading-relaxed"
 			/>
+			<div class="flex justify-end"><CharRing length={graphemeLength(text)} max={300} /></div>
 			<LinkCard
 				href={eventUrl}
 				meta={{

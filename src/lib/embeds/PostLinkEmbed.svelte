@@ -1,17 +1,17 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import NestedComments from '../../components/NestedComments.svelte';
-	import Surface from '../../components/Surface.svelte';
+	import NestedComments from '../components/NestedComments.svelte';
+	import Surface from '../components/Surface.svelte';
 	import {
 		blueskyPostToPostData,
 		hasModerationLabel,
 		type BlueskyPostView,
 		type PostData
-	} from '../../social/posts.js';
-	import type { PreferredSocialClient } from '../../social/preferred-client.js';
-	import { parseSocialPostUrl, socialPostUrl } from '../../social/urls.js';
-	import { safeHttpUrl } from '../../urls.js';
-	import { appviewUrl } from '../atproto-helpers.js';
+	} from '../social/posts.js';
+	import type { PreferredSocialClient } from '../social/preferred-client.js';
+	import { parseSocialPostUrl, socialPostUrl } from '../social/urls.js';
+	import { safeHttpUrl } from '../urls.js';
+	import { appviewUrl } from '../events/atproto-helpers.js';
 
 	let {
 		url,

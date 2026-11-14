@@ -125,7 +125,7 @@ describe('controlled editor state', () => {
 		expect(serialized.text).not.toContain('\n');
 		expect(serialized.facets[0].features[0].did).toBe(author.did);
 	});
-	it('keeps empty or failed mention searches accessible and dismissible', async () => {
+	it('shows nothing for empty or failed mention searches, or before two letters are typed', async () => {
 		render(InlineEditor, {
 			label: 'Offline mention',
 			searchActors: async () => {
@@ -134,13 +134,20 @@ describe('controlled editor state', () => {
 		});
 		const editor = page.getByRole('combobox', { name: 'Offline mention' });
 		await editor.fill('@missing');
-		await expect
-			.element(page.getByRole('option', { name: 'No accounts found' }))
-			.toHaveAttribute('aria-disabled', 'true');
-		await userEvent.keyboard('{Escape}');
+		await new Promise((resolve) => setTimeout(resolve, 400));
 		await expect.element(editor).toHaveAttribute('aria-expanded', 'false');
 		await expect.element(editor).toHaveTextContent('@missing');
 		expect(page.getByRole('listbox').query()).toBeNull();
+		expect(page.getByText('No accounts found').query()).toBeNull();
+		const search = vi.fn(async () => [author]);
+		render(InlineEditor, { label: 'Short mention', searchActors: search });
+		const short = page.getByRole('combobox', { name: 'Short mention' });
+		await short.fill('@m');
+		await new Promise((resolve) => setTimeout(resolve, 400));
+		expect(search).not.toHaveBeenCalled();
+		expect(page.getByRole('listbox').query()).toBeNull();
+		await short.fill('@mi');
+		await expect.element(page.getByRole('option', { name: /mika\.example\.com/ })).toBeVisible();
 	});
 	it('does not let stale mention results replace the active query', async () => {
 		const first = Promise.withResolvers<readonly ActorSummary[]>(),
@@ -183,6 +190,20 @@ describe('post presentation', () => {
 		await expect.element(page.getByText('<script>not markup</script>')).toBeVisible();
 		expect(card.getAttribute('data-example')).toBe('forwarded');
 		expect(card.className).toContain('rounded-none');
+	});
+	it('opens in-app paths in the same tab and ignores anything that is not a path', async () => {
+		const view = render(LinkCard, {
+			href: 'https://bsky.app/profile/alice.example.com',
+			localHref: '/profile/alice.example.com',
+			meta: { title: 'Alice' }
+		});
+		const card = document.querySelector('a')!;
+		expect(card.getAttribute('href')).toBe('/profile/alice.example.com');
+		expect(card.hasAttribute('target')).toBe(false);
+		await expect.element(page.getByText('bsky.app')).toBeVisible();
+		await view.rerender({ localHref: '//evil.example/x' });
+		expect(card.getAttribute('href')).toBe('https://bsky.app/profile/alice.example.com');
+		expect(card.getAttribute('target')).toBe('_blank');
 	});
 	it('escapes text, ignores unsafe facets, and keeps unavailable quotes readable', async () => {
 		render(PostContent, {

@@ -99,7 +99,12 @@ export type {
 	LoginOptions,
 	LoginStep
 } from './components/login/types.js';
-export { createActorSearch } from './components/login/search.js';
+export {
+	createActorSearch,
+	configureActorSearch,
+	actorSearchProviders
+} from './components/login/search.js';
+export type { ActorSearchProvider } from './components/login/search.js';
 export {
 	normalizeHandle,
 	isValidHandle,
@@ -124,7 +129,40 @@ export { default as ToggleGroupItem } from './components/ToggleGroupItem.svelte'
 export { default as Popover } from './components/Popover.svelte';
 export { default as LinkCard } from './components/LinkCard.svelte';
 export { default as InlineEditor } from './components/InlineEditor.svelte';
-export { default as PostComposer } from './components/PostComposer.svelte';
+export { default as RichTextEditor } from './components/RichTextEditor.svelte';
+export type {
+	RichTextEditorProps,
+	RichTextEditorContent
+} from './components/RichTextEditor.svelte';
+export { default as PostComposer } from './components/composer/PostComposer.svelte';
+export type { PostComposerProps } from './components/composer/PostComposer.svelte';
+export { default as PostComposerDialog } from './components/composer/PostComposerDialog.svelte';
+export { default as CharRing } from './components/composer/CharRing.svelte';
+export {
+	blueskyGifSearch,
+	blueskyLinkPreview,
+	defaultComposerLimits,
+	defaultComposerLanguages,
+	defaultContentWarnings
+} from './social/composer.js';
+export type {
+	ComposerContent,
+	ComposerPost,
+	ComposerImage,
+	ComposerVideo,
+	ComposerGif,
+	ComposerLink,
+	ComposerReplyRule,
+	ComposerLimits,
+	ComposerFeatures,
+	ComposerLabels,
+	ComposerGifSearch,
+	ComposerGifResult,
+	ComposerLinkPreview,
+	ComposerDrafts,
+	ComposerDraftSummary,
+	ComposerContentWarning
+} from './social/composer.js';
 export { default as NestedComments } from './components/NestedComments.svelte';
 export { default as PostContent } from './components/PostContent.svelte';
 export { safeHttpUrl, safeLinkHref } from './urls.js';
@@ -132,6 +170,23 @@ export { default as RichText } from './components/RichText.svelte';
 export type { RichTextProps } from './components/RichText.svelte';
 export type { RichTextDocument, RichTextLinkOptions } from './richtext/document.js';
 export { default as ExternalEmbed } from './components/ExternalEmbed.svelte';
+export { default as LinkEmbed } from './components/LinkEmbed.svelte';
+export type { LinkEmbedComponentProps } from './components/LinkEmbed.svelte';
+export {
+	defaultLinkEmbeds,
+	postLinkEmbed,
+	profileLinkEmbed,
+	youtubeLinkEmbed,
+	klipyLinkEmbed,
+	playerLinkEmbed
+} from './embeds/defaults.js';
+export { resolveLinkEmbed } from './embeds/resolve.js';
+export { setLinkEmbeds } from './embeds/context.js';
+export type {
+	LinkEmbed as LinkEmbedDefinition,
+	LinkEmbedProps,
+	LinkEmbedOptions
+} from './embeds/types.js';
 export {
 	defaultExternalEmbedProviders,
 	youtubeEmbedProvider,

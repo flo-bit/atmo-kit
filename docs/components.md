@@ -31,22 +31,25 @@ Local examples: `/`.
 
 Local examples: `/` for native fields, `/examples` for editors and popovers.
 
-| Component         | Purpose                                         |
-| ----------------- | ----------------------------------------------- |
-| `Input`           | Native text inputs                              |
-| `Textarea`        | Multiline inputs                                |
-| `Select`          | Native select fields                            |
-| `DatePicker`      | Calendar date selection                         |
-| `TimePicker`      | Time selection                                  |
-| `DateTimePicker`  | Combined date and time selection                |
-| `TimezonePicker`  | Time-zone selection                             |
-| `Checkbox`        | Checkbox fields                                 |
-| `Label`           | Form-control labels                             |
-| `ToggleGroup`     | Single-selection segmented controls             |
-| `ToggleGroupItem` | Toggle-group options                            |
-| `Popover`         | Anchored, portaled content                      |
-| `InlineEditor`    | In-place text editing                           |
-| `PostComposer`    | Post editing with mentions and character limits |
+| Component            | Purpose                                         |
+| -------------------- | ----------------------------------------------- |
+| `Input`              | Native text inputs                              |
+| `Textarea`           | Multiline inputs                                |
+| `Select`             | Native select fields                            |
+| `DatePicker`         | Calendar date selection                         |
+| `TimePicker`         | Time selection                                  |
+| `DateTimePicker`     | Combined date and time selection                |
+| `TimezonePicker`     | Time-zone selection                             |
+| `Checkbox`           | Checkbox fields                                 |
+| `Label`              | Form-control labels                             |
+| `ToggleGroup`        | Single-selection segmented controls             |
+| `ToggleGroupItem`    | Toggle-group options                            |
+| `Popover`            | Anchored, portaled content                      |
+| `InlineEditor`       | In-place text editing                           |
+| `RichTextEditor`     | Markdown or plain-text editing with live embeds |
+| `PostComposer`       | Threads, media, GIFs, emoji and reply settings  |
+| `PostComposerDialog` | The composer in a dialog                        |
+| `CharRing`           | Remaining characters as a ring                  |
 
 ## Navigation
 
@@ -91,6 +94,7 @@ These are UI components, not an OAuth implementation.
 | `NestedComments`     | Threaded replies with foldable branches     |
 | `LinkCard`           | External link previews                      |
 | `ExternalEmbed`      | Provider-based media and playback controls  |
+| `LinkEmbed`          | A link shown as a post, profile, or player  |
 | `SocialClientPicker` | Preferred social-client form fields         |
 
 ## Photos and linked media

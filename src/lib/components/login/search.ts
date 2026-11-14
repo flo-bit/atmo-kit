@@ -33,15 +33,49 @@ export function cleanActors(values: readonly unknown[], limit = 6): ActorSummary
 					: undefined
 		}));
 }
-/** Explicitly opt into public AppView search. The form never calls this by default. */
+/** Where account suggestions come from: a host serving the typeahead endpoint, or a function. */
+export type ActorSearchProvider = { host: string } | ActorSearch;
+
+/**
+ * Services with `app.bsky.actor.searchActorsTypeahead`. `bluesky` is the default; `waow` is the
+ * independent typeahead.waow.tech.
+ */
+export const actorSearchProviders = {
+	bluesky: { host: 'https://public.api.bsky.app' },
+	waow: { host: 'https://typeahead.waow.tech' }
+} as const satisfies Record<string, ActorSearchProvider>;
+
+let configured: ActorSearchProvider | undefined;
+
+/**
+ * Choose the account search for the whole app: every `createActorSearch()` without its own
+ * `host` uses it, including the ones inside kit components. Call once before rendering, e.g.
+ * at the top of the root layout. Takes effect for searches already created.
+ */
+export function configureActorSearch(provider: ActorSearchProvider | undefined): void {
+	configured = provider;
+}
+
+/** The provider set with `configureActorSearch`, if any. */
+export function configuredActorSearch(): ActorSearchProvider | undefined {
+	return configured;
+}
+
+/**
+ * Account suggestions from the app's provider (see `configureActorSearch`), by default
+ * Bluesky's public AppView. Explicitly opt in: no kit form searches unless given one. A `host`
+ * here applies to this search only and wins over the app's provider.
+ */
 export function createActorSearch({
-	host = 'https://public.api.bsky.app',
+	host,
 	limit = 6,
 	fetch: fetcher = globalThis.fetch
 }: { host?: string; limit?: number; fetch?: typeof globalThis.fetch } = {}): ActorSearch {
 	const count = Number.isFinite(limit) ? Math.max(1, Math.min(25, Math.trunc(limit))) : 6;
 	return async (query, signal) => {
-		const url = new URL('/xrpc/app.bsky.actor.searchActorsTypeahead', host);
+		const provider = host ? { host } : (configured ?? actorSearchProviders.bluesky);
+		if (typeof provider === 'function') return cleanActors(await provider(query, signal), count);
+		const url = new URL('/xrpc/app.bsky.actor.searchActorsTypeahead', provider.host);
 		url.searchParams.set('q', query.trim());
 		url.searchParams.set('limit', String(count));
 		const response = await fetcher(url, { signal, headers: { accept: 'application/json' } });

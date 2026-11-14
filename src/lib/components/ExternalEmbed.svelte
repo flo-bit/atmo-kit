@@ -10,14 +10,28 @@
 	import { focus } from '../styles.js';
 	import Icon from './Icon.svelte';
 	import LinkCard from './LinkCard.svelte';
+	import LinkEmbed from './LinkEmbed.svelte';
+	import { linkEmbedOptions, selectLinkEmbeds } from '../embeds/context.js';
+	import type { LinkEmbed as LinkEmbedDefinition } from '../embeds/types.js';
+	import type { PreferredSocialClient } from '../social/preferred-client.js';
 
 	let {
 		embed,
-		providers
+		providers,
+		embeds = false,
+		socialClient
 	}: {
 		embed: ExternalPostEmbed;
 		providers?: readonly ExternalEmbedProvider[];
+		/**
+		 * Show links that are not media as link embeds: `true` for the app's embeds (see
+		 * `setLinkEmbeds`), or a list. Off by default, so links stay cards.
+		 */
+		embeds?: boolean | readonly LinkEmbedDefinition[];
+		socialClient?: PreferredSocialClient | null;
 	} = $props();
+	const context = linkEmbedOptions();
+	let linkEmbeds = $derived(selectLinkEmbeds(embeds, context()));
 	let match = $derived(resolveExternalEmbed(embed, providers));
 	// Consent belongs to this resolved player, not to its position in the feed.
 	// A changed URL/provider/source never inherits an earlier click, even for one render.
@@ -38,8 +52,7 @@
 		match !== null && (activated === match || (autoplay && !reducedMotion && paused !== match))
 	);
 	let label = $derived(embed.title || `${match?.provider.label ?? 'External'} media`);
-	let previewButton = $state<HTMLButtonElement | null>(null);
-	let stopButton = $state<HTMLButtonElement | null>(null);
+	let frame = $state<HTMLIFrameElement | null>(null);
 	let animationButton = $state<HTMLButtonElement | null>(null);
 	let video = $state<HTMLVideoElement | null>(null);
 	$effect(() => {
@@ -51,13 +64,14 @@
 		paused = null;
 		activated = match;
 		await tick();
-		(autoplay ? animationButton : stopButton)?.focus({ preventScroll: true });
+		// The play button is gone; keyboard users continue in the player.
+		(autoplay ? animationButton : frame)?.focus({ preventScroll: true });
 	}
 	async function stop() {
 		paused = match;
 		activated = null;
 		await tick();
-		(autoplay ? animationButton : previewButton)?.focus({ preventScroll: true });
+		animationButton?.focus({ preventScroll: true });
 	}
 </script>
 
@@ -68,6 +82,7 @@
 		{#if active || (autoplay && match.player.type === 'video' && paused === match)}
 			{#if match.player.type === 'iframe'}
 				<iframe
+					bind:this={frame}
 					src={safeWebUrl(match.player.src)}
 					title={label}
 					allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
@@ -119,11 +134,10 @@
 			</div>
 		{:else}
 			<button
-				bind:this={previewButton}
 				type="button"
 				aria-label={`Play ${label} on ${match.provider.label}`}
 				onclick={play}
-				class={`relative flex max-h-[32rem] w-full items-center justify-center overflow-hidden bg-base-50 text-base-950 dark:bg-base-900 dark:text-base-50 ${focus}`}
+				class={`group/play relative flex max-h-[32rem] w-full cursor-pointer items-center justify-center overflow-hidden bg-black ${focus}`}
 				style:aspect-ratio={match.player.aspectRatio ?? 16 / 9}
 			>
 				{#if safeWebUrl(embed.image)}<img
@@ -133,9 +147,9 @@
 						class="absolute inset-0 size-full object-cover"
 					/>{/if}
 				<span
-					class="relative inline-flex items-center gap-2 rounded-full border border-base-300 bg-base-50 px-4 py-2 text-sm font-medium dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-900"
+					class="relative grid size-14 place-items-center rounded-full bg-black/60 text-white transition-transform duration-150 group-hover/play:scale-105 motion-reduce:transition-none"
 				>
-					<Icon img={Play} size={18} />Play · {match.provider.label}
+					<Icon img={Play} size={24} />
 				</span>
 			</button>
 		{/if}
@@ -150,28 +164,15 @@
 				class={`absolute right-2 bottom-2 inline-flex size-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 ${focus}`}
 				><Icon img={active ? Pause : Play} size={16} /></button
 			>
-		{:else}
-			<div class="flex items-center justify-between gap-3 p-3 text-xs">
-				<a
-					href={safeWebUrl(embed.uri)}
-					target="_blank"
-					rel="noopener noreferrer"
-					class={`min-w-0 truncate rounded-ui text-base-600 hover:text-accent-700 dark:text-base-400 dark:hover:text-accent-300 ${focus}`}
-					>{embed.title || `Open on ${match.provider.label}`}</a
-				>
-				{#if active}<button
-						type="button"
-						bind:this={stopButton}
-						onclick={stop}
-						aria-label={`Stop ${match.provider.label} embed`}
-						class={`shrink-0 rounded-ui text-base-600 hover:text-accent-700 dark:text-base-400 dark:hover:text-accent-300 ${focus}`}
-						>Stop</button
-					>{/if}
-			</div>{/if}
+		{/if}
 	</div>
-{:else}
+{:else if linkEmbeds.length}
+	<LinkEmbed url={embed.uri} embeds={linkEmbeds} fallback={card} {socialClient} />
+{:else}{@render card()}{/if}
+
+{#snippet card()}
 	<LinkCard
 		href={embed.uri}
 		meta={{ title: embed.title, description: embed.description, image: embed.image }}
 	/>
-{/if}
+{/snippet}

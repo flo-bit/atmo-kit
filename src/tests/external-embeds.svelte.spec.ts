@@ -22,7 +22,7 @@ const klipy: ExternalPostEmbed = {
 };
 
 describe('external embeds', () => {
-	it('does not create a YouTube iframe until clicked, and can unload it', async () => {
+	it('does not create a YouTube iframe until clicked', async () => {
 		render(ExternalEmbed, { embed: youtube });
 		expect(document.querySelector('iframe')).toBeNull();
 		expect(document.querySelector('img')).toBeNull();
@@ -33,11 +33,10 @@ describe('external embeds', () => {
 		expect(document.querySelector('iframe')?.getAttribute('sandbox')).toBe(
 			'allow-scripts allow-same-origin allow-presentation'
 		);
-		await page.getByRole('button', { name: 'Stop YouTube embed' }).click();
-		expect(document.querySelector('iframe')).toBeNull();
-		await expect
-			.element(page.getByRole('link', { name: 'A short film', exact: true }))
-			.toHaveAttribute('href', youtube.uri);
+		// The player is all there is: no caption row or stop button below it.
+		expect(document.querySelector('a')).toBeNull();
+		expect(document.querySelectorAll('button')).toHaveLength(0);
+		expect(document.activeElement).toBe(document.querySelector('iframe'));
 	});
 	it('does not transfer activation to a new URL or changed provider', async () => {
 		const view = render(ExternalEmbed, { embed: youtube });
