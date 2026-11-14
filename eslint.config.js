@@ -11,7 +11,7 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	// HLS .ts fixtures are binary MPEG transport streams, not TypeScript.
-	globalIgnores(['static/playground/video/*.ts']),
+	globalIgnores(['static/playground/video/*.ts', 'src/lib/richtext/vendor/markdown-tree.js']),
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,

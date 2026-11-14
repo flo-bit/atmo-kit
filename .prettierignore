@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Generated parser bundle
+/src/lib/richtext/vendor/markdown-tree.js

@@ -79,6 +79,14 @@ iframe. Interaction, security, accessibility, and layout regressions belong in
 focused tests. Avoid replaying identical flows for every export or every
 viewport/theme combination.
 
+## The bundled Markdown parser
+
+`src/lib/richtext/vendor/markdown-tree.js` is a generated bundle of the Markdown parser
+(`mdast-util-from-markdown` with strikethrough). The kit ships it instead of depending on those
+packages: their development builds import CommonJS, which every app would otherwise have to
+configure its bundler for. The packages are dev dependencies; after updating them or
+`scripts/markdown-tree-entry.js`, run `pnpm vendor:markdown` and commit the result.
+
 ## Where things live
 
 - `src/lib/`: published components, helpers, styles, and schemas.

@@ -83,15 +83,6 @@ importers:
       i18n-iso-countries:
         specifier: ^7.14.0
         version: 7.14.0
-      mdast-util-from-markdown:
-        specifier: ^2.1.0
-        version: 2.1.0
-      mdast-util-gfm-strikethrough:
-        specifier: ^2.0.1
-        version: 2.0.1
-      micromark-extension-gfm-strikethrough:
-        specifier: ^2.1.0
-        version: 2.1.0
       svelte-boring-avatars:
         specifier: ^1.2.6
         version: 1.2.6
@@ -165,6 +156,15 @@ importers:
       maplibre-gl:
         specifier: ^6.16.0
         version: 6.16.0
+      mdast-util-from-markdown:
+        specifier: ^2.1.0
+        version: 2.1.0
+      mdast-util-gfm-strikethrough:
+        specifier: ^2.0.1
+        version: 2.0.1
+      micromark-extension-gfm-strikethrough:
+        specifier: ^2.1.0
+        version: 2.1.0
       playwright:
         specifier: ^1.60.0
         version: 1.64.1
