@@ -26,7 +26,8 @@
 	 * a moderation label (itself, its author, or a post it quotes) is left out, with the replies
 	 * beneath it.
 	 */
-	function threadToComments(replies: unknown[]): PostData[] {
+	const DEPTH = 6;
+	function threadToComments(replies: unknown[], level = 1): PostData[] {
 		return (replies as Array<{ $type?: string; post?: unknown; replies?: unknown[] }>)
 			.filter(
 				(r) =>
@@ -36,9 +37,8 @@
 				const postData = blueskyPostToPostData(
 					r.post as Parameters<typeof blueskyPostToPostData>[0]
 				);
-				if (r.replies?.length) {
-					postData.replies = threadToComments(r.replies);
-				}
+				// Below the requested depth nothing was loaded; the comment links to the rest instead.
+				if (level < DEPTH) postData.replies = threadToComments(r.replies ?? [], level + 1);
 				return postData;
 			});
 	}
@@ -48,7 +48,7 @@
 		errorMessage = null;
 		try {
 			const res = await fetch(
-				`${appviewUrl()}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=6`,
+				`${appviewUrl()}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=${DEPTH}`,
 				{ signal }
 			);
 			if (!res.ok) throw new Error(`Failed to load thread (${res.status})`);

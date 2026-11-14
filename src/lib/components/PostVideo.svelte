@@ -6,8 +6,19 @@
 		playlist,
 		poster,
 		label,
-		href
-	}: { playlist: string; poster?: string; label?: string; href: string } = $props();
+		href,
+		aspectRatio,
+		gif = false
+	}: {
+		playlist: string;
+		poster?: string;
+		label?: string;
+		href: string;
+		/** Width divided by height; reserves the player's space before it loads. */
+		aspectRatio?: number;
+		/** Loop without sound, like a GIF. */
+		gif?: boolean;
+	} = $props();
 	let video = $state<HTMLVideoElement | null>(null);
 	// Writable derived state resets a playback failure when the source changes.
 	let failed = $derived(!safeWebUrl(playlist));
@@ -61,6 +72,9 @@
 		controls
 		playsinline
 		preload="none"
+		loop={gif}
+		muted={gif}
+		style:aspect-ratio={aspectRatio ? Math.min(3, Math.max(0.6, aspectRatio)) : undefined}
 		class="max-h-96 w-full rounded-ui bg-black"
 		onerror={() => (failed = true)}
 	></video>

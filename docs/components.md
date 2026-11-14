@@ -84,14 +84,14 @@ These are UI components, not an OAuth implementation.
 
 [Guide](social.md) · [Preferred-client integration](preferred-client.md) · Local examples: `/examples`.
 
-| Component            | Purpose                                         |
-| -------------------- | ----------------------------------------------- |
-| `RichText`           | Plain text, facets, and pre-parsed Markdown     |
-| `PostContent`        | Post text, media, quotes, and record cards      |
-| `NestedComments`     | Recursive replies and outbound engagement links |
-| `LinkCard`           | External link previews                          |
-| `ExternalEmbed`      | Provider-based media and playback controls      |
-| `SocialClientPicker` | Preferred social-client form fields             |
+| Component            | Purpose                                     |
+| -------------------- | ------------------------------------------- |
+| `RichText`           | Plain text, facets, and pre-parsed Markdown |
+| `PostContent`        | Post text, media, quotes, and record cards  |
+| `NestedComments`     | Threaded replies with foldable branches     |
+| `LinkCard`           | External link previews                      |
+| `ExternalEmbed`      | Provider-based media and playback controls  |
+| `SocialClientPicker` | Preferred social-client form fields         |
 
 ## Photos and linked media
 

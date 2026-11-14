@@ -123,7 +123,7 @@ export const catalog: CatalogGroup[] = [
 		components: [
 			component('RichText', 'Plain text, facets, or pre-parsed Markdown.'),
 			component('PostContent', 'Post text, media, quoted posts, and record cards.'),
-			component('NestedComments', 'Recursive replies with outbound engagement links.'),
+			component('NestedComments', 'Threaded replies with foldable branches.'),
 			component('LinkCard', 'External link previews.'),
 			component('ExternalEmbed', 'Provider-based media with playback and privacy controls.'),
 			component('SocialClientPicker', 'Preferred social-client form fields.')

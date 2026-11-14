@@ -80,7 +80,11 @@ test('toggle-group keyboard navigation skips disabled choices and changes post a
 		.locator('img')
 		.evaluateAll((images) => images.map((image) => image.getBoundingClientRect().height));
 	expect(imageHeights[0]).toBe(imageHeights[1]);
-	await expect(preview(page).locator('div.grid')).toHaveCSS('border-bottom-width', '1px');
+	// Tiles open the photo viewer rather than a new tab.
+	await preview(page).getByRole('button', { name: 'Waves along a rocky coast.' }).click();
+	await expect(page.getByRole('dialog')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('dialog')).toHaveCount(0);
 	await group.getByRole('radio', { name: 'None', exact: true }).click();
 	await expect(preview(page).locator('img')).toHaveCount(0);
 });
@@ -238,7 +242,7 @@ test('post and comment links remain keyboard reachable with safe outbound polici
 		await expect(link).toHaveAttribute('rel', /noopener/);
 	}
 	const comments = page.getByRole('region', { name: 'Nested comments', exact: true });
-	await comments.getByRole('link', { name: '1 reply', exact: true }).first().focus();
+	await comments.getByRole('link', { name: '2 replies', exact: true }).first().focus();
 	await page.keyboard.press('Tab');
 	await expect(comments.getByRole('link', { name: '2 reposts', exact: true })).toBeFocused();
 	await page.keyboard.press('Tab');

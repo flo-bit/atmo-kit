@@ -229,7 +229,7 @@ describe('post presentation', () => {
 			.toHaveAttribute('href', href);
 		await expect
 			.element(page.getByRole('link', { name: 'Fry', exact: true }).last())
-			.toHaveAttribute('href', href);
+			.toHaveAttribute('href', profile);
 		await expect
 			.element(page.getByRole('link', { name: '0 likes', exact: true }))
 			.toHaveAttribute('href', href);

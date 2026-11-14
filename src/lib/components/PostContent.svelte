@@ -10,6 +10,8 @@
 	import type { ExternalEmbedProvider } from '../social/external-embeds.js';
 	import ExternalEmbed from './ExternalEmbed.svelte';
 	import PostVideo from './PostVideo.svelte';
+	import PostImages from './PostImages.svelte';
+	import Avatar from './Avatar.svelte';
 	import PostContent from './PostContent.svelte';
 	let {
 		post,
@@ -31,32 +33,16 @@
 
 {#if post.text}<RichText text={post.text} facets={post.facets} class="text-sm" />{/if}
 {#each post.embeds ?? [] as embed, index (index)}
-	<div class="mt-3">
+	<div class={post.text || index ? 'mt-2.5' : ''}>
 		{#if embed.type === 'external'}<ExternalEmbed {embed} providers={embedProviders} />
-		{:else if embed.type === 'images'}<div
-				class="grid gap-1 overflow-hidden rounded-ui border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
-				class:grid-cols-2={embed.images.length > 1}
-			>
-				{#each embed.images as image, imageIndex (imageIndex)}<a
-						href={safeWebUrl(image.fullsize ?? image.src)}
-						target="_blank"
-						rel="noopener noreferrer"
-						><img
-							src={safeWebUrl(image.src)}
-							alt={image.alt}
-							loading="lazy"
-							width={image.width}
-							height={image.height}
-							class="max-h-80 w-full object-cover"
-							class:aspect-square={embed.images.length > 1}
-						/></a
-					>{/each}
-			</div>
+		{:else if embed.type === 'images'}<PostImages images={embed.images} />
 		{:else if embed.type === 'video'}<PostVideo
 				playlist={embed.playlist}
 				poster={embed.poster}
 				label={embed.alt}
 				href={post.href}
+				aspectRatio={embed.aspectRatio}
+				gif={embed.gif}
 			/>
 		{:else if embed.type === 'record'}
 			{@const kind = recordKinds[embed.kind]}
@@ -94,8 +80,14 @@
 						href={socialPostUrl(embed.post.uri, socialClient) ?? safeWebUrl(embed.post.href)}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="mb-2 block text-xs font-medium text-base-600 dark:text-base-400"
-						>{embed.post.author.name} · @{embed.post.author.handle}</a
+						class={`mb-1.5 flex min-w-0 items-center gap-2 rounded-ui text-xs text-base-600 no-underline dark:text-base-400 ${focus}`}
+						><Avatar name={embed.post.author.name} src={embed.post.author.avatar} size={18} /><span
+							class="min-w-0 truncate"
+							><span class="font-medium text-base-950 dark:text-base-50"
+								>{embed.post.author.name}</span
+							>
+							@{embed.post.author.handle}</span
+						></a
 					><PostContent post={embed.post} {socialClient} {embedProviders} />{:else}<p
 						class="text-xs text-base-600 dark:text-base-400"
 					>

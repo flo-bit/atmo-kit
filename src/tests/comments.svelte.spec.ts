@@ -1,3 +1,4 @@
+import { createRawSnippet } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
@@ -46,6 +47,125 @@ describe('comment actions', () => {
 		for (const link of document.querySelectorAll('a')) {
 			expect(link.href).toMatch(/^https:\/\/social\.example\/app\/profile\//);
 		}
+	});
+});
+
+describe('threads', () => {
+	const reply = (name: string, extra: Partial<PostData> = {}): PostData => ({
+		...post,
+		uri: post.uri.replace('/demo', `/${name}`),
+		text: `Text of ${name}`,
+		replies: [],
+		...extra
+	});
+	it('folds and restores the replies to a comment', async () => {
+		render(NestedComments, {
+			comments: [reply('root', { replies: [reply('a', { replies: [reply('b')] }), reply('c')] })]
+		});
+		await expect.element(page.getByText('Text of b', { exact: true })).toBeVisible();
+		const hide = page.getByRole('button', { name: 'Hide 3 replies to Alice' });
+		await hide.click();
+		expect(document.querySelectorAll('article')).toHaveLength(1);
+		const show = page.getByRole('button', { name: 'Show 3 replies', exact: true });
+		await expect.element(show).toHaveAttribute('aria-expanded', 'false');
+		// Focus moves with the control instead of falling back to the page.
+		await expect.element(show).toHaveFocus();
+		await show.click();
+		await expect.element(page.getByText('Text of b', { exact: true })).toBeVisible();
+		expect(document.querySelectorAll('article')).toHaveLength(4);
+		await expect.element(hide).toHaveFocus();
+	});
+	it('links to replies that were not loaded or sit below the depth limit', async () => {
+		render(NestedComments, {
+			maxDepth: 2,
+			comments: [
+				reply('root', {
+					replies: [
+						reply('deep', { replies: [reply('hidden'), reply('hidden-too')] }),
+						reply('unloaded', { replies: undefined, replyCount: 1 }),
+						reply('filtered', { replyCount: 5 })
+					]
+				})
+			]
+		});
+		await expect
+			.element(page.getByRole('link', { name: '2 more replies', exact: true }))
+			.toHaveAttribute('href', post.href.replace('/demo', '/deep'));
+		await expect
+			.element(page.getByRole('link', { name: '1 more reply', exact: true }))
+			.toHaveAttribute('href', post.href.replace('/demo', '/unloaded'));
+		expect(document.body.textContent).not.toContain('Text of hidden');
+		expect(document.body.textContent).not.toContain('5 more');
+	});
+	it('requires extra app fields on replies at every level', async () => {
+		type Reply = PostData & { view: string; replies?: Reply[] };
+		const leaf: Omit<PostData, 'replies'> = post;
+		const typed: Reply[] = [{ ...leaf, view: 'root', replies: [{ ...leaf, view: 'child' }] }];
+		render(NestedComments<Reply>, {
+			comments: typed,
+			content: createRawSnippet<[Reply]>((comment) => ({
+				render: () => `<p>View ${comment().view}</p>`
+			}))
+		});
+		await expect.element(page.getByText('View child', { exact: true })).toBeVisible();
+		// A reply without the app's field is a type error, not a crash inside a snippet.
+		const plain: PostData & { view: string } = { ...post, view: 'root', replies: [post] };
+		// @ts-expect-error replies must carry `view` too
+		const rejected: Parameters<typeof NestedComments<typeof plain>>[1]['comments'] = [plain];
+		expect(rejected).toHaveLength(1);
+	});
+	it('renders app content and actions, and keeps app paths in the same tab', async () => {
+		render(NestedComments<PostData>, {
+			comments: [reply('root', { createdAt: '2026-10-24T12:00:00Z', replies: [reply('a')] })],
+			postUrl: (comment) => `/post/${comment.uri.split('/').at(-1)}`,
+			profileUrl: () => '/profile/alice',
+			content: createRawSnippet<[PostData]>((comment) => ({
+				render: () => `<p>Custom ${comment().text}</p>`
+			})),
+			actions: createRawSnippet<[PostData]>(() => ({
+				render: () => `<button type="button">Like</button>`
+			}))
+		});
+		await expect.element(page.getByText('Custom Text of a', { exact: true })).toBeVisible();
+		expect(document.querySelectorAll('button')).toHaveLength(3);
+		expect(document.body.textContent).not.toContain('0 likes');
+		const links = [...document.querySelectorAll('a')];
+		expect(links.map((a) => a.getAttribute('href'))).toEqual([
+			'/profile/alice',
+			'/profile/alice',
+			'/post/root',
+			'/profile/alice',
+			'/profile/alice'
+		]);
+		for (const a of links) expect(a.hasAttribute('target')).toBe(false);
+	});
+});
+
+describe('post images', () => {
+	it('shows four tiles, counts the rest and opens the viewer', async () => {
+		render(PostContent, {
+			post: {
+				...post,
+				embeds: [
+					{
+						type: 'images',
+						images: [
+							...Array.from({ length: 6 }, (_, i) => ({
+								src: `https://example.com/${i}.jpg`,
+								fullsize: `https://example.com/${i}-full.jpg`,
+								alt: `Photo ${i}`
+							})),
+							{ src: 'javascript:bad', alt: 'Bad' }
+						]
+					}
+				]
+			}
+		});
+		expect(document.querySelectorAll('img')).toHaveLength(4);
+		await expect.element(page.getByText('+2', { exact: true })).toBeVisible();
+		await page.getByRole('button', { name: 'Photo 1', exact: true }).click();
+		await expect.element(page.getByRole('dialog')).toBeVisible();
+		expect(document.querySelector('[src^="javascript:"]')).toBeNull();
 	});
 });
 
