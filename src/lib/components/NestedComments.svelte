@@ -185,8 +185,8 @@
 					depth={depth + 1}
 				/>
 			{:else if nested}
-				<div class="relative ml-[calc(13px+var(--thread-indent))] pt-2">
-					{@render branch(true, 'h-[18px]')}
+				<div class="relative ml-[calc(13px+var(--thread-indent))] flex h-9 items-center">
+					{@render branch(true, 'h-[19px]')}
 					<button
 						type="button"
 						class={`cursor-pointer ${quiet}`}
@@ -195,8 +195,8 @@
 					>
 				</div>
 			{:else if more}
-				<div class="relative ml-[calc(13px+var(--thread-indent))] pt-2">
-					{@render branch(true, 'h-[18px]')}
+				<div class="relative ml-[calc(13px+var(--thread-indent))] flex h-9 items-center">
+					{@render branch(true, 'h-[19px]')}
 					<a {...post} class={quiet}>{more} more {more === 1 ? 'reply' : 'replies'}</a>
 				</div>
 			{/if}
