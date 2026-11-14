@@ -63,13 +63,17 @@ describe('threads', () => {
 			comments: [reply('root', { replies: [reply('a', { replies: [reply('b')] }), reply('c')] })]
 		});
 		await expect.element(page.getByText('Text of b', { exact: true })).toBeVisible();
-		await page.getByRole('button', { name: 'Hide 3 replies to Alice' }).click();
+		const hide = page.getByRole('button', { name: 'Hide 3 replies to Alice' });
+		await hide.click();
 		expect(document.querySelectorAll('article')).toHaveLength(1);
 		const show = page.getByRole('button', { name: 'Show 3 replies', exact: true });
 		await expect.element(show).toHaveAttribute('aria-expanded', 'false');
+		// Focus moves with the control instead of falling back to the page.
+		await expect.element(show).toHaveFocus();
 		await show.click();
 		await expect.element(page.getByText('Text of b', { exact: true })).toBeVisible();
 		expect(document.querySelectorAll('article')).toHaveLength(4);
+		await expect.element(hide).toHaveFocus();
 	});
 	it('links to replies that were not loaded or sit below the depth limit', async () => {
 		render(NestedComments, {
@@ -92,6 +96,23 @@ describe('threads', () => {
 			.toHaveAttribute('href', post.href.replace('/demo', '/unloaded'));
 		expect(document.body.textContent).not.toContain('Text of hidden');
 		expect(document.body.textContent).not.toContain('5 more');
+	});
+	it('requires extra app fields on replies at every level', async () => {
+		type Reply = PostData & { view: string; replies?: Reply[] };
+		const leaf: Omit<PostData, 'replies'> = post;
+		const typed: Reply[] = [{ ...leaf, view: 'root', replies: [{ ...leaf, view: 'child' }] }];
+		render(NestedComments<Reply>, {
+			comments: typed,
+			content: createRawSnippet<[Reply]>((comment) => ({
+				render: () => `<p>View ${comment().view}</p>`
+			}))
+		});
+		await expect.element(page.getByText('View child', { exact: true })).toBeVisible();
+		// A reply without the app's field is a type error, not a crash inside a snippet.
+		const plain: PostData & { view: string } = { ...post, view: 'root', replies: [post] };
+		// @ts-expect-error replies must carry `view` too
+		const rejected: Parameters<typeof NestedComments<typeof plain>>[1]['comments'] = [plain];
+		expect(rejected).toHaveLength(1);
 	});
 	it('renders app content and actions, and keeps app paths in the same tab', async () => {
 		render(NestedComments<PostData>, {

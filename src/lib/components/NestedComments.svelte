@@ -1,5 +1,5 @@
-<script lang="ts" generics="T extends PostData">
-	import type { Snippet } from 'svelte';
+<script lang="ts" generics="T extends PostData & { replies?: T[] }">
+	import { tick, type Snippet } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { PostData } from '../social/posts.js';
 	import type { ExternalEmbedProvider } from '../social/external-embeds.js';
@@ -42,6 +42,18 @@
 
 	/** Comments whose replies the viewer has folded away. */
 	const folded = new SvelteSet<string>();
+	/** Folding swaps one control for another; focus follows to the one that takes its place. */
+	async function toggle(event: MouseEvent, uri: string) {
+		const item = (event.currentTarget as HTMLElement).closest('li');
+		if (folded.has(uri)) folded.delete(uri);
+		else folded.add(uri);
+		await tick();
+		item
+			?.querySelector<HTMLElement>(
+				':scope > [data-thread-toggle], :scope > div > [data-thread-toggle]'
+			)
+			?.focus({ preventScroll: true });
+	}
 
 	function link(href: string | null | undefined) {
 		const safe = safeLinkHref(href);
@@ -171,10 +183,11 @@
 					class={`thread-fold absolute top-8 bottom-0 left-1 z-1 w-5 cursor-pointer rounded-ui ${focus}`}
 					aria-expanded="true"
 					aria-label={`Hide ${plural(total(replies))} to ${comment.author.name}`}
-					onclick={() => folded.add(comment.uri)}
+					data-thread-toggle
+					onclick={(event) => toggle(event, comment.uri)}
 				></button>
 				<NestedComments
-					comments={replies as T[]}
+					comments={replies}
 					{socialClient}
 					{embedProviders}
 					{content}
@@ -191,7 +204,8 @@
 						type="button"
 						class={`cursor-pointer ${quiet}`}
 						aria-expanded="false"
-						onclick={() => folded.delete(comment.uri)}>Show {plural(total(replies))}</button
+						data-thread-toggle
+						onclick={(event) => toggle(event, comment.uri)}>Show {plural(total(replies))}</button
 					>
 				</div>
 			{:else if more}
