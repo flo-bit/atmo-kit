@@ -81,7 +81,9 @@
 		return date(value, value.getFullYear() !== new Date().getFullYear());
 	}
 
-	const line = 'border-base-300 dark:border-base-700';
+	// The hover shade is set here so it follows the theme's dark variant.
+	const line =
+		'border-base-300 dark:border-base-700 [--thread-hover:var(--base-400)] dark:[--thread-hover:var(--base-500)]';
 	const quiet = `rounded-ui text-xs font-medium text-accent-700 hover:underline dark:text-accent-300 ${focus}`;
 </script>
 
@@ -222,6 +224,6 @@
 	/* Pointing at a comment's line marks the replies it would hide. */
 	.thread-item:has(> .thread-fold:hover) > article > [data-thread-line],
 	.thread-item:has(> .thread-fold:hover) > :global(ul > li > [data-thread-line]) {
-		border-color: var(--accent-500);
+		border-color: var(--thread-hover);
 	}
 </style>
