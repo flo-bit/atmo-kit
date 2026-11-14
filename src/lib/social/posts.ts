@@ -7,7 +7,16 @@ export type PostEmbed =
 			images: { src: string; fullsize?: string; alt: string; width?: number; height?: number }[];
 	  }
 	| { type: 'external'; uri: string; title: string; description?: string; image?: string }
-	| { type: 'video'; playlist: string; poster?: string; alt?: string }
+	| {
+			type: 'video';
+			playlist: string;
+			poster?: string;
+			alt?: string;
+			/** Width divided by height. */
+			aspectRatio?: number;
+			/** A looping, silent clip presented like a GIF. */
+			gif?: boolean;
+	  }
 	| { type: 'quote'; post?: PostData; unavailable?: boolean; reason?: 'blocked' | 'detached' }
 	| {
 			type: 'record';
@@ -30,6 +39,7 @@ export type PostData = {
 	repostCount?: number;
 	likeCount?: number;
 	embeds?: PostEmbed[];
+	/** Leave undefined when replies were not loaded; `NestedComments` then links to the rest. */
 	replies?: PostData[];
 };
 type PostRecord = { text?: string; facets?: Facet[]; createdAt?: string };
@@ -84,6 +94,8 @@ type BlueskyEmbedView = {
 	playlist?: string;
 	thumbnail?: string;
 	alt?: string;
+	aspectRatio?: { width: number; height: number };
+	presentation?: string;
 	record?: RecordView;
 	media?: BlueskyEmbedView;
 };
@@ -240,7 +252,12 @@ export function blueskyPostToPostData(post: BlueskyPostView, depth = 0): PostDat
 				type: 'video',
 				playlist: embed.playlist,
 				poster: embed.thumbnail,
-				alt: embed.alt
+				alt: embed.alt,
+				aspectRatio:
+					embed.aspectRatio?.width && embed.aspectRatio.height
+						? embed.aspectRatio.width / embed.aspectRatio.height
+						: undefined,
+				gif: embed.presentation === 'gif' || undefined
 			});
 		} else if (!embed.record && !embed.media) {
 			result.embeds!.push({ type: 'unsupported' });

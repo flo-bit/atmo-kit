@@ -1,8 +1,25 @@
 # Bluesky comments and embeds
 
-`NestedComments` renders `PostData[]` with recursive replies and compact reply, repost, and like icon/count links. Counts default to zero; each link has a full accessible label and opens the post in the viewer's preferred social client. These are outbound links, not authenticated engagement buttons.
+`NestedComments` renders `PostData[]` as a thread: each reply sits under the post it answers, joined by a line. Pressing a comment's line folds its replies away; a "Show N replies" button brings them back. Replies deeper than `maxDepth` (default 6), and replies that were not loaded, become an "N more replies" link to the comment. Leave `replies` undefined when a comment's replies were not fetched, and set it to `[]` when they were and none are shown; only the first case links onward, using `replyCount`.
 
-Use `blueskyPostToPostData(postView)` to convert public AppView posts, including `repostCount`. `PostContent` supports images, galleries, external link cards, HLS video, quoted posts (including their embeds), record-with-media combinations, feeds, lists, starter packs, and moderation-service cards. Missing, blocked, and detached quotes have readable placeholders; unknown embed variants show an unavailable fallback. Quote nesting is capped at three levels. Non-post record cards use Bluesky routes, since other clients may not implement them. Apps still own fetching and moderation. `hasModerationLabel(postView)` reports whether a post view carries a moderation label on the post, its author or anything it quotes, for apps that show posts without the viewer's moderation preferences.
+By default each comment shows its text and embeds with `PostContent`, and reply, repost, and like counts as links. Counts default to zero; each link has a full accessible label and opens the post in the viewer's preferred social client. These are outbound links, not authenticated engagement buttons.
+
+An app with its own post rendering and actions keeps the thread layout and replaces the rest:
+
+```svelte
+<NestedComments
+	comments={replies}
+	postUrl={(reply) => `/post/${reply.id}`}
+	profileUrl={(reply) => `/profile/${reply.author.handle}`}
+>
+	{#snippet content(reply)}<MyPostBody post={reply.view} />{/snippet}
+	{#snippet actions(reply)}<MyPostActions post={reply.view} />{/snippet}
+</NestedComments>
+```
+
+`comments` can be any type extending `PostData`, so snippets receive the app's own fields. `postUrl` and `profileUrl` set where the timestamp, name, and avatar lead; root-relative paths stay in the same tab, other URLs open in a new one.
+
+Use `blueskyPostToPostData(postView)` to convert public AppView posts, including `repostCount`. `PostContent` supports images, galleries, external link cards, HLS video, quoted posts (including their embeds), record-with-media combinations, feeds, lists, starter packs, and moderation-service cards. Images are laid out in up to four tiles, with a count for the rest, and open in `PhotoLightbox`. Video keeps its aspect ratio, and GIF-style clips loop without sound. Missing, blocked, and detached quotes have readable placeholders; unknown embed variants show an unavailable fallback. Quote nesting is capped at three levels. Non-post record cards use Bluesky routes, since other clients may not implement them. Apps still own fetching and moderation. `hasModerationLabel(postView)` reports whether a post view carries a moderation label on the post, its author or anything it quotes, for apps that show posts without the viewer's moderation preferences.
 
 ### Rich text
 

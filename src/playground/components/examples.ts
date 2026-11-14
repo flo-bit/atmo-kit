@@ -7,6 +7,8 @@ import {
 	type PostEmbed,
 	type JSONContent
 } from '#lib';
+import coast from '../assets/coast.webp';
+import forest from '../assets/forest.webp';
 
 export const actors: ActorSummary[] = [
 	{ did: 'did:plc:abcdefghijklmnopqrstuvwx', handle: 'mika.example.com', displayName: 'Mika Chen' },
@@ -127,24 +129,61 @@ export function attachment(
 			return [];
 	}
 }
+const by = (index: number) => ({
+	did: actors[index].did,
+	handle: actors[index].handle,
+	name: actors[index].displayName!
+});
 export const comments: PostData[] = [
 	{
 		...postFromDoc(textToDoc('A place to slow down. 🌊')),
 		uri: 'at://demo/comment/one',
+		createdAt: '2026-10-24T09:30:00Z',
 		likeCount: 3,
 		repostCount: 2,
-		replyCount: 1,
+		replyCount: 2,
 		replies: [
 			{
 				...postFromDoc(textToDoc('And a good reminder to take the long way home.')),
 				uri: 'at://demo/comment/reply',
-				author: { did: actors[0].did, handle: actors[0].handle, name: actors[0].displayName! },
+				author: by(0),
+				createdAt: '2026-10-24T10:05:00Z',
 				likeCount: 1,
+				replyCount: 1,
+				embeds: [
+					{
+						type: 'images',
+						images: [
+							{ src: coast, alt: 'White cliffs above the sea', width: 1200, height: 800 },
+							{ src: forest, alt: 'A path through tall trees', width: 1200, height: 800 }
+						]
+					}
+				],
 				replies: [
 					{
 						...postFromDoc(textToDoc('Exactly. #smallweb')),
 						uri: 'at://demo/comment/nested',
-						likeCount: 0
+						createdAt: '2026-10-24T10:20:00Z',
+						likeCount: 0,
+						replyCount: 4
+					}
+				]
+			},
+			{
+				...postFromDoc(textToDoc('This is the one I keep coming back to.')),
+				uri: 'at://demo/comment/quote',
+				author: by(1),
+				createdAt: '2026-10-24T11:00:00Z',
+				likeCount: 5,
+				replies: [],
+				embeds: [
+					{
+						type: 'quote',
+						post: {
+							...postFromDoc(textToDoc('Make things slowly, and for people you know.')),
+							uri: 'at://demo/comment/quoted',
+							author: by(0)
+						}
 					}
 				]
 			}
@@ -153,8 +192,10 @@ export const comments: PostData[] = [
 	{
 		...postFromDoc(textToDoc('I saved a few notes here: https://example.com')),
 		uri: 'at://demo/comment/two',
-		author: { did: actors[0].did, handle: actors[0].handle, name: actors[0].displayName! },
+		author: by(0),
+		createdAt: '2026-10-25T08:00:00Z',
 		likeCount: 2,
+		replies: [],
 		embeds: [
 			{
 				type: 'record',
