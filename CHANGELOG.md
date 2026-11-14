@@ -1,5 +1,11 @@
 # @atmo-dev/kit
 
+## 0.13.1
+
+### Patch Changes
+
+- eccaa77: Link conference talks stored in another repo to their own author's event page.
+
 ## 0.13.0
 
 ### Minor Changes
