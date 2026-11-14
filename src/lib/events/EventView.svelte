@@ -542,7 +542,7 @@
 						<VodPlayer
 							playlistUrl={data.vod.playlistUrl}
 							title={eventData.name}
-							subtitlesUrl="/vods/{rkey}-karaoke.vtt"
+							subtitlesUrl={data.vod.subtitlesUrl}
 							bind:currentTime={vodCurrentTime}
 							bind:api={vodApi}
 						/>

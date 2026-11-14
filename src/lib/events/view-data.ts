@@ -26,7 +26,7 @@ export interface EventViewData {
 	parentEvent?: FlatEventRecord | null;
 	parentEventActor?: string | null;
 	parentScheduleUrl?: string | null;
-	vod?: { playlistUrl: string } | null;
+	vod?: { playlistUrl: string; subtitlesUrl?: string } | null;
 	conferenceTalks?: FlatEventRecord[];
 	/** Plain-text talk descriptions keyed by talk URI, e.g. from `richTextToPlainText`. */
 	conferenceTalkDescriptions?: Record<string, string>;
