@@ -38,7 +38,12 @@ export { default as GrainAlbumView } from './components/GrainAlbumView.svelte';
 export type { GrainAlbumViewProps } from './components/GrainAlbumView.svelte';
 export { default as StreamplacePicker } from './components/StreamplacePicker.svelte';
 export type { StreamplacePickerProps } from './components/StreamplacePicker.svelte';
+export { default as SembleCollectionPicker } from './components/SembleCollectionPicker.svelte';
+export type { SembleCollectionPickerProps } from './components/SembleCollectionPicker.svelte';
+export { default as SembleCollectionView } from './components/SembleCollectionView.svelte';
+export type { SembleCollectionViewProps } from './components/SembleCollectionView.svelte';
 export * from './grain.js';
+export * from './semble.js';
 export * from './streamplace.js';
 export { default as InsetImage } from './components/InsetImage.svelte';
 export { default as Badge } from './components/Badge.svelte';
@@ -138,7 +143,8 @@ export type {
 	ExternalEmbedProvider,
 	ExternalEmbedPlayer
 } from './social/external-embeds.js';
-export { blueskyPostToPostData } from './social/posts.js';
+export { blueskyPostToPostData, hasModerationLabel } from './social/posts.js';
+export { parseSocialPostUrl, parseSocialProfileUrl } from './social/urls.js';
 export type { PostData, PostEmbed, BlueskyPostView } from './social/posts.js';
 export { editorJsonToBlueskyPost, textToDoc, graphemeLength } from './social/richtext.js';
 export type { Facet, RichTextOptions, RichTextSegment } from './social/richtext.js';

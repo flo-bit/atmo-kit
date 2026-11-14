@@ -97,14 +97,16 @@ These are UI components, not an OAuth implementation.
 
 [Guide](media.md) · Local examples: `/examples`.
 
-| Component           | Purpose                                                 |
-| ------------------- | ------------------------------------------------------- |
-| `PhotoGrid`         | Responsive grid and content-warning gates               |
-| `PhotoLightbox`     | Fullscreen, swipeable photo viewer                      |
-| `ImageDropper`      | Image drag-and-drop overlay and app-owned file callback |
-| `GrainAlbumPicker`  | Album selection using app-supplied callbacks            |
-| `GrainAlbumView`    | Album display using an app-supplied provider            |
-| `StreamplacePicker` | Stream selection and app-owned identity resolution      |
+| Component                | Purpose                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| `PhotoGrid`              | Responsive grid and content-warning gates               |
+| `PhotoLightbox`          | Fullscreen, swipeable photo viewer                      |
+| `ImageDropper`           | Image drag-and-drop overlay and app-owned file callback |
+| `GrainAlbumPicker`       | Album selection using app-supplied callbacks            |
+| `GrainAlbumView`         | Album display using an app-supplied provider            |
+| `SembleCollectionPicker` | Link-collection selection using app-supplied callbacks  |
+| `SembleCollectionView`   | Link-collection display using an app-supplied provider  |
+| `StreamplacePicker`      | Stream selection and app-owned identity resolution      |
 
 ## Legal and reporting
 

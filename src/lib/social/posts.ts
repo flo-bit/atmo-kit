@@ -88,6 +88,26 @@ type BlueskyEmbedView = {
 	media?: BlueskyEmbedView;
 };
 
+/**
+ * Whether an AppView view carries a moderation label anywhere: for a post, on the post, its
+ * author, or anything it embeds (a quoted post and its author, at any depth). Apps without the
+ * viewer's moderation preferences can use it to leave such content out. Pass a single post
+ * view, not a thread: a thread's replies would count too.
+ */
+export function hasModerationLabel(value: unknown, depth = 0): boolean {
+	if (!value || typeof value !== 'object') return false;
+	// Deeper than any real view nests: treat as labeled rather than render it unchecked.
+	if (depth > 12) return true;
+	if (Array.isArray(value)) return value.some((item) => hasModerationLabel(item, depth + 1));
+	const { labels } = value as { labels?: unknown };
+	// Views list labels; records self-label with `{ values: [...] }`.
+	const list = Array.isArray(labels) ? labels : (labels as { values?: unknown })?.values;
+	if (Array.isArray(list) && list.some((label) => !(label as { neg?: boolean })?.neg)) return true;
+	return Object.entries(value).some(
+		([key, child]) => key !== 'labels' && hasModerationLabel(child, depth + 1)
+	);
+}
+
 /** Convert record-view variants without mistaking blocked authors or starter packs for posts. */
 function recordEmbed(record: RecordView, depth: number): PostEmbed {
 	const type = record.$type;

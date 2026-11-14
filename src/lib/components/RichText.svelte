@@ -1,7 +1,9 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import {
 		inlineHref,
 		inlineText,
+		paragraphParts,
 		MAX_RENDER_DEPTH,
 		type RichTextDocument,
 		type RichTextLinkOptions
@@ -20,6 +22,13 @@
 		detectLinks?: boolean;
 		/** Added to Markdown heading levels, e.g. 1 renders `#` as h2 below a page's h1. */
 		headingOffset?: number;
+		/**
+		 * Markdown only: whether a bare link alone on its line is shown with `linkEmbed`
+		 * instead of as a link.
+		 */
+		embedLink?: (url: string) => boolean;
+		/** Renders such a link. The second argument renders the ordinary link, e.g. while loading. */
+		linkEmbed?: Snippet<[url: string, fallback: Snippet]>;
 		class?: string;
 	};
 
@@ -31,6 +40,8 @@
 		socialClient,
 		mentionUrl,
 		headingOffset = 0,
+		embedLink,
+		linkEmbed,
 		class: className
 	}: RichTextProps = $props();
 
@@ -99,7 +110,12 @@
 {#snippet blocks(children: unknown, depth: number)}
 	{#each nodes(children) as node, index (index)}
 		{#if depth > MAX_RENDER_DEPTH}<p>{inlineText(node, depth)}</p>
-		{:else if node.type === 'paragraph'}<p>{@render inlines(node.children, false, depth + 1)}</p>
+		{:else if node.type === 'paragraph'}
+			{#each paragraphParts(node.children, linkEmbed && embedLink) as part, partIndex (partIndex)}
+				{#snippet paragraph()}<p>{@render inlines(part.children, false, depth + 1)}</p>{/snippet}
+				{#if part.embed && linkEmbed}{@render linkEmbed(part.embed, paragraph)}
+				{:else}{@render paragraph()}{/if}
+			{/each}
 		{:else if node.type === 'heading'}<svelte:element
 				this={heading(node.depth)}
 				class="{node.depth === 1

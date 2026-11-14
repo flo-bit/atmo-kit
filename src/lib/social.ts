@@ -20,9 +20,13 @@ export type {
 	ExternalEmbedProvider,
 	ExternalEmbedPlayer
 } from './social/external-embeds.js';
+export { blueskyPostToPostData, hasModerationLabel } from './social/posts.js';
+export type { PostData, PostEmbed, BlueskyPostView } from './social/posts.js';
 export {
 	blueskyProfileUrl,
 	socialProfileUrl,
 	socialPostUrl,
-	socialHashtagUrl
+	socialHashtagUrl,
+	parseSocialPostUrl,
+	parseSocialProfileUrl
 } from './social/urls.js';

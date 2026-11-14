@@ -10,6 +10,7 @@ import {
 	datetimeLocalToISO,
 	isConferenceEvent,
 	parseGrainLink,
+	parseSembleLink,
 	normalizeCountryCode,
 	RSVP_GOING
 } from '@atmo-dev/kit/events-data';
@@ -21,6 +22,7 @@ test('event data is usable on the server through the published export', () => {
 	assert.equal(typeof datetimeLocalToISO, 'function');
 	assert.equal(getEventThumbnail([]), undefined);
 	assert.equal(parseGrainLink('https://example.com'), null);
+	assert.equal(parseSembleLink('https://example.com'), null);
 });
 
 test('runtime data imports never pull in components, styles or players', () => {

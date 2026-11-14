@@ -112,3 +112,77 @@ describe('preferred client in event comments', () => {
 		}
 	);
 });
+
+describe('labeled comments', () => {
+	function labeledReply(rkey: string, post: Record<string, unknown>, replies: unknown[] = []) {
+		const base = reply('did:web:carol.test', rkey, replies);
+		return { ...base, post: { ...base.post, ...post } };
+	}
+	it('leaves out labeled replies, their subtrees and replies quoting labeled posts', async () => {
+		const quote = (labels: unknown[], authorLabels: unknown[] = []) => ({
+			embed: {
+				$type: 'app.bsky.embed.record#view',
+				record: {
+					$type: 'app.bsky.embed.record#viewRecord',
+					uri: 'at://did:web:dave.test/app.bsky.feed.post/quoted',
+					author: { did: 'did:web:dave.test', handle: 'dave.test', labels: authorLabels },
+					value: { text: 'quoted text' },
+					labels
+				}
+			}
+		});
+		fetchThread.mockImplementation(
+			async () =>
+				new Response(
+					JSON.stringify({
+						thread: {
+							replies: [
+								reply('did:web:alice.test', 'visible', [
+									labeledReply('nested-labeled', { labels: [{ val: 'porn' }] })
+								]),
+								labeledReply('labeled', { labels: [{ val: 'porn' }] }, [
+									reply('did:web:bob.test', 'under-labeled')
+								]),
+								labeledReply('labeled-author', {
+									author: {
+										did: 'did:web:carol.test',
+										handle: 'carol.test',
+										labels: [{ val: '!no-unauthenticated' }]
+									}
+								}),
+								labeledReply('quotes-labeled', quote([{ val: 'graphic-media' }])),
+								labeledReply('quotes-labeled-author', quote([], [{ val: 'porn' }])),
+								labeledReply('negated', { labels: [{ val: 'porn', neg: true }] }),
+								labeledReply('quotes-clean', quote([]))
+							]
+						}
+					})
+				)
+		);
+		await render(EventComments, { postUri });
+		await expect.element(page.getByText('visible', { exact: true }).first()).toBeVisible();
+		const text = document.body.textContent ?? '';
+		for (const shown of ['negated', 'quotes-clean', 'quoted text']) expect(text).toContain(shown);
+		for (const hidden of [
+			'nested-labeled',
+			'under-labeled',
+			'labeled-author',
+			'quotes-labeled',
+			'quotes-labeled-author'
+		])
+			expect(text).not.toContain(hidden);
+		expect(document.querySelectorAll('article')).toHaveLength(3);
+	});
+	it('reads as empty when every reply is labeled', async () => {
+		fetchThread.mockImplementation(
+			async () =>
+				new Response(
+					JSON.stringify({
+						thread: { replies: [labeledReply('labeled', { labels: [{ val: 'porn' }] })] }
+					})
+				)
+		);
+		await render(EventComments, { postUri });
+		await expect.element(page.getByText('No comments yet.')).toBeVisible();
+	});
+});

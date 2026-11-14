@@ -1,9 +1,17 @@
 <script lang="ts">
-	import { Button, Icon, Popover, GrainAlbumPicker, StreamplacePicker } from '../../index.js';
-	import { Camera, Plus, Video } from '@sketchyicons/svelte';
+	import {
+		Button,
+		Icon,
+		Popover,
+		GrainAlbumPicker,
+		SembleCollectionPicker,
+		StreamplacePicker
+	} from '../../index.js';
+	import { Bookmark, Camera, Plus, Video } from '@sketchyicons/svelte';
+	import type { SembleCollection } from '../../semble.js';
 	import type { GrainAlbum } from '../../grain.js';
 	import type { EditorAdapter, EditorViewer } from './adapter.js';
-	import { eventStreamLink, parseGrainLink } from '../linked-records.js';
+	import { eventStreamLink, parseGrainLink, parseSembleLink } from '../linked-records.js';
 
 	let {
 		links = $bindable(),
@@ -17,6 +25,7 @@
 	let menuOpen = $state(false);
 	let grainOpen = $state(false);
 	let streamOpen = $state(false);
+	let sembleOpen = $state(false);
 	let session = 0;
 	let stream = $derived(links.find((link) => eventStreamLink(link.uri)));
 	function added(album: GrainAlbum) {
@@ -51,6 +60,20 @@
 		if (current !== session || !grainOpen) return;
 		links = [...links, { uri: album.url, name: album.title }];
 	}
+	function collectionAdded(collection: SembleCollection) {
+		return links.some((link) => {
+			const ref = parseSembleLink(link.uri);
+			return (
+				ref?.atUri === collection.uri ||
+				(ref?.actor === collection.creator.handle &&
+					ref?.rkey === parseSembleLink(collection.uri)?.rkey)
+			);
+		});
+	}
+	function attachCollection(collection: SembleCollection) {
+		if (collectionAdded(collection)) return 'This collection is already added.';
+		links = [...links, { uri: collection.url, name: collection.name }];
+	}
 </script>
 
 <Popover
@@ -80,6 +103,16 @@
 			streamOpen = true;
 		}}><Icon img={Video} size={16} />Streamplace stream</Button
 	>
+	{#if adapter.linkedRecords?.getSembleCollection}
+		<Button
+			variant="ghost"
+			class="w-full justify-start"
+			onclick={() => {
+				menuOpen = false;
+				sembleOpen = true;
+			}}><Icon img={Bookmark} size={16} />Semble collection</Button
+		>
+	{/if}
 </Popover>
 
 <GrainAlbumPicker
@@ -89,6 +122,14 @@
 	loadAlbum={adapter.linkedRecords?.getGrainGallery}
 	isSelected={added}
 	onselect={attachAlbum}
+/>
+<SembleCollectionPicker
+	bind:open={sembleOpen}
+	actor={viewer.did}
+	listCollections={adapter.linkedRecords?.listSembleCollections}
+	loadCollection={adapter.linkedRecords?.getSembleCollection}
+	isSelected={collectionAdded}
+	onselect={attachCollection}
 />
 <StreamplacePicker
 	bind:open={streamOpen}

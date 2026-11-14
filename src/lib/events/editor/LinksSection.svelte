@@ -1,8 +1,13 @@
 <script lang="ts">
-	import { Camera, Link as LinkIcon, Plus, Video, X } from '@sketchyicons/svelte';
+	import { Bookmark, Camera, Link as LinkIcon, Plus, Video, X } from '@sketchyicons/svelte';
 	import { Button, Icon, Input, Popover } from '../../index.js';
 	import { validateLink } from '../cal/helper.js';
-	import { eventStreamLink, isLinkedRecord, parseGrainLink } from '../linked-records.js';
+	import {
+		eventStreamLink,
+		isLinkedRecord,
+		parseGrainLink,
+		parseSembleLink
+	} from '../linked-records.js';
 	import type { EditorAdapter, EditorViewer } from './adapter.js';
 	import LinkedRecordsPicker from './LinkedRecordsPicker.svelte';
 
@@ -32,6 +37,7 @@
 			return;
 		}
 		const grain = parseGrainLink(uri),
+			semble = parseSembleLink(uri),
 			stream = eventStreamLink(uri);
 		// Keep one stream even when it was added through the generic URL input.
 		if (stream && links.some((l) => eventStreamLink(l.uri))) {
@@ -44,7 +50,13 @@
 				uri,
 				name:
 					newName.trim() ||
-					(grain ? 'Grain photo album' : stream ? `Streamplace · ${stream.actor}` : '')
+					(grain
+						? 'Grain photo album'
+						: semble
+							? 'Semble collection'
+							: stream
+								? `Streamplace · ${stream.actor}`
+								: '')
 			}
 		];
 		cancel();
@@ -60,10 +72,16 @@
 	}
 </script>
 
-{#snippet row(link: Link, provider?: 'grain' | 'stream')}
+{#snippet row(link: Link, provider?: 'grain' | 'semble' | 'stream')}
 	<div class="group flex items-center gap-2">
 		<Icon
-			img={provider === 'grain' ? Camera : provider === 'stream' ? Video : LinkIcon}
+			img={provider === 'grain'
+				? Camera
+				: provider === 'semble'
+					? Bookmark
+					: provider === 'stream'
+						? Video
+						: LinkIcon}
 			size={16}
 			class="shrink-0 text-base-600 dark:text-base-400"
 		/>
@@ -72,9 +90,11 @@
 				{link.name ||
 					(provider === 'grain'
 						? 'Grain photo album'
-						: provider === 'stream'
-							? eventStreamLink(link.uri)?.actor
-							: link.uri.replace(/^https?:\/\//, ''))}
+						: provider === 'semble'
+							? 'Semble collection'
+							: provider === 'stream'
+								? eventStreamLink(link.uri)?.actor
+								: link.uri.replace(/^https?:\/\//, ''))}
 			</p>
 		</div>
 		<Button
@@ -103,7 +123,7 @@
 		<div class="mb-4 space-y-3">
 			{#each linked as link, i (i)}{@render row(
 					link,
-					parseGrainLink(link.uri) ? 'grain' : 'stream'
+					parseGrainLink(link.uri) ? 'grain' : parseSembleLink(link.uri) ? 'semble' : 'stream'
 				)}{/each}
 		</div>
 	{/if}

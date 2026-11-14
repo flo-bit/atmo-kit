@@ -33,6 +33,7 @@ gallery shows every public component and links to individual interactive example
 | `@atmo-dev/kit/social`        | Post/profile conversion, preferred-client helpers, embed providers            |
 | `@atmo-dev/kit/media`         | Provider-neutral photo types                                                  |
 | `@atmo-dev/kit/grain`         | Grain contracts, URL parsing, optional XRPC client                            |
+| `@atmo-dev/kit/semble`        | Semble contracts, URL parsing, optional API client                            |
 | `@atmo-dev/kit/streamplace`   | Streamplace link parsing                                                      |
 | `@atmo-dev/kit/legal`         | Framework-free legal document types, drafts, diagnostics                      |
 | `@atmo-dev/kit/theme.css`     | Theme, fonts, Tailwind sources                                                |
