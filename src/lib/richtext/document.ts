@@ -22,7 +22,7 @@ export type RichTextBlock =
 	| { type: 'heading'; depth: 1 | 2 | 3 | 4 | 5 | 6; children: RichTextInline[] }
 	| { type: 'blockquote'; children: RichTextBlock[] }
 	| { type: 'list'; ordered: boolean; start?: number; items: RichTextBlock[][] }
-	| { type: 'codeBlock'; value: string }
+	| { type: 'codeBlock'; value: string; lang?: string }
 	| { type: 'thematicBreak' };
 
 export type RichTextInline =
@@ -88,6 +88,39 @@ function string(value: unknown): string {
 export type ParagraphPart = { children: Record<string, unknown>[]; embed?: string };
 
 /**
+ * Whether a link's label is its own destination, as for a pasted or detected URL. Clients also
+ * shorten such labels (`example.com/a-long-pa…`) and drop the scheme.
+ */
+export function isBareLink(link: Record<string, unknown>): boolean {
+	const label = nodes(link.children);
+	const url = safeWebUrl(link.url);
+	if (!url || label.length !== 1 || label[0].type !== 'text') return false;
+	const text = string(label[0].value).trim();
+	if (!text || /\s/.test(text)) return false;
+	if (text === link.url || safeWebUrl(text) === url) return true;
+	if (/^[a-z][a-z0-9+.-]*:/i.test(text) && !/^https?:\/\//i.test(text)) return false;
+	const shortened = text.replace(/^https?:\/\//i, '').replace(/(?:…|\.\.\.)$/, '');
+	const target = url.replace(/^https?:\/\//i, '');
+	return shortened.includes('.') && shortened.length >= 4 && shortened !== text
+		? target.startsWith(shortened) || safeWebUrl(`https://${shortened}`) === url
+		: safeWebUrl(`https://${text}`) === url;
+}
+
+/** Plain text keeps its newlines inside text nodes; make them explicit breaks. */
+export function lineBreaks(children: unknown): Record<string, unknown>[] {
+	return nodes(children).flatMap((node) =>
+		node.type === 'text' && string(node.value).includes('\n')
+			? string(node.value)
+					.split('\n')
+					.flatMap((value, index) => [
+						...(index ? [{ type: 'break' }] : []),
+						...(value ? [{ type: 'text', value }] : [])
+					])
+			: [node]
+	);
+}
+
+/**
  * Split a paragraph into runs of lines, so that a bare link alone on its line can be shown as
  * an embed. Labeled links and links inside a sentence stay ordinary links.
  */
@@ -105,11 +138,7 @@ export function paragraphParts(
 		const line = all.slice(start, end);
 		const content = line.filter((node) => node.type !== 'text' || string(node.value).trim());
 		const link = content.length === 1 && content[0].type === 'link' ? content[0] : undefined;
-		const label = link && nodes(link.children);
-		const url =
-			link && label?.length === 1 && label[0].type === 'text' && label[0].value === link.url
-				? safeWebUrl(link.url)
-				: undefined;
+		const url = link && isBareLink(link) ? safeWebUrl(link.url) : undefined;
 		if (url && isEmbed(url)) {
 			parts.push({ children: line, embed: url });
 			text = undefined;
@@ -121,6 +150,15 @@ export function paragraphParts(
 		start = end;
 	}
 	return parts;
+}
+
+/** Blank lines next to an embed are already expressed by the space around it. */
+export function trimBreaks(children: Record<string, unknown>[]): Record<string, unknown>[] {
+	let start = 0;
+	let end = children.length;
+	while (start < end && children[start].type === 'break') start++;
+	while (end > start && children[end - 1].type === 'break') end--;
+	return children.slice(start, end);
 }
 
 /** Documents from the parser nest far less; deeper (tampered) nodes are cut off. */

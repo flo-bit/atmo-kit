@@ -7,7 +7,11 @@ import {
 	isValidIdentifier,
 	normalizeIdentifier
 } from '../lib/components/login/handle.js';
-import { createActorSearch } from '../lib/components/login/search.js';
+import {
+	actorSearchProviders,
+	configureActorSearch,
+	createActorSearch
+} from '../lib/components/login/search.js';
 import { isPermissionSelected, resolveLoginOptions } from '../lib/components/login/permissions.js';
 import {
 	loadRecentAccounts,
@@ -225,6 +229,37 @@ describe('app-owned actor search', () => {
 		expect(fetcher.mock.calls[0][1]?.signal).toBe(controller.signal);
 		expect(actors.map((actor) => actor.did)).toEqual([alice.did, mika.did]);
 		expect(actors[1].avatar).toBeUndefined();
+	});
+	it('uses the provider an app configured, unless a search names its own host', async () => {
+		const fetcher = vi.fn<typeof fetch>(async () => Response.json({ actors: [alice] }));
+		const search = createActorSearch({ fetch: fetcher });
+		const own = createActorSearch({ host: 'https://appview.example.com', fetch: fetcher });
+		const signal = new AbortController().signal;
+		try {
+			await search('al', signal);
+			expect(new URL(fetcher.mock.calls[0][0].toString()).origin).toBe(
+				'https://public.api.bsky.app'
+			);
+			// Takes effect for searches that already exist.
+			configureActorSearch(actorSearchProviders.waow);
+			await search('al', signal);
+			expect(fetcher.mock.calls[1][0].toString()).toBe(
+				'https://typeahead.waow.tech/xrpc/app.bsky.actor.searchActorsTypeahead?q=al&limit=6'
+			);
+			await own('al', signal);
+			expect(new URL(fetcher.mock.calls[2][0].toString()).origin).toBe(
+				'https://appview.example.com'
+			);
+			// A function replaces the request; its results are still validated.
+			configureActorSearch(async (query) => [
+				{ ...alice, displayName: query },
+				{ did: 'nope', handle: 'bad' }
+			]);
+			expect(await search('custom', signal)).toEqual([{ ...alice, displayName: 'custom' }]);
+			expect(fetcher).toHaveBeenCalledTimes(3);
+		} finally {
+			configureActorSearch(undefined);
+		}
 	});
 	it('reports failed AppView requests without making login depend on search', async () => {
 		const search = createActorSearch({

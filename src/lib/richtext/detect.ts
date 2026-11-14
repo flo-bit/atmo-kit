@@ -20,7 +20,7 @@ const BOUNDARY_RE = /[\s(){}/\\[\]\-|:;'".,=+*_~`]/;
 
 function trimAutolink(url: string): string {
 	let end = url.length;
-	while (end > 0 && '.,;'.includes(url[end - 1])) end--;
+	while (end > 0 && '.,;>'.includes(url[end - 1])) end--;
 	if (end > 0 && url[end - 1] === ')' && url.lastIndexOf('(', end - 1) === -1) end--;
 	return url.slice(0, end);
 }

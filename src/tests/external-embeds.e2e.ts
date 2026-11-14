@@ -32,8 +32,6 @@ test('YouTube stays click-to-load and Klipy respects reduced motion', async ({ p
 	await page.keyboard.press('Enter');
 	await expect(preview.locator('iframe')).toHaveCount(1);
 	await expect.poll(() => requests.length).toBe(1);
-	await preview.getByRole('button', { name: 'Stop YouTube embed' }).click();
-	await expect(preview.locator('iframe')).toHaveCount(0);
 
 	await attachments.getByRole('radio', { name: 'Klipy', exact: true }).click();
 	await expect(

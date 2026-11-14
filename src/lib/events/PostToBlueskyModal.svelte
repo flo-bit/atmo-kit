@@ -12,6 +12,7 @@
 		graphemeLength,
 		type Editor
 	} from '../index.js';
+	import { configuredActorSearch } from '../components/login/search.js';
 	import { detectTokens } from '../richtext/detect.js';
 	import { tokensToFacets } from './editor/save.js';
 	import { appviewUrl } from './atproto-helpers.js';
@@ -45,7 +46,10 @@
 		onPosted?: (ref: { uri: string; cid: string; showComments: boolean }) => void;
 	} = $props();
 
-	const searchActors = createActorSearch({ host: appviewUrl() });
+	// The app's account search if it chose one, otherwise the configured AppView.
+	const searchActors = createActorSearch({
+		host: configuredActorSearch() ? undefined : appviewUrl()
+	});
 	let text = $state('');
 	let editor = $state<Editor | null>(null);
 	let prefilledForOpen = $state(false);

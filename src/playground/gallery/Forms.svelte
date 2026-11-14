@@ -3,6 +3,7 @@
 		Button,
 		Checkbox,
 		InlineEditor,
+		RichTextEditor,
 		Input,
 		Label,
 		Popover,
@@ -18,6 +19,8 @@
 		checked = $state(true),
 		choice = $state('all'),
 		open = $state(false);
+	const description =
+		'## A small gathering\n\nBring **snacks** and a *friend*.\n\nhttps://www.youtube.com/watch?v=M7lc1UVf-VE';
 </script>
 
 {#if name === 'Input'}
@@ -88,6 +91,15 @@
 	>
 {:else if name === 'InlineEditor'}
 	<InlineEditor label="Collection title" bind:value singleLine class="w-full text-xl font-medium" />
+{:else if name === 'RichTextEditor'}
+	<RichTextEditor
+		label="Description"
+		placeholder="Write something…"
+		value={description}
+		markdown
+		embeds
+		class="w-full text-sm"
+	/>
 {:else if name === 'PostComposer'}
 	<div class="w-full">
 		<PostComposer bind:value {searchActors} maxLength={300} />{#if !compact}<p

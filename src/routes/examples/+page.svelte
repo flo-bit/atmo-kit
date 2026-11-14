@@ -17,6 +17,10 @@
 		PostComposer,
 		PostContent,
 		RichText,
+		RichTextEditor,
+		createActorSearch,
+		configureActorSearch,
+		actorSearchProviders,
 		Select,
 		Subheading,
 		Surface,
@@ -54,6 +58,13 @@
 	let popoverOpen = $state(false),
 		nestedOpen = $state(false),
 		modalOpen = $state(false);
+	let description = $state(
+		'## A small gathering\n\nBring **snacks**, a *friend* and your #atmosphere stories.\n\nhttps://www.youtube.com/watch?v=M7lc1UVf-VE'
+	);
+	// The real public typeahead, so mentions can be tried with actual accounts.
+	const searchBluesky = createActorSearch();
+	let typeahead = $state<keyof typeof actorSearchProviders>('bluesky');
+	$effect(() => configureActorSearch(actorSearchProviders[typeahead]));
 	let title = $state(initialTitle),
 		disabled = $state(false),
 		draft = $state(initialDraft);
@@ -281,6 +292,26 @@
 			<section aria-labelledby="richtext-heading">
 				<Subheading id="richtext-heading" class="mb-5">Rich text</Subheading>
 				<RichText content={richText} headingOffset={1} class="text-sm" />
+			</section>
+			<section aria-labelledby="richtext-editor-heading">
+				<Subheading id="richtext-editor-heading" class="mb-5">Rich text editor</Subheading>
+				<RichTextEditor
+					label="Description"
+					placeholder="Write something, or paste a link…"
+					bind:value={description}
+					markdown
+					embeds
+					searchActors={searchBluesky}
+					class="text-sm"
+				/>
+				<ToggleGroup aria-label="Mention suggestions from" bind:value={typeahead} class="mt-5"
+					><ToggleGroupItem value="bluesky">Bluesky</ToggleGroupItem><ToggleGroupItem value="waow"
+						>typeahead.waow.tech</ToggleGroupItem
+					></ToggleGroup
+				>
+				<pre
+					data-testid="description-markdown"
+					class="mt-5 overflow-x-auto rounded-ui border border-base-300 p-3 font-mono text-xs whitespace-pre-wrap text-base-600 dark:border-base-800 dark:text-base-400">{description}</pre>
 			</section>
 			<section aria-labelledby="comments-heading">
 				<Subheading id="comments-heading" class="mb-5">Nested comments</Subheading><NestedComments

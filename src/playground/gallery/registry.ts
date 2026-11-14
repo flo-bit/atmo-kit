@@ -32,6 +32,7 @@ export const demoGroups: DemoGroup[] = [
 			'ToggleGroupItem',
 			'Popover',
 			'InlineEditor',
+			'RichTextEditor',
 			'PostComposer'
 		],
 		load: () => import('./Forms.svelte')
@@ -56,6 +57,7 @@ export const demoGroups: DemoGroup[] = [
 			'NestedComments',
 			'LinkCard',
 			'ExternalEmbed',
+			'LinkEmbed',
 			'SocialClientPicker'
 		],
 		load: () => import('./Social.svelte')

@@ -46,6 +46,7 @@ Local examples: `/` for native fields, `/examples` for editors and popovers.
 | `ToggleGroupItem` | Toggle-group options                            |
 | `Popover`         | Anchored, portaled content                      |
 | `InlineEditor`    | In-place text editing                           |
+| `RichTextEditor`  | Markdown or plain-text editing with live embeds |
 | `PostComposer`    | Post editing with mentions and character limits |
 
 ## Navigation
@@ -91,6 +92,7 @@ These are UI components, not an OAuth implementation.
 | `NestedComments`     | Threaded replies with foldable branches     |
 | `LinkCard`           | External link previews                      |
 | `ExternalEmbed`      | Provider-based media and playback controls  |
+| `LinkEmbed`          | A link shown as a post, profile, or player  |
 | `SocialClientPicker` | Preferred social-client form fields         |
 
 ## Photos and linked media

@@ -3,7 +3,7 @@
 	import { getEventThumbnail } from './event-media.js';
 	import { Avatar, Button, ToggleGroup, ToggleGroupItem } from '../index.js';
 	import { onMount, untrack } from 'svelte';
-	import { InlineEditor, type Editor } from '../index.js';
+	import { InlineEditor, RichTextEditor, type Editor } from '../index.js';
 	import DateTimePicker from '../components/DateTimePicker.svelte';
 	import TimezonePicker from '../components/TimezonePicker.svelte';
 	import { parseDateTime } from '@internationalized/date';
@@ -435,13 +435,14 @@
 							>
 								About
 							</p>
-							<textarea
-								aria-label="Event description"
+							<RichTextEditor
+								label="Event description"
 								bind:value={description}
-								rows={4}
+								markdown
+								embeds
 								placeholder="What's this event about? @mentions, #hashtags and links will be detected automatically."
-								class="w-full resize-none border-0 bg-transparent px-0 leading-relaxed text-base-700 placeholder:text-base-500 focus:border-0 focus:ring-0 focus:outline-none dark:text-base-300 dark:placeholder:text-base-500"
-								style="field-sizing: content;"></textarea>
+								class="min-h-24 leading-relaxed text-base-700 focus-within:outline-none dark:text-base-300"
+							/>
 							<p class="mt-2 text-xs text-base-600 dark:text-base-400">
 								Add a hashtag like <span class="font-medium">#webdev</span> or
 								<span class="font-medium">#music</span>

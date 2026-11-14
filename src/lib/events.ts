@@ -19,3 +19,5 @@ export { default as TimePicker } from './components/TimePicker.svelte';
 export { default as DateTimePicker } from './components/DateTimePicker.svelte';
 export { default as TimezonePicker } from './components/TimezonePicker.svelte';
 export { default as ImageDropper } from './components/ImageDropper.svelte';
+export { eventLinkEmbed } from './events/event-link-embed.js';
+export type { EventLinkEmbedRef } from './events/event-link-embed.js';

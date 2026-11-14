@@ -3,12 +3,18 @@
 	import {
 		inlineHref,
 		inlineText,
+		lineBreaks,
 		paragraphParts,
+		trimBreaks,
 		MAX_RENDER_DEPTH,
 		type RichTextDocument,
 		type RichTextLinkOptions
 	} from '../richtext/document.js';
 	import { parsePlainText } from '../richtext/plain.js';
+	import { linkEmbedOptions, selectLinkEmbeds } from '../embeds/context.js';
+	import { resolveLinkEmbed } from '../embeds/resolve.js';
+	import type { LinkEmbed as LinkEmbedDefinition } from '../embeds/types.js';
+	import LinkEmbed from './LinkEmbed.svelte';
 	import { cn } from '../utils.js';
 
 	export type RichTextProps = RichTextLinkOptions & {
@@ -23,9 +29,11 @@
 		/** Added to Markdown heading levels, e.g. 1 renders `#` as h2 below a page's h1. */
 		headingOffset?: number;
 		/**
-		 * Markdown only: whether a bare link alone on its line is shown with `linkEmbed`
-		 * instead of as a link.
+		 * Show a bare link alone on its line as an embed: `true` for the app's embeds (see
+		 * `setLinkEmbeds`, by default posts, profiles, YouTube and GIFs) or an explicit list.
 		 */
+		embeds?: boolean | readonly LinkEmbedDefinition[];
+		/** Custom matching instead of `embeds`; requires `linkEmbed`. */
 		embedLink?: (url: string) => boolean;
 		/** Renders such a link. The second argument renders the ordinary link, e.g. while loading. */
 		linkEmbed?: Snippet<[url: string, fallback: Snippet]>;
@@ -40,12 +48,29 @@
 		socialClient,
 		mentionUrl,
 		headingOffset = 0,
+		embeds,
 		embedLink,
 		linkEmbed,
 		class: className
 	}: RichTextProps = $props();
 
 	let doc = $derived(content ?? parsePlainText(text, { facets, detectLinks }));
+
+	const embedOptions = linkEmbedOptions();
+	let embedList = $derived(selectLinkEmbeds(embeds, embedOptions()));
+	let isEmbed = $derived(
+		linkEmbed && embedLink
+			? embedLink
+			: embedList.length
+				? (url: string) => !!resolveLinkEmbed(url, embedList)
+				: undefined
+	);
+	/** Plain text is one paragraph; with embeds it is split around the embedded lines. */
+	let plainParts = $derived(
+		isEmbed && !doc.markdown
+			? nodes(doc.children).flatMap((block) => paragraphParts(lineBreaks(block.children), isEmbed))
+			: []
+	);
 
 	type Node = Record<string, unknown>;
 
@@ -107,14 +132,19 @@
 	{/each}
 {/snippet}
 
+{#snippet embedOr(url: string | undefined, paragraph: Snippet)}
+	{#if !url}{@render paragraph()}
+	{:else if linkEmbed && embedLink}{@render linkEmbed(url, paragraph)}
+	{:else}<LinkEmbed {url} embeds={embedList} fallback={paragraph} {socialClient} />{/if}
+{/snippet}
+
 {#snippet blocks(children: unknown, depth: number)}
 	{#each nodes(children) as node, index (index)}
 		{#if depth > MAX_RENDER_DEPTH}<p>{inlineText(node, depth)}</p>
 		{:else if node.type === 'paragraph'}
-			{#each paragraphParts(node.children, linkEmbed && embedLink) as part, partIndex (partIndex)}
+			{#each paragraphParts(node.children, isEmbed) as part, partIndex (partIndex)}
 				{#snippet paragraph()}<p>{@render inlines(part.children, false, depth + 1)}</p>{/snippet}
-				{#if part.embed && linkEmbed}{@render linkEmbed(part.embed, paragraph)}
-				{:else}{@render paragraph()}{/if}
+				{@render embedOr(part.embed, paragraph)}
 			{/each}
 		{:else if node.type === 'heading'}<svelte:element
 				this={heading(node.depth)}
@@ -157,6 +187,18 @@
 		class={cn('space-y-3 leading-relaxed wrap-anywhere text-base-950 dark:text-base-50', className)}
 	>
 		{@render blocks(doc.children, 0)}
+	</div>
+{:else if plainParts.some((part) => part.embed)}
+	<div
+		class={cn('space-y-3 leading-relaxed wrap-anywhere text-base-950 dark:text-base-50', className)}
+	>
+		{#each plainParts as part, index (index)}
+			{@const children = trimBreaks(part.children)}
+			{#snippet paragraph()}<p class="whitespace-pre-wrap">
+					{@render inlines(children, false, 1)}
+				</p>{/snippet}
+			{#if part.embed || children.length}{@render embedOr(part.embed, paragraph)}{/if}
+		{/each}
 	</div>
 {:else}
 	<p

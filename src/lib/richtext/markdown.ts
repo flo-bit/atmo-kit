@@ -210,7 +210,11 @@ function blocks(nodes: RootContent[], context: Context, depth: number): RichText
 				});
 				break;
 			case 'code':
-				result.push({ type: 'codeBlock', value: node.value });
+				result.push({
+					type: 'codeBlock',
+					value: node.value,
+					...(node.lang ? { lang: node.lang } : {})
+				});
 				break;
 			case 'thematicBreak':
 				result.push({ type: 'thematicBreak' });

@@ -5,16 +5,20 @@ import { parseRichText, richTextToPlainText } from '@atmo-dev/kit/richtext';
 
 const parser = /^(?:mdast-util-from-markdown|micromark|mdast-util-gfm)/;
 
-/** Relative .js/.svelte modules reachable from `entry`, with their bare imports. */
-function graph(entry) {
+/**
+ * Relative .js/.svelte modules reachable from `entry`, with their bare imports. Modules loaded
+ * on demand with `import()` are left out when `lazy` is false.
+ */
+function graph(entry, lazy = true) {
 	const files = new Map();
 	function visit(url) {
 		if (files.has(url.href)) return;
 		const imports = [];
 		files.set(url.href, imports);
 		const source = readFileSync(url, 'utf8');
-		for (const match of source.matchAll(/(?:from\s*|import\s*\(?\s*)['"]([^'"]+)['"]/g)) {
-			const specifier = match[1];
+		for (const match of source.matchAll(/(?:from\s*|import\s*(\()?\s*)['"]([^'"]+)['"]/g)) {
+			if (match[1] && !lazy) continue;
+			const specifier = match[2];
 			if (/^\.\.?\//.test(specifier) && /\.(?:js|svelte)$/.test(specifier))
 				visit(new URL(specifier, url));
 			else imports.push(specifier);
@@ -54,10 +58,16 @@ test('the Markdown parser stays out of the main entry and RichText', () => {
 	assert.ok(
 		[...graph('../dist/richtext.js').values()].flat().some((specifier) => parser.test(specifier))
 	);
-	for (const entry of ['../dist/index.js', '../dist/components/RichText.svelte']) {
-		for (const [file, imports] of graph(entry)) {
+	// The Markdown editor loads the parser on demand; nothing may import it up front.
+	for (const [entry, lazy] of [
+		['../dist/index.js', false],
+		['../dist/components/RichText.svelte', true]
+	]) {
+		for (const [file, imports] of graph(entry, lazy)) {
 			assert.doesNotMatch(file, /richtext\/markdown\.js$/, `${entry} reaches ${file}`);
 			for (const specifier of imports) assert.doesNotMatch(specifier, parser, file);
 		}
 	}
+	const editor = graph('../dist/editor/markdown.js');
+	assert.ok([...editor.keys()].some((file) => /richtext\/markdown\.js$/.test(file)));
 });
