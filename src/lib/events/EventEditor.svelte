@@ -4,6 +4,8 @@
 	import { Avatar, Button, ToggleGroup, ToggleGroupItem } from '../index.js';
 	import { onMount, untrack } from 'svelte';
 	import { InlineEditor, RichTextEditor, type Editor } from '../index.js';
+	import { linkEmbedOptions, selectLinkEmbeds } from '../embeds/context.js';
+	import { eventLinkEmbed } from './event-link-embed.js';
 	import DateTimePicker from '../components/DateTimePicker.svelte';
 	import TimezonePicker from '../components/TimezonePicker.svelte';
 	import { parseDateTime } from '@internationalized/date';
@@ -95,6 +97,25 @@
 		initialThumbnailFile ? null : eventData === null ? DEFAULT_PRESET : null
 	);
 	let images = $derived(adapter.features.images !== false);
+	const embedOptions = linkEmbedOptions();
+	/** As on the event page: the app's embeds, plus cards for links to other events. */
+	let descriptionEmbeds = $derived.by(() => {
+		const loadEvent = adapter.linkedRecords?.getEvent;
+		const origin = globalThis.location?.origin;
+		return [
+			...(loadEvent
+				? [
+						eventLinkEmbed({
+							loadEvent,
+							origins: [...new Set(['https://atmo.rsvp', ...(origin ? [origin] : [])])],
+							skip: (link) =>
+								link.rkey === rkey && (link.actor === actorDid || link.actor === viewer.handle)
+						})
+					]
+				: []),
+			...selectLinkEmbeds(true, embedOptions())
+		];
+	});
 	let showVisibility = $derived(adapter.features.visibility !== false);
 	let submitting = $state(false);
 	let error: string | null = $state(null);
@@ -439,7 +460,8 @@
 								label="Event description"
 								bind:value={description}
 								markdown
-								embeds
+								embeds={descriptionEmbeds}
+								socialClient={viewer.preferredSocialClient}
 								placeholder="What's this event about? @mentions, #hashtags and links will be detected automatically."
 								class="min-h-24 leading-relaxed text-base-700 focus-within:outline-none dark:text-base-300"
 							/>
