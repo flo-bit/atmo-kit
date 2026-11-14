@@ -1,5 +1,12 @@
 # @atmo-dev/kit
 
+## 0.15.1
+
+### Patch Changes
+
+- e570f0d: Bundle the Markdown parser into the kit. Its packages' development builds import CommonJS, so in an app's dev server and browser tests the Markdown `RichTextEditor` failed to load unless the app added the parser to `optimizeDeps.include`. Apps need no configuration now, and the parser packages are no longer dependencies.
+- e570f0d: Fix embeds looking wrong while editing: `RichTextEditor`'s list, link and code styles no longer reach into an embed, so a post no longer gets a bullet next to it. `EventEditor` now shows links to other events as event cards in the description, as the event page does.
+
 ## 0.15.0
 
 ### Minor Changes
