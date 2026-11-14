@@ -3,6 +3,7 @@ import axe from 'axe-core';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import LinkedRecordsFixture from './LinkedRecordsFixture.svelte';
+import EventEditor from '../../lib/events/EventEditor.svelte';
 import EventView from '../../lib/events/EventView.svelte';
 import type { GrainGallery } from '../../lib/events/linked-records.js';
 import { createAdapter, event, viewer } from './fixtures.js';
@@ -503,6 +504,30 @@ describe('event links in the description', () => {
 		expect(loader).toHaveBeenCalledWith('host.example.com', 'other');
 		// A link to this very event stays a link.
 		expect(document.querySelectorAll(`a[href="${self}"]`)).toHaveLength(1);
+	});
+	it('shows the same card while the description is edited', async () => {
+		const a = adapter();
+		const loader = vi.fn(async () => other);
+		const self = `https://atmo.rsvp/p/${did}/e/${event.rkey}`;
+		await render(EventEditor, {
+			eventData: {
+				...event,
+				description: `- a list\n\nhttps://atmo.rsvp/p/host.example.com/e/other\n\n${self}`
+			},
+			actorDid: did,
+			rkey: event.rkey,
+			adapter: { ...a, linkedRecords: { ...a.linkedRecords, getEvent: loader } },
+			viewer
+		});
+		const editor = page.getByRole('textbox', { name: 'Event description' });
+		await expect.element(editor.getByRole('link', { name: /Afterparty/ })).toBeVisible();
+		expect(loader).toHaveBeenCalledTimes(1);
+		expect(loader).toHaveBeenCalledWith('host.example.com', 'other');
+		// The editor's own list has bullets; its text styles stay out of the embed.
+		const list = editor.element().querySelector(':scope > ul')!;
+		expect(getComputedStyle(list).listStyleType).toBe('disc');
+		const card = editor.element().querySelector('[data-link-embed] a')!;
+		expect(getComputedStyle(card).textDecorationLine).toBe('none');
 	});
 	it('keeps the link when the event is unavailable or the host has no loader', async () => {
 		const url = 'https://atmo.rsvp/p/host.example.com/e/other';

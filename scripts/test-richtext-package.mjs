@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { parseRichText, richTextToPlainText } from '@atmo-dev/kit/richtext';
 
+const bundled = /richtext\/vendor\/markdown-tree\.js$/;
 const parser = /^(?:mdast-util-from-markdown|micromark|mdast-util-gfm)/;
 
 /**
@@ -16,6 +17,11 @@ function graph(entry, lazy = true) {
 		const imports = [];
 		files.set(url.href, imports);
 		const source = readFileSync(url, 'utf8');
+		// The bundled parser is a leaf; its code and comments mention other modules by name.
+		if (bundled.test(url.href)) {
+			imports.push(...[...source.matchAll(/^\s*import\b.*$/gm)].map(([line]) => line));
+			return;
+		}
 		for (const match of source.matchAll(/(?:from\s*|import\s*(\()?\s*)['"]([^'"]+)['"]/g)) {
 			if (match[1] && !lazy) continue;
 			const specifier = match[2];
@@ -55,9 +61,15 @@ test('the rich text entry does not import components, CSS or browser globals', (
 });
 
 test('the Markdown parser stays out of the main entry and RichText', () => {
-	assert.ok(
-		[...graph('../dist/richtext.js').values()].flat().some((specifier) => parser.test(specifier))
-	);
+	// The parser is bundled into the kit: apps install and configure nothing for it.
+	const richtext = graph('../dist/richtext.js');
+	const bundle = [...richtext.keys()].find((file) => bundled.test(file));
+	assert.ok(bundle);
+	assert.deepEqual(richtext.get(bundle), []);
+	for (const imports of richtext.values())
+		for (const specifier of imports) assert.doesNotMatch(specifier, parser);
+	const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+	for (const name of Object.keys(manifest.dependencies)) assert.doesNotMatch(name, parser);
 	// The Markdown editor loads the parser on demand; nothing may import it up front.
 	for (const [entry, lazy] of [
 		['../dist/index.js', false],
@@ -65,6 +77,7 @@ test('the Markdown parser stays out of the main entry and RichText', () => {
 	]) {
 		for (const [file, imports] of graph(entry, lazy)) {
 			assert.doesNotMatch(file, /richtext\/markdown\.js$/, `${entry} reaches ${file}`);
+			assert.doesNotMatch(file, bundled, `${entry} reaches ${file}`);
 			for (const specifier of imports) assert.doesNotMatch(specifier, parser, file);
 		}
 	}

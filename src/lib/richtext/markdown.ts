@@ -1,7 +1,7 @@
-import { fromMarkdown } from 'mdast-util-from-markdown';
-import { gfmStrikethrough } from 'micromark-extension-gfm-strikethrough';
-import { gfmStrikethroughFromMarkdown } from 'mdast-util-gfm-strikethrough';
-import type { Definition, Nodes, PhrasingContent, RootContent, Text } from 'mdast';
+import type { Definition, Nodes, PhrasingContent, Root, RootContent, Text } from 'mdast';
+// The parser is bundled into the kit. Its packages' development builds need bundler setup in
+// every app (they import CommonJS), and this is the same production build everywhere.
+import { markdownTree } from './vendor/markdown-tree.js';
 import {
 	safeWebUrl,
 	type RichTextBlock,
@@ -248,10 +248,7 @@ function collectDefinitions(node: Nodes, definitions: Map<string, Definition>, d
  */
 export function parseMarkdown(text: string, options: PlainTextOptions = {}): RichTextDocument {
 	if (exceedsMarkdownLimits(text)) return parsePlainText(text, options);
-	const tree = fromMarkdown(text, {
-		extensions: [gfmStrikethrough({ singleTilde: false })],
-		mdastExtensions: [gfmStrikethroughFromMarkdown()]
-	});
+	const tree = markdownTree(text) as Root;
 	const definitions = new Map<string, Definition>();
 	collectDefinitions(tree, definitions);
 	const context: Context = {
