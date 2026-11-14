@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openPage } from './e2e-helpers.js';
 
 async function documentMode(page: Page, mode: 'light' | 'dark' | 'system') {
+	await expect(page.locator('[data-demo-ready]')).toBeVisible();
 	await page.evaluate((mode) => {
 		// Remove the playground's local mode classes so only the document/browser
 		// decides. No app-specific dark variant or popup mode snapshot is involved.
@@ -26,7 +28,7 @@ for (const browserMode of ['light', 'dark'] as const) {
 		test(`${mode} document mode with a ${browserMode} browser preference`, async ({ page }) => {
 			await page.emulateMedia({ colorScheme: browserMode });
 			const dark = (mode === 'system' ? browserMode : mode) === 'dark';
-			await page.goto('/components/Popover', { waitUntil: 'networkidle' });
+			await openPage(page, '/components/Popover');
 			await documentMode(page, mode);
 			const field = page.getByRole('combobox', { name: 'Choose component' });
 			const expectedInk = await color(page, dark ? 'base-50' : 'base-950');
@@ -44,7 +46,7 @@ for (const browserMode of ['light', 'dark'] as const) {
 			await page.keyboard.press('Escape');
 
 			// The older event components must follow exactly the same mode rules.
-			await page.goto('/components/EventCard', { waitUntil: 'networkidle' });
+			await openPage(page, '/components/EventCard');
 			await documentMode(page, mode);
 			await expect(page.locator('[data-demo-ready="EventCard"] h3').first()).toHaveCSS(
 				'color',
@@ -55,7 +57,7 @@ for (const browserMode of ['light', 'dark'] as const) {
 }
 
 test('an open popup follows document mode changes without reopening', async ({ page }) => {
-	await page.goto('/components/Popover', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/Popover');
 	await documentMode(page, 'light');
 	await page.getByRole('button', { name: 'Collection options', exact: true }).click();
 	const popup = page.getByRole('dialog', { name: 'Collection options', exact: true });
@@ -77,7 +79,7 @@ test('an open popup follows document mode changes without reopening', async ({ p
 
 test('an open popup follows live browser preferences in system mode', async ({ page }) => {
 	await page.emulateMedia({ colorScheme: 'light' });
-	await page.goto('/components/Popover', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/Popover');
 	await documentMode(page, 'system');
 	await page.getByRole('button', { name: 'Collection options', exact: true }).click();
 	const popup = page.getByRole('dialog', { name: 'Collection options', exact: true });
@@ -95,7 +97,7 @@ test('an open popup follows live browser preferences in system mode', async ({ p
 });
 
 test('925 and 975 resolve from the selected base and accent ramps', async ({ page }) => {
-	await page.goto('/components/Input', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/Input');
 	const differences = await page
 		.locator('[data-testid="individual-example"]')
 		.evaluate((element) => {

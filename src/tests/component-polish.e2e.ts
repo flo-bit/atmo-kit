@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { openPage } from './e2e-helpers.js';
 
 for (const width of [390, 1280]) {
 	test(`checkbox examples and popover actions stack without collisions at ${width}px`, async ({
 		page
 	}) => {
 		await page.setViewportSize({ width, height: 900 });
-		await page.goto('/components/Checkbox', { waitUntil: 'networkidle' });
+		await openPage(page, '/components/Checkbox');
 		const bounds = async (name: string) =>
 			page
 				.getByRole('checkbox', { name, exact: true })
@@ -14,7 +15,7 @@ for (const width of [390, 1280]) {
 		const first = await bounds('Notify me about replies');
 		const second = await bounds('Unavailable option');
 		expect(second.top - first.bottom).toBeGreaterThanOrEqual(12);
-		await page.goto('/components/Popover', { waitUntil: 'networkidle' });
+		await openPage(page, '/components/Popover');
 		await page.getByRole('button', { name: 'Collection options', exact: true }).click();
 		const dialog = page.getByRole('dialog', { name: 'Collection options', exact: true });
 		await expect(dialog).toBeVisible();
@@ -44,7 +45,7 @@ for (const width of [390, 1280]) {
 
 test('rounded native checkboxes remain keyboard-operable in forced colors', async ({ page }) => {
 	await page.emulateMedia({ forcedColors: 'active' });
-	await page.goto('/components/Checkbox', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/Checkbox');
 	const checkbox = page.getByRole('checkbox', { name: 'Notify me about replies', exact: true });
 	await expect(checkbox).toBeChecked();
 	await expect(checkbox).toHaveCSS('appearance', 'auto');

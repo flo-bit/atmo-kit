@@ -45,41 +45,43 @@ test('masonry keeps natural image ratios and zooms subtly unless reduced motion 
 	await expect(image).toHaveCSS('transition-duration', '0s');
 });
 
-for (const width of [320, 1280]) {
-	for (const mode of ['light', 'dark']) {
-		test(`shared media: ${width}px, ${mode}`, async ({ page }) => {
-			await page.setViewportSize({ width, height: 1000 });
-			let reads = 0;
-			await page.route('https://grain.social/xrpc/**', async (route) => {
-				reads++;
-				await route.abort();
-			});
-			await page.goto('/examples');
-			await expect(page.getByRole('button', { name: /View photo 1/ })).toBeVisible();
-			if (mode === 'light')
-				await page.getByRole('button', { name: 'Switch to light mode' }).click();
-			await page.getByRole('button', { name: 'Choose photo album', exact: true }).click();
-			await expect(
-				page.getByRole('button', { name: 'Add An afternoon outdoors', exact: true })
-			).toBeVisible();
-			await audit(page);
-			await page.getByRole('button', { name: 'Add An afternoon outdoors', exact: true }).click();
-			await expect(page.getByRole('dialog')).not.toBeVisible();
-			const thumbnail = page.getByRole('button', { name: /View photo 1/ });
-			await thumbnail.click();
-			await expect(page.getByRole('dialog')).toHaveAccessibleName('An afternoon outdoors · 1 / 2');
-			await audit(page);
-			await page.keyboard.press('ArrowRight');
-			await expect(page.getByRole('dialog')).toHaveAccessibleName('An afternoon outdoors · 2 / 2');
-			await page.keyboard.press('Escape');
-			await expect(thumbnail).toBeFocused();
-			await page.getByRole('button', { name: 'Choose stream', exact: true }).click();
-			await audit(page);
-			await page.getByRole('button', { name: 'Add my Streamplace link', exact: true }).click();
-			await expect(
-				page.getByRole('status').filter({ hasText: 'Selected https://stream.place/alice.example.' })
-			).toBeVisible();
-			expect(reads).toBe(0);
+// Cover both breakpoints and both themes without replaying the same flow for
+// their full Cartesian product. Theme propagation has its own focused tests.
+for (const [width, mode] of [
+	[320, 'dark'],
+	[1280, 'light']
+] as const) {
+	test(`shared media: ${width}px, ${mode}`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 1000 });
+		let reads = 0;
+		await page.route('https://grain.social/xrpc/**', async (route) => {
+			reads++;
+			await route.abort();
 		});
-	}
+		await page.goto('/examples');
+		await expect(page.getByRole('button', { name: /View photo 1/ })).toBeVisible();
+		if (mode === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
+		await page.getByRole('button', { name: 'Choose photo album', exact: true }).click();
+		await expect(
+			page.getByRole('button', { name: 'Add An afternoon outdoors', exact: true })
+		).toBeVisible();
+		await audit(page);
+		await page.getByRole('button', { name: 'Add An afternoon outdoors', exact: true }).click();
+		await expect(page.getByRole('dialog')).not.toBeVisible();
+		const thumbnail = page.getByRole('button', { name: /View photo 1/ });
+		await thumbnail.click();
+		await expect(page.getByRole('dialog')).toHaveAccessibleName('An afternoon outdoors · 1 / 2');
+		await audit(page);
+		await page.keyboard.press('ArrowRight');
+		await expect(page.getByRole('dialog')).toHaveAccessibleName('An afternoon outdoors · 2 / 2');
+		await page.keyboard.press('Escape');
+		await expect(thumbnail).toBeFocused();
+		await page.getByRole('button', { name: 'Choose stream', exact: true }).click();
+		await audit(page);
+		await page.getByRole('button', { name: 'Add my Streamplace link', exact: true }).click();
+		await expect(
+			page.getByRole('status').filter({ hasText: 'Selected https://stream.place/alice.example.' })
+		).toBeVisible();
+		expect(reads).toBe(0);
+	});
 }

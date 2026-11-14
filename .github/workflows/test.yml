@@ -7,11 +7,16 @@ on:
 permissions:
   contents: read
 
+# Superseded PR runs are disposable; release runs must finish in order.
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
-    name: Check, test, and build
+  check:
+    name: Check and build
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -25,8 +30,43 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm lint
       - run: pnpm check
-      - run: pnpm test:ci
       - run: pnpm build
+      # build already runs prepack; test that output instead of packaging it again.
+      - run: pnpm test:package:built
+
+  browser:
+    name: Unit, component, and browser tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
+      - run: pnpm test:unit --run --no-file-parallelism
+      - run: pnpm test:e2e
+
+  test:
+    # Keep the existing required status check, covering both parallel jobs.
+    name: Check, test, and build
+    needs: [check, browser]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Require all checks to pass
+        env:
+          CHECK_RESULT: ${{ needs.check.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: test "$CHECK_RESULT" = success && test "$BROWSER_RESULT" = success

@@ -1,11 +1,19 @@
 import { expect, test } from '@playwright/test';
-import { catalog } from '../playground/catalog.js';
-import { isolatedDemos } from '../playground/gallery/registry.js';
+import { demoGroups, isolatedDemos } from '../playground/gallery/registry.js';
+import { openPage } from './e2e-helpers.js';
 
-for (const component of catalog.flatMap((group) => group.components)) {
-	test(`${component.name} has a real, self-contained visual example at desktop and mobile sizes`, async ({
-		page
-	}) => {
+// /components renders every inline demo, and catalog.spec.ts checks the inventory.
+// Exercise each lazy-loaded module and each iframe here, not the same route shell
+// for every export. Component behavior belongs in the focused component tests.
+const standaloneDemos = new Set([
+	...demoGroups.flatMap((group) =>
+		group.names.filter((name) => !isolatedDemos.has(name)).slice(0, 1)
+	),
+	...isolatedDemos
+]);
+
+for (const name of standaloneDemos) {
+	test(`${name} has a self-contained example at desktop and mobile sizes`, async ({ page }) => {
 		const errors: string[] = [],
 			external: string[] = [];
 		page.on('pageerror', (error) => errors.push(error.message));
@@ -13,9 +21,9 @@ for (const component of catalog.flatMap((group) => group.components)) {
 			if (request.url().startsWith('http') && !request.url().startsWith('http://127.0.0.1:5190/'))
 				external.push(request.url());
 		});
-		await page.goto(`/components/${component.name}`, { waitUntil: 'networkidle' });
-		const scope = isolatedDemos.has(component.name) ? page.frameLocator('iframe') : page;
-		const example = scope.locator(`[data-demo-ready="${component.name}"]`);
+		await openPage(page, `/components/${name}`);
+		const scope = isolatedDemos.has(name) ? page.frameLocator('iframe') : page;
+		const example = scope.locator(`[data-demo-ready="${name}"]`);
 		await expect(example).toBeVisible();
 		await expect
 			.poll(() =>
@@ -57,7 +65,7 @@ test('dialog examples open, close with Escape, and restore focus', async ({ page
 		['StreamplacePicker', 'Choose stream'],
 		['ReportDialog', 'Report content']
 	]) {
-		await page.goto(`/components/${name}`, { waitUntil: 'networkidle' });
+		await openPage(page, `/components/${name}`);
 		const trigger = page.getByRole('button', { name: triggerName, exact: true });
 		await trigger.click();
 		await expect(page.getByRole('dialog')).toBeVisible();
@@ -68,7 +76,7 @@ test('dialog examples open, close with Escape, and restore focus', async ({ page
 });
 
 test('local event comments show populated, empty, and error states', async ({ page }) => {
-	await page.goto('/components/EventComments', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/EventComments');
 	const frame = page.frameLocator('iframe');
 	await expect(frame.getByText('Looking forward to seeing what everyone is making!')).toBeVisible();
 	await frame.getByLabel('Thread state').selectOption('empty');
@@ -80,10 +88,10 @@ test('local event comments show populated, empty, and error states', async ({ pa
 });
 
 test('metadata examples render their actual document-head effects', async ({ page }) => {
-	await page.goto('/components/PageTitle', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/PageTitle');
 	await page.getByLabel('Page title', { exact: true }).fill('A different title');
 	await expect(page).toHaveTitle('A different title — Atmo Kit');
-	await page.goto('/components/AtTags', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/AtTags');
 	await expect(page.locator('meta[name="at:canonical"]')).toHaveCount(1);
 	await page.getByLabel('Include record metadata').uncheck();
 	await expect(page.locator('meta[name="at:canonical"]')).toHaveCount(0);

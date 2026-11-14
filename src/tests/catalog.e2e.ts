@@ -2,18 +2,25 @@ import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { catalog } from '../playground/catalog.js';
 import { isolatedDemos } from '../playground/gallery/registry.js';
+import { openPage } from './e2e-helpers.js';
 
 test('gallery links every public component to its own visual example', async ({ page }) => {
-	await page.goto('/components');
-	for (const group of catalog) {
-		await expect(page.getByRole('heading', { name: group.title, exact: true })).toBeVisible();
-		for (const component of group.components) {
-			await expect(page.getByRole('link', { name: component.name, exact: true })).toHaveAttribute(
-				'href',
-				`/components/${component.name}`
-			);
-		}
-	}
+	await openPage(page, '/components');
+	await expect(page.getByRole('heading', { level: 2 })).toHaveText(
+		catalog.map((group) => group.title)
+	);
+	// Check the whole inventory in one browser round trip, rather than one per link.
+	expect(
+		await page
+			.locator('main a[href^="/components/"]')
+			.evaluateAll((links) =>
+				links.map((link) => ({ name: link.textContent?.trim(), href: link.getAttribute('href') }))
+			)
+	).toEqual(
+		catalog.flatMap((group) =>
+			group.components.map(({ name }) => ({ name, href: `/components/${name}` }))
+		)
+	);
 	await page
 		.getByRole('navigation', { name: 'Component groups' })
 		.getByRole('link', { name: 'Events', exact: true })
@@ -29,12 +36,25 @@ test('gallery links every public component to its own visual example', async ({ 
 test('gallery stays accessible and fits mobile and desktop in both themes', async ({ page }) => {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.goto('/components', { waitUntil: 'domcontentloaded' });
+	await openPage(page, '/components');
 	// Wait for the actual previews, not unrelated requests or lazy iframe loading.
 	const inlinePreviews = catalog
 		.flatMap((group) => group.components)
 		.filter((component) => !isolatedDemos.has(component.name));
-	await expect(page.locator('[data-demo-ready]')).toHaveCount(inlinePreviews.length);
+	const previews = page.locator('[data-demo-ready]');
+	await expect(previews).toHaveCount(inlinePreviews.length);
+	expect(
+		await previews.evaluateAll((examples) =>
+			examples
+				.filter(
+					(example) =>
+						!example.querySelector(
+							'button, input, select, textarea, a, svg, img, h1, h2, h3, p, dl, video, span'
+						)
+				)
+				.map((example) => example.getAttribute('data-demo-ready'))
+		)
+	).toEqual([]);
 	await page.evaluate(() => document.fonts.ready);
 	for (const mode of ['dark', 'light']) {
 		if (mode === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
@@ -56,7 +76,7 @@ test('gallery stays accessible and fits mobile and desktop in both themes', asyn
 test('individual examples can be switched without retaining the previous component state', async ({
 	page
 }) => {
-	await page.goto('/components/Input', { waitUntil: 'networkidle' });
+	await openPage(page, '/components/Input');
 	await page.getByLabel('Display name', { exact: true }).fill('A changed name');
 	await page.getByLabel('Choose component').selectOption('Button');
 	await expect(page.getByRole('button', { name: 'Primary', exact: true })).toBeVisible();
@@ -68,7 +88,7 @@ test('individual examples can be switched without retaining the previous compone
 
 test('workspace sidebar opens as a mobile drawer and closes after navigation', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 900 });
-	await page.goto('/navigation', { waitUntil: 'networkidle' });
+	await openPage(page, '/navigation');
 	await page.getByLabel('Layout', { exact: true }).selectOption('sidebar');
 	const trigger = page.getByRole('button', { name: 'Open navigation', exact: true });
 	await trigger.click();

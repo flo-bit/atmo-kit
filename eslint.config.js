@@ -29,7 +29,7 @@ export default defineConfig(
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {
-				projectService: true,
+				// No type-aware lint rules are enabled; svelte-check handles types.
 				extraFileExtensions: ['.svelte'],
 				parser: ts.parser
 			}

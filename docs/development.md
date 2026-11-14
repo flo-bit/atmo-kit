@@ -37,9 +37,14 @@ pnpm build
 ```
 
 `test:ci` runs Vitest without file parallelism, Playwright end-to-end tests, and
-built-package tests. Install Chromium with `pnpm exec playwright install chromium`
-if it is not available locally. Use `--with-deps` on Linux when system libraries
-are missing.
+built-package tests. Install headless Chromium with
+`pnpm exec playwright install --only-shell chromium` if it is not available locally.
+Use `--with-deps` on Linux when system libraries are missing.
+
+CI runs lint/type/build/package checks alongside the unit/component/browser tests
+in two parallel jobs. Package tests reuse the build output; Chromium is installed
+only in the browser job. New PR pushes cancel superseded runs. The existing
+“Check, test, and build” status requires both jobs to pass.
 
 For focused work:
 
@@ -53,8 +58,22 @@ pnpm test:package
 
 `pnpm prepack` builds `dist/` with `svelte-package` and runs `publint`.
 `test:package` uses the actual built entry points without Vite aliases to check
-server-safe import graphs. `pnpm build` also builds the local SvelteKit site;
-it does not deploy anything.
+server-safe import graphs. After `pnpm build`, use `pnpm test:package:built` to
+check the existing `dist/` without rebuilding it. `pnpm build` also builds the local
+SvelteKit site; it does not deploy anything.
+
+Browser tests wait for the playground's hydration marker via `openPage`, then
+assert the UI state they need, rather than waiting for network idleness. Playwright
+uses two workers and schedules tests independently of their files. Its list
+reporter shows individual timings in CI. Traces are opt-in, so successful runs
+don't record and discard DOM snapshots for every action. For debugging, use
+`pnpm test:e2e --trace retain-on-failure` (optionally with a test file).
+
+Keep browser coverage focused: the catalog checks every inline demo renders, and
+standalone smoke tests cover one demo per lazy-loaded module plus every isolated
+iframe. Interaction, security, accessibility, and layout regressions belong in
+focused tests. Avoid replaying identical flows for every export or every
+viewport/theme combination.
 
 ## Where things live
 

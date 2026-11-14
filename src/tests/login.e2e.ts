@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { openPage } from './e2e-helpers.js';
 const inline = (page: Page) => page.getByRole('region', { name: 'On the page' });
 const audit = async (page: Page) =>
 	expect(
@@ -10,7 +11,7 @@ const audit = async (page: Page) =>
 test('manual handles, validation, and permission choices reach only the app callback', async ({
 	page
 }) => {
-	await page.goto('/login', { waitUntil: 'networkidle' });
+	await openPage(page, '/login');
 	const form = inline(page);
 	await form.getByRole('button', { name: 'Log in', exact: true }).click();
 	await expect(form.getByRole('alert')).toHaveText('Enter your handle or DID.');
@@ -38,7 +39,7 @@ test('manual DIDs retain case through validation, permission review, and the app
 		'did:plc:abcdefghijklmnopqrstuvwx',
 		'did:web:example.com%3A8443:Users:Alice'
 	]) {
-		await page.goto('/login', { waitUntil: 'networkidle' });
+		await openPage(page, '/login');
 		const form = inline(page);
 		const input = form.getByRole('combobox', { name: 'Your handle', exact: true });
 		await input.fill('did:web:');
@@ -58,7 +59,7 @@ test('manual DIDs retain case through validation, permission review, and the app
 test('keyboard actor search, selected-account clearing, and search failure fallback', async ({
 	page
 }) => {
-	await page.goto('/login', { waitUntil: 'networkidle' });
+	await openPage(page, '/login');
 	const form = inline(page);
 	let input = form.getByRole('combobox', { name: 'Your handle' });
 	await input.fill('mika');
@@ -82,7 +83,7 @@ test('keyboard actor search, selected-account clearing, and search failure fallb
 test('dialog and nested search portals preserve theme, Escape order, focus, and reset', async ({
 	page
 }) => {
-	await page.goto('/login', { waitUntil: 'networkidle' });
+	await openPage(page, '/login');
 	await page.getByRole('combobox', { name: 'Accent color' }).selectOption('blue');
 	const trigger = page.getByRole('button', { name: 'Open login dialog' });
 	await trigger.click();
@@ -123,7 +124,7 @@ test('dialog and nested search portals preserve theme, Escape order, focus, and 
 test('recent-account removal restores useful focus and recent selection reviews permissions', async ({
 	page
 }) => {
-	await page.goto('/login', { waitUntil: 'networkidle' });
+	await openPage(page, '/login');
 	await page.getByRole('button', { name: 'Load recent accounts' }).click();
 	const form = inline(page);
 	await form.getByRole('button', { name: 'Forget @mika.example.com' }).click();
@@ -144,7 +145,7 @@ test('recent-account removal restores useful focus and recent selection reviews 
 test('callback failures stay visible and retry works without permission review', async ({
 	page
 }) => {
-	await page.goto('/login', { waitUntil: 'networkidle' });
+	await openPage(page, '/login');
 	await page.getByRole('checkbox', { name: 'Review permissions', exact: true }).uncheck();
 	await page.getByRole('checkbox', { name: 'Simulate a login error' }).check();
 	const form = inline(page);
@@ -166,7 +167,7 @@ test('login states pass accessibility, responsive, and inset-only audits in both
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	for (const mode of ['dark', 'light']) {
-		await page.goto('/login', { waitUntil: 'networkidle' });
+		await openPage(page, '/login');
 		if (mode === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
 		await audit(page);
 		await page.getByRole('button', { name: 'Open login dialog' }).click();

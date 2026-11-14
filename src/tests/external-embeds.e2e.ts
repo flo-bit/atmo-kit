@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { openPage } from './e2e-helpers.js';
 
 test('YouTube stays click-to-load and Klipy respects reduced motion', async ({ page }) => {
 	const requests: string[] = [];
@@ -17,7 +18,7 @@ test('YouTube stays click-to-load and Klipy respects reduced motion', async ({ p
 			body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
 		});
 	});
-	await page.goto('/examples', { waitUntil: 'networkidle' });
+	await openPage(page, '/examples');
 	const preview = page.getByTestId('post-preview');
 	const attachments = page.getByRole('group', { name: 'Post attachment' });
 	await attachments.getByRole('radio', { name: 'YouTube', exact: true }).click();
@@ -70,7 +71,7 @@ test('Klipy autoplays like a GIF with a pause option, while YouTube still needs 
 			body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
 		});
 	});
-	await page.goto('/examples', { waitUntil: 'networkidle' });
+	await openPage(page, '/examples');
 	const preview = page.getByTestId('post-preview');
 	const attachments = page.getByRole('group', { name: 'Post attachment' });
 	await attachments.getByRole('radio', { name: 'Klipy', exact: true }).click();
