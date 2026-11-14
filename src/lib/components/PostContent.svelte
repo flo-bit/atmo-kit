@@ -9,6 +9,7 @@
 	import RichText from './RichText.svelte';
 	import type { ExternalEmbedProvider } from '../social/external-embeds.js';
 	import ExternalEmbed from './ExternalEmbed.svelte';
+	import type { LinkEmbed } from '../embeds/types.js';
 	import PostVideo from './PostVideo.svelte';
 	import PostImages from './PostImages.svelte';
 	import Avatar from './Avatar.svelte';
@@ -16,12 +17,15 @@
 	let {
 		post,
 		socialClient,
-		embedProviders
+		embedProviders,
+		linkEmbeds = false
 	}: {
 		post: PostData;
 		socialClient?: PreferredSocialClient | null;
 		/** Defaults to YouTube and Klipy. Pass [] to render only ordinary link cards. */
 		embedProviders?: readonly ExternalEmbedProvider[];
+		/** Show links to posts, profiles and other known pages as embeds instead of cards. */
+		linkEmbeds?: boolean | readonly LinkEmbed[];
 	} = $props();
 	const recordKinds = {
 		feed: { label: 'Feed', icon: Radio },
@@ -34,7 +38,12 @@
 {#if post.text}<RichText text={post.text} facets={post.facets} class="text-sm" />{/if}
 {#each post.embeds ?? [] as embed, index (index)}
 	<div class={post.text || index ? 'mt-2.5' : ''}>
-		{#if embed.type === 'external'}<ExternalEmbed {embed} providers={embedProviders} />
+		{#if embed.type === 'external'}<ExternalEmbed
+				{embed}
+				providers={embedProviders}
+				embeds={linkEmbeds}
+				{socialClient}
+			/>
 		{:else if embed.type === 'images'}<PostImages images={embed.images} />
 		{:else if embed.type === 'video'}<PostVideo
 				playlist={embed.playlist}
@@ -88,7 +97,7 @@
 							>
 							@{embed.post.author.handle}</span
 						></a
-					><PostContent post={embed.post} {socialClient} {embedProviders} />{:else}<p
+					><PostContent post={embed.post} {socialClient} {embedProviders} {linkEmbeds} />{:else}<p
 						class="text-xs text-base-600 dark:text-base-400"
 					>
 						{embed.reason === 'blocked'

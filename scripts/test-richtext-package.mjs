@@ -71,3 +71,11 @@ test('the Markdown parser stays out of the main entry and RichText', () => {
 	const editor = graph('../dist/editor/markdown.js');
 	assert.ok([...editor.keys()].some((file) => /richtext\/markdown\.js$/.test(file)));
 });
+
+test('LinkEmbed is exported as a component, not only as a type', () => {
+	const types = readFileSync(
+		new URL('../dist/components/LinkEmbed.svelte.d.ts', import.meta.url),
+		'utf8'
+	);
+	assert.doesNotMatch(types, /import type \{[^}]*\bLinkEmbed\b(?! as)[^}]*\}/);
+});

@@ -1,9 +1,11 @@
 <script lang="ts" module>
 	import type { Component } from 'svelte';
-	import type { LinkEmbed, LinkEmbedProps } from '../embeds/types.js';
+	// Not imported as `LinkEmbed`: the generated types would give that name to the import
+	// instead of this component, leaving consumers with a type-only export.
+	import type { LinkEmbed as Definition, LinkEmbedProps } from '../embeds/types.js';
 
 	// Loaded components are kept, so later embeds of the same kind render without a flash.
-	const loaded = new WeakMap<LinkEmbed, Component<LinkEmbedProps>>();
+	const loaded = new WeakMap<Definition, Component<LinkEmbedProps>>();
 </script>
 
 <script lang="ts">

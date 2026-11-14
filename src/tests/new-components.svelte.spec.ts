@@ -191,6 +191,20 @@ describe('post presentation', () => {
 		expect(card.getAttribute('data-example')).toBe('forwarded');
 		expect(card.className).toContain('rounded-none');
 	});
+	it('opens in-app paths in the same tab and ignores anything that is not a path', async () => {
+		const view = render(LinkCard, {
+			href: 'https://bsky.app/profile/alice.example.com',
+			localHref: '/profile/alice.example.com',
+			meta: { title: 'Alice' }
+		});
+		const card = document.querySelector('a')!;
+		expect(card.getAttribute('href')).toBe('/profile/alice.example.com');
+		expect(card.hasAttribute('target')).toBe(false);
+		await expect.element(page.getByText('bsky.app')).toBeVisible();
+		await view.rerender({ localHref: '//evil.example/x' });
+		expect(card.getAttribute('href')).toBe('https://bsky.app/profile/alice.example.com');
+		expect(card.getAttribute('target')).toBe('_blank');
+	});
 	it('escapes text, ignores unsafe facets, and keeps unavailable quotes readable', async () => {
 		render(PostContent, {
 			post: {

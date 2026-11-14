@@ -130,7 +130,8 @@ test('composer previews real mention facets and leaves empty/over-limit validati
 	await editor.press('Enter');
 	await editor.press('End');
 	await editor.pressSequentially(' #smallweb https://example.com');
-	await page.getByRole('button', { name: 'Preview post', exact: true }).click();
+	const submit = page.getByRole('button', { name: 'Post', exact: true });
+	await submit.click();
 	await expect(page.getByTestId('component-status')).toContainText('Nothing was published.');
 	await page.getByText('Serialized post', { exact: true }).click();
 	const serialized = JSON.parse(await page.getByTestId('serialized-post').innerText());
@@ -145,13 +146,12 @@ test('composer previews real mention facets and leaves empty/over-limit validati
 	await expect(
 		preview(page).getByRole('link', { name: '@mika.example.com', exact: true })
 	).toHaveAttribute('href', 'https://bsky.app/profile/did:plc:abcdefghijklmnopqrstuvwx');
-	// Use the editor's select-all command so atom mentions are part of the selection.
-	await editor.press('ControlOrMeta+a');
-	await editor.press('Backspace');
-	await expect(page.getByRole('button', { name: 'Preview post', exact: true })).toBeDisabled();
+	// The composer clears once the post is handed over.
+	await expect(editor).toHaveText('');
+	await expect(submit).toBeDisabled();
 	await editor.fill('👩🏽‍💻'.repeat(101));
-	await expect(page.getByText('101 / 100', { exact: true })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Preview post', exact: true })).toBeDisabled();
+	await expect(page.getByRole('status', { name: '-1 characters left' })).toBeVisible();
+	await expect(submit).toBeDisabled();
 	await expect(editor).toHaveAttribute('contenteditable', 'true');
 });
 test('popover form preserves its source theme, saves/cancels locally, and restores focus', async ({

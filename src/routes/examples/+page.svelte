@@ -29,9 +29,8 @@
 		accentColors,
 		baseColors,
 		cn,
-		graphemeLength,
-		textToDoc,
-		type Editor
+		blueskyGifSearch,
+		type ComposerContent
 	} from '#lib';
 	import { ArrowLeft, Moon, Sun, Link, ArrowRight, X } from '@sketchyicons/svelte';
 	import MediaExamples from '../../playground/components/MediaExamples.svelte';
@@ -66,18 +65,15 @@
 	let typeahead = $state<keyof typeof actorSearchProviders>('bluesky');
 	$effect(() => configureActorSearch(actorSearchProviders[typeahead]));
 	let title = $state(initialTitle),
-		disabled = $state(false),
-		draft = $state(initialDraft);
+		disabled = $state(false);
 	let linkTitle = $state(initialTitle),
 		draftLinkTitle = $state(initialTitle);
 	let kind = $state('link'),
 		videoUnavailable = $state(false);
-	let editor = $state<Editor | null>(null),
-		post = $state(postFromDoc(sampleDoc));
+	let post = $state(postFromDoc(sampleDoc));
 	let signedIn = $state(true);
 	let status = $state('Local examples. Nothing is published.');
 	const limit = 100;
-	const length = $derived(graphemeLength(draft));
 	const coast = $derived(new URL(coastAsset, page.url.origin).href);
 	const forest = $derived(new URL(forestAsset, page.url.origin).href);
 	const playlist = $derived(new URL(asset('playground/video/sample.m3u8'), page.url.href).href);
@@ -103,10 +99,8 @@
 		popoverOpen = false;
 		status = 'Link title updated in the post preview.';
 	}
-	function previewPost(event: SubmitEvent) {
-		event.preventDefault();
-		if (!draft.trim() || length > limit) return;
-		post = postFromDoc(editor?.getJSON() ?? textToDoc(draft));
+	async function previewPost({ posts }: ComposerContent) {
+		post = { ...post, text: posts[0].text, facets: posts[0].facets };
 		status = 'Draft copied to the post preview. Nothing was published.';
 	}
 </script>
@@ -237,15 +231,21 @@
 			</section>
 			<section aria-labelledby="composer-heading">
 				<Subheading id="composer-heading" class="mb-5">Post composer</Subheading><Surface
-					class="p-5"
-					><form onsubmit={previewPost}>
-						<PostComposer bind:value={draft} bind:editor {searchActors} maxLength={limit} />
-						<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-							<p class="text-xs text-base-600 dark:text-base-400">Type @mika to add a mention.</p>
-							<Button type="submit" disabled={!draft.trim() || length > limit}>Preview post</Button>
-						</div>
-					</form></Surface
+					class="overflow-hidden p-0"
 				>
+					<PostComposer
+						text={initialDraft}
+						author={{ name: 'Mika Chen' }}
+						{searchActors}
+						searchGifs={blueskyGifSearch}
+						gifCredit="Powered by KLIPY"
+						limits={{ length: limit }}
+						onsubmit={previewPost}
+					/>
+				</Surface>
+				<p class="mt-3 text-xs text-base-600 dark:text-base-400">
+					Type @mika to add a mention. Posting only updates the preview.
+				</p>
 				<details class="mt-4 text-xs text-base-600 dark:text-base-400">
 					<summary
 						class="w-fit cursor-pointer rounded py-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-700 dark:focus-visible:outline-accent-300"

@@ -57,7 +57,21 @@ export const catalog: CatalogGroup[] = [
 			component('Popover', 'Anchored, portaled content with dismissal and focus handling.'),
 			component('InlineEditor', 'In-place text editing, optionally single-line.'),
 			component('RichTextEditor', 'Notion-like Markdown or plain-text editing with live embeds.'),
-			component('PostComposer', 'Post editing with mentions and character limits.')
+			component(
+				'PostComposer',
+				'Threads with media, GIFs, emoji, languages and reply settings.',
+				'components/composer/PostComposer.svelte'
+			),
+			component(
+				'PostComposerDialog',
+				'The composer in a dialog that fills small screens.',
+				'components/composer/PostComposerDialog.svelte'
+			),
+			component(
+				'CharRing',
+				'Remaining characters as a ring.',
+				'components/composer/CharRing.svelte'
+			)
 		]
 	},
 	{

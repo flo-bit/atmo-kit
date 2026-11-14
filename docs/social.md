@@ -120,6 +120,61 @@ Each embed decides when it contacts other servers. Posts, profiles and GIFs load
 
 The older `embedLink` and `linkEmbed` snippet props of `RichText` still work for one-off custom rendering.
 
+### Link cards
+
+`LinkCard` shows a link as its image with the site and title over it, or as a text card with the description when there is no image (or it fails to load). It opens in a new tab. For a link the app can show itself, pass the path as `localHref`: the card then opens that in the same tab and still names the original site.
+
+`ExternalEmbed` and `PostContent` keep links as cards by default. Pass `embeds` to `ExternalEmbed`, or `linkEmbeds` to `PostContent`, to show links that match a link embed (see above) as that embed instead: `true` for the app's embeds, or a list. Media providers are tried first, and the card stays as the fallback.
+
+### Post composer
+
+`PostComposer` writes one post or a thread, with images, video and captions, GIFs, emoji, link previews, content warnings, languages, reply and quote settings, and drafts. It publishes nothing itself: `onsubmit` receives the content and writes it.
+
+```svelte
+<script lang="ts">
+	import { PostComposerDialog, blueskyGifSearch, blueskyLinkPreview } from '@atmo-dev/kit';
+
+	let open = $state(false);
+</script>
+
+<PostComposerDialog
+	bind:open
+	author={{ name: viewer.displayName, avatar: viewer.avatar }}
+	searchGifs={blueskyGifSearch}
+	gifCredit="Powered by KLIPY"
+	linkPreview={blueskyLinkPreview}
+	limits={{ images: 10 }}
+	onsubmit={async ({ posts, languages, replyRules, allowQuotes }, status) => {
+		status('Posting…');
+		await publish(posts, { languages, replyRules, allowQuotes });
+	}}
+/>
+```
+
+`onsubmit` gets the non-empty posts in order, each with `text`, `facets`, `images`, `video`, `gif`, `link` and `label`. Call `status` to show progress next to the button. Throw to show the error and keep the content; once it resolves the composer clears (and the dialog closes). `PostComposer` is the same thing without the dialog, for a page or a panel; `oncancel` adds its Cancel button.
+
+What can be changed:
+
+| Prop                                 | Changes                                                                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `features`                           | Turn off `images`, `video`, `gifs`, `emoji`, `languages`, `interactions`, `contentWarnings`, `linkPreviews` or `drafts`     |
+| `limits`                             | `length` (300), `images` (4), `posts` (25; 1 turns threads off), `videoBytes`, `captionBytes`, `languages` (3), `altLength` |
+| `labels`                             | `placeholder`, `threadPlaceholder`, `submit`, `submitAll`, `cancel`                                                         |
+| `searchGifs`, `gifCredit`            | Where GIFs come from. Without it there is no GIF button                                                                     |
+| `linkPreview`                        | Where link cards come from. Without it links get no card                                                                    |
+| `drafts`                             | `{ list, load, save, delete }`. Without it there are no drafts                                                              |
+| `replyLists`, `onsavedefault`        | Lists offered under "Some people", and a "Save as default" button                                                           |
+| `contentWarnings`, `languageOptions` | The offered warnings and languages                                                                                          |
+| `requireAlt`                         | Every image needs a description before posting                                                                              |
+| `replyTo`, `quote`                   | The post replied to (`{ name, text }`) and a snippet with the quoted post                                                   |
+| `text`, `files`                      | What a new composer starts with                                                                                             |
+| `actions`                            | A snippet with more toolbar buttons; it gets `{ post, insert, disabled }`                                                   |
+| `searchActors`                       | Mention suggestions                                                                                                         |
+
+`languages`, `replyRules` and `allowQuotes` are bindable, so the app can keep them between posts. `addFiles(files)` on the component attaches files from elsewhere, such as a page-wide drop.
+
+`blueskyGifSearch` and `blueskyLinkPreview` use Bluesky's public GIF and card services; nothing is requested from them unless they are passed in. `CharRing` is the composer's character counter on its own.
+
 ### Special link embeds
 
 External links use an ordered provider registry. YouTube watch, short, live, embed, and `youtu.be` links get a click-to-load, privacy-enhanced player. No YouTube iframe or SDK is loaded before activation; the preview uses only the supplied AppView thumbnail. Klipy's `static.klipy.com/ii/...` media links render GIFs or looping, muted video using Bluesky's media proxy, preserving the GIF description as alt text. Klipy media autoplays and loops without native video controls or a caption row. A small corner-overlay pause/play button controls the animation; pausing video preserves its current frame. With reduced motion enabled, it stays on the preview until explicitly played. Ordinary Klipy page links without a usable media URL remain link cards; no metadata API or API key is needed. Unknown URLs and playback failures fall back to the original link card.

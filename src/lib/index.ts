@@ -134,7 +134,35 @@ export type {
 	RichTextEditorProps,
 	RichTextEditorContent
 } from './components/RichTextEditor.svelte';
-export { default as PostComposer } from './components/PostComposer.svelte';
+export { default as PostComposer } from './components/composer/PostComposer.svelte';
+export type { PostComposerProps } from './components/composer/PostComposer.svelte';
+export { default as PostComposerDialog } from './components/composer/PostComposerDialog.svelte';
+export { default as CharRing } from './components/composer/CharRing.svelte';
+export {
+	blueskyGifSearch,
+	blueskyLinkPreview,
+	defaultComposerLimits,
+	defaultComposerLanguages,
+	defaultContentWarnings
+} from './social/composer.js';
+export type {
+	ComposerContent,
+	ComposerPost,
+	ComposerImage,
+	ComposerVideo,
+	ComposerGif,
+	ComposerLink,
+	ComposerReplyRule,
+	ComposerLimits,
+	ComposerFeatures,
+	ComposerLabels,
+	ComposerGifSearch,
+	ComposerGifResult,
+	ComposerLinkPreview,
+	ComposerDrafts,
+	ComposerDraftSummary,
+	ComposerContentWarning
+} from './social/composer.js';
 export { default as NestedComments } from './components/NestedComments.svelte';
 export { default as PostContent } from './components/PostContent.svelte';
 export { safeHttpUrl, safeLinkHref } from './urls.js';

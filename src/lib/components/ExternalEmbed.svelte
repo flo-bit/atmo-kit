@@ -10,14 +10,28 @@
 	import { focus } from '../styles.js';
 	import Icon from './Icon.svelte';
 	import LinkCard from './LinkCard.svelte';
+	import LinkEmbed from './LinkEmbed.svelte';
+	import { linkEmbedOptions, selectLinkEmbeds } from '../embeds/context.js';
+	import type { LinkEmbed as LinkEmbedDefinition } from '../embeds/types.js';
+	import type { PreferredSocialClient } from '../social/preferred-client.js';
 
 	let {
 		embed,
-		providers
+		providers,
+		embeds = false,
+		socialClient
 	}: {
 		embed: ExternalPostEmbed;
 		providers?: readonly ExternalEmbedProvider[];
+		/**
+		 * Show links that are not media as link embeds: `true` for the app's embeds (see
+		 * `setLinkEmbeds`), or a list. Off by default, so links stay cards.
+		 */
+		embeds?: boolean | readonly LinkEmbedDefinition[];
+		socialClient?: PreferredSocialClient | null;
 	} = $props();
+	const context = linkEmbedOptions();
+	let linkEmbeds = $derived(selectLinkEmbeds(embeds, context()));
 	let match = $derived(resolveExternalEmbed(embed, providers));
 	// Consent belongs to this resolved player, not to its position in the feed.
 	// A changed URL/provider/source never inherits an earlier click, even for one render.
@@ -152,9 +166,13 @@
 			>
 		{/if}
 	</div>
-{:else}
+{:else if linkEmbeds.length}
+	<LinkEmbed url={embed.uri} embeds={linkEmbeds} fallback={card} {socialClient} />
+{:else}{@render card()}{/if}
+
+{#snippet card()}
 	<LinkCard
 		href={embed.uri}
 		meta={{ title: embed.title, description: embed.description, image: embed.image }}
 	/>
-{/if}
+{/snippet}

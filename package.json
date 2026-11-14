@@ -179,6 +179,7 @@
 		"bits-ui": "^2.20.2",
 		"canvas-confetti": "^1.9.4",
 		"clsx": "^2.1.1",
+		"emoji-picker-element": "^1.29.1",
 		"esm-env": "^1.2.2",
 		"h3-js": "^4.5.0",
 		"hls.js": "^1.7.3",

@@ -8,6 +8,8 @@
 		Label,
 		Popover,
 		PostComposer,
+		PostComposerDialog,
+		CharRing,
 		Select,
 		Textarea,
 		ToggleGroup,
@@ -101,11 +103,24 @@
 		class="w-full text-sm"
 	/>
 {:else if name === 'PostComposer'}
-	<div class="w-full">
-		<PostComposer bind:value {searchActors} maxLength={300} />{#if !compact}<p
-				class="mt-3 text-xs text-base-600 dark:text-base-400"
-			>
-				Type @mika to try mentions. Nothing is published.
-			</p>{/if}
+	<div
+		class="w-full overflow-hidden rounded-panel border border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+	>
+		<PostComposer
+			author={{ name: 'Mika Chen' }}
+			{searchActors}
+			features={compact ? { interactions: false, languages: false, video: false } : {}}
+			onsubmit={async () => {}}
+		/>
 	</div>
+{:else if name === 'PostComposerDialog'}
+	<Button onclick={() => (open = true)}>New post</Button>
+	<PostComposerDialog
+		bind:open
+		author={{ name: 'Mika Chen' }}
+		{searchActors}
+		onsubmit={async () => {}}
+	/>
+{:else if name === 'CharRing'}
+	<CharRing length={285} max={300} />
 {/if}

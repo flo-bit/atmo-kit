@@ -30,3 +30,28 @@ export {
 	parseSocialPostUrl,
 	parseSocialProfileUrl
 } from './social/urls.js';
+export {
+	blueskyGifSearch,
+	blueskyLinkPreview,
+	defaultComposerLimits,
+	defaultComposerLanguages,
+	defaultContentWarnings
+} from './social/composer.js';
+export type {
+	ComposerContent,
+	ComposerPost,
+	ComposerImage,
+	ComposerVideo,
+	ComposerGif,
+	ComposerLink,
+	ComposerReplyRule,
+	ComposerLimits,
+	ComposerFeatures,
+	ComposerLabels,
+	ComposerGifSearch,
+	ComposerGifResult,
+	ComposerLinkPreview,
+	ComposerDrafts,
+	ComposerDraftSummary,
+	ComposerContentWarning
+} from './social/composer.js';

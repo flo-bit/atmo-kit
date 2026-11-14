@@ -2,7 +2,6 @@ import { page, userEvent } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import InlineEditor from '../lib/components/InlineEditor.svelte';
-import PostComposer from '../lib/components/PostComposer.svelte';
 import { editorJsonToBlueskyPost } from '../lib/social/richtext.js';
 
 describe('inline editors', () => {
@@ -41,12 +40,5 @@ describe('inline editors', () => {
 		expect(editorJsonToBlueskyPost(content.json).facets[0].features).toEqual([
 			{ $type: 'app.bsky.richtext.facet#mention', did: 'did:plc:bob' }
 		]);
-	});
-
-	it('counts emoji as one character and exposes over-limit drafts', async () => {
-		render(PostComposer, { value: '👩🏽‍💻', maxLength: 1 });
-		await expect.element(page.getByText('1 / 1', { exact: true })).toBeVisible();
-		await page.getByRole('textbox', { name: 'Post text' }).fill('👩🏽‍💻!');
-		await expect.element(page.getByText('2 / 1', { exact: true })).toBeVisible();
 	});
 });

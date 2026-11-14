@@ -33,7 +33,9 @@ export const demoGroups: DemoGroup[] = [
 			'Popover',
 			'InlineEditor',
 			'RichTextEditor',
-			'PostComposer'
+			'PostComposer',
+			'PostComposerDialog',
+			'CharRing'
 		],
 		load: () => import('./Forms.svelte')
 	},
