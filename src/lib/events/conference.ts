@@ -29,6 +29,8 @@ export interface ScheduleEvent {
 	room?: string;
 	description?: string;
 	did: string;
+	/** Actor for the talk's page link when the talk isn't in the conference author's repo. */
+	actor?: string;
 	uri: string;
 	cid?: string | null;
 	rsvpExpected?: boolean;

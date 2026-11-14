@@ -53,7 +53,9 @@
 	);
 	let initialRsvpRkey = $derived(rsvpRkeys[event.uri] ?? null);
 	let isPast = $derived(event.end ? new Date(event.end) < new Date() : false);
-	let eventHref = $derived(resolveEventUrls(adapter.urls).event(eventActor, event.rkey));
+	let eventHref = $derived(
+		resolveEventUrls(adapter.urls).event(event.actor ?? eventActor, event.rkey)
+	);
 </script>
 
 {#if linkableTypes.has(event.type) && event.rkey}

@@ -259,7 +259,9 @@
 	let conferenceRooms = $derived(getConferenceRooms(eventData));
 	let scheduleEvents = $derived(
 		isConference
-			? toScheduleEvents(data.conferenceTalks ?? [], eventUri, data.conferenceTalkDescriptions)
+			? toScheduleEvents(data.conferenceTalks ?? [], eventUri, data.conferenceTalkDescriptions).map(
+					(talk) => (talk.did === did ? talk : { ...talk, actor: talk.did })
+				)
 			: []
 	);
 
