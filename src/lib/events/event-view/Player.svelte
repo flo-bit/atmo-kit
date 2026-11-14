@@ -76,10 +76,12 @@
 	let captions = $state(!!captionsUrl);
 	let active = $state(true);
 	let scrubbing = $state(false);
+	/** A control holds keyboard focus; a control that was only clicked does not count. */
+	let focused = $state(false);
 	let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
 	$effect(() => {
-		controlsVisible = active || !playing || scrubbing;
+		controlsVisible = active || !playing || scrubbing || focused;
 	});
 	$effect(() => () => clearTimeout(hideTimer));
 
@@ -287,6 +289,8 @@
 
 	<div
 		data-part="controls"
+		onfocusin={(event) => (focused = (event.target as Element).matches(':focus-visible'))}
+		onfocusout={() => (focused = false)}
 		class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-2 pt-8 pb-1.5 transition-opacity duration-200 motion-reduce:transition-none {controlsVisible &&
 		(started || !live)
 			? 'opacity-100'

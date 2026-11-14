@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import VodPlayer, { type VodPlayerApi } from '../../lib/events/VodPlayer.svelte';
 import Player from '../../lib/events/event-view/Player.svelte';
@@ -41,6 +41,28 @@ describe('event video player', () => {
 		await expect.poll(() => api).toBeDefined();
 		api!.seek(3);
 		expect(video.currentTime).toBe(3);
+	});
+
+	it('keeps the controls up while one of them has keyboard focus', async () => {
+		const { container } = await render(Player, { title: 'Recording' });
+		const video = container.querySelector('video')!;
+		const controls = container.querySelector<HTMLElement>('[data-part=controls]')!;
+		const hidden = () => controls.classList.contains('opacity-0');
+		// Playing, with the pointer elsewhere: the controls step aside.
+		video.dispatchEvent(new Event('play'));
+		container.querySelector('[role=group]')!.dispatchEvent(new PointerEvent('pointerleave'));
+		await expect.poll(hidden).toBe(true);
+
+		await userEvent.tab();
+		await userEvent.tab();
+		expect(controls.contains(document.activeElement)).toBe(true);
+		await expect.poll(hidden).toBe(false);
+		// Longer than the idle timeout that hides them after pointer activity.
+		await new Promise((resolve) => setTimeout(resolve, 2800));
+		expect(hidden()).toBe(false);
+
+		(document.activeElement as HTMLElement).blur();
+		await expect.poll(hidden).toBe(true);
 	});
 
 	it('leaves out the timeline for a live stream', async () => {
