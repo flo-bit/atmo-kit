@@ -34,8 +34,9 @@ describe('shared native lightbox scrolling', () => {
 	it('starts at the bound photo, follows native scroll, and recenters loop copies', async () => {
 		render(PhotoLightbox, { photos, open: true, index: 1, label: 'Meetup' });
 		const dialog = page.getByRole('dialog');
-		await expect.poll(() => track()?.scrollLeft).toBe(window.innerWidth * 2);
+		await expect.element(dialog).toBeVisible();
 		const node = track();
+		await expect.poll(() => node.scrollLeft).toBe(node.clientWidth * 2);
 		expect(getComputedStyle(node).scrollSnapType).toBe('x mandatory');
 		expect(getComputedStyle(node).touchAction).toBe('auto');
 		node.scrollTo({ left: node.clientWidth, behavior: 'instant' });
@@ -53,8 +54,9 @@ describe('shared native lightbox scrolling', () => {
 	});
 	it('moves the image during a mouse drag, not only after release', async () => {
 		render(PhotoLightbox, { photos, open: true });
-		await expect.poll(() => track()?.scrollLeft).toBe(window.innerWidth);
+		await expect.element(page.getByRole('dialog')).toBeVisible();
 		const node = track();
+		await expect.poll(() => node.scrollLeft).toBe(node.clientWidth);
 		mockCapture(node);
 		const start = node.scrollLeft;
 		pointer(node, 'pointerdown', 450, 250);
@@ -70,8 +72,9 @@ describe('shared native lightbox scrolling', () => {
 	});
 	it('does not navigate for short, vertical, diagonal or cancelled mouse gestures', async () => {
 		render(PhotoLightbox, { photos, open: true });
-		await expect.poll(() => track()?.scrollLeft).toBe(window.innerWidth);
+		await expect.element(page.getByRole('dialog')).toBeVisible();
 		const node = track();
+		await expect.poll(() => node.scrollLeft).toBe(node.clientWidth);
 		mockCapture(node);
 		for (const [dx, dy] of [
 			[10, 0],
@@ -102,8 +105,9 @@ describe('shared native lightbox scrolling', () => {
 	});
 	it('does not retain a drag across closing/reopening or swipe a single photo', async () => {
 		const { rerender } = render(PhotoLightbox, { photos, open: true });
-		await expect.poll(() => track()?.scrollLeft).toBe(window.innerWidth);
+		await expect.element(page.getByRole('dialog')).toBeVisible();
 		const oldNode = track();
+		await expect.poll(() => oldNode.scrollLeft).toBe(oldNode.clientWidth);
 		mockCapture(oldNode);
 		pointer(oldNode, 'pointerdown', 450, 250);
 		pointer(oldNode, 'pointermove', 350, 250);

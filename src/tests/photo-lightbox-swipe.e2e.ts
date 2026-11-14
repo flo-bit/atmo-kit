@@ -75,7 +75,7 @@ test('horizontal trackpad scrolling and mouse dragging move the shared lightbox,
 	await page.getByRole('button', { name: /View photo 1/ }).click();
 	const dialog = page.getByRole('dialog');
 	const track = dialog.locator('[data-slot="photo-lightbox-track"]');
-	const width = page.viewportSize()!.width;
+	const width = await track.evaluate((node) => node.clientWidth);
 	await expect.poll(() => track.evaluate((n) => n.scrollLeft)).toBe(width);
 	await page.mouse.move(width / 2, 300);
 	await page.mouse.wheel(width * 0.8, 0);
@@ -92,7 +92,8 @@ test('horizontal trackpad scrolling and mouse dragging move the shared lightbox,
 	await page.mouse.up();
 	await expect(dialog).toHaveAccessibleName('An afternoon outdoors · 2 / 2');
 	await page.setViewportSize({ width: 1100, height: 750 });
-	await expect.poll(() => track.evaluate((n) => n.scrollLeft)).toBe(2200);
+	await expect.poll(() => track.evaluate((n) => n.clientWidth)).toBeLessThan(width);
+	await expect.poll(() => track.evaluate((n) => n.scrollLeft / n.clientWidth)).toBe(2);
 	await expect(dialog).toHaveAccessibleName('An afternoon outdoors · 2 / 2');
 	await page.keyboard.press('ArrowRight');
 	await expect(dialog).toHaveAccessibleName('An afternoon outdoors · 1 / 2');
