@@ -1,5 +1,11 @@
 # @atmo-dev/kit
 
+## 0.13.2
+
+### Patch Changes
+
+- 8461bc4: `EventView` takes recording subtitles from `data.vod.subtitlesUrl` instead of a hardcoded `/vods/{rkey}-karaoke.vtt` path.
+
 ## 0.13.1
 
 ### Patch Changes
