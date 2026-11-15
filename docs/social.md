@@ -121,7 +121,7 @@ export const myEmbed: LinkEmbedDefinition<{ id: string }> = {
 };
 ```
 
-Each embed decides when it contacts other servers. Posts, profiles and GIFs load when shown. YouTube sets `requests: 'click'`: nothing is requested before its play button is pressed. An app that wants a click before anything loads passes `clickToLoad: true` (or a function per embed) to `setLinkEmbeds` or `LinkEmbed`; embeds then show the link and a load button first, and embeds with their own play button are not gated twice. `playerLinkEmbed(provider)` turns an `ExternalEmbedProvider` (below) into a link embed. `eventLinkEmbed({ loadEvent, origins })` from `@atmo-dev/kit/events` shows links to event pages as event cards; `EventView` adds it when the host supplies `getEvent`.
+Each embed decides when it contacts other servers. Posts, profiles and GIFs load when shown. YouTube sets `requests: 'click'`: its player is not loaded before its play button is pressed. A YouTube link embed does show the video's thumbnail, which comes from YouTube's image host; with `clickToLoad` set, it shows a plain play button instead and requests nothing. An app that wants a click before anything loads passes `clickToLoad: true` (or a function per embed) to `setLinkEmbeds` or `LinkEmbed`; embeds then show the link and a load button first, and embeds with their own play button are not gated twice. `playerLinkEmbed(provider)` turns an `ExternalEmbedProvider` (below) into a link embed. `eventLinkEmbed({ loadEvent, origins })` from `@atmo-dev/kit/events` shows links to event pages as event cards; `EventView` adds it when the host supplies `getEvent`.
 
 The older `embedLink` and `linkEmbed` snippet props of `RichText` still work for one-off custom rendering.
 
