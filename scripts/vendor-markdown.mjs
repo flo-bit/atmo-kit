@@ -9,7 +9,15 @@ const outDir = fileURLToPath(new URL('../src/lib/richtext/vendor', import.meta.u
 const versions = [
 	'mdast-util-from-markdown',
 	'micromark-extension-gfm-strikethrough',
-	'mdast-util-gfm-strikethrough'
+	'mdast-util-gfm-strikethrough',
+	'micromark-extension-gfm-table',
+	'mdast-util-gfm-table',
+	'micromark-extension-gfm-footnote',
+	'mdast-util-gfm-footnote',
+	'micromark-extension-gfm-task-list-item',
+	'mdast-util-gfm-task-list-item',
+	'micromark-extension-math',
+	'mdast-util-math'
 ].map((name) => {
 	const manifest = JSON.parse(readFileSync(`${root}node_modules/${name}/package.json`, 'utf8'));
 	return `${name}@${manifest.version}`;

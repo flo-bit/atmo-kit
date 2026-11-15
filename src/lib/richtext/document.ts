@@ -21,15 +21,36 @@ export type RichTextBlock =
 	| { type: 'paragraph'; children: RichTextInline[] }
 	| { type: 'heading'; depth: 1 | 2 | 3 | 4 | 5 | 6; children: RichTextInline[] }
 	| { type: 'blockquote'; children: RichTextBlock[] }
-	| { type: 'list'; ordered: boolean; start?: number; items: RichTextBlock[][] }
+	| {
+			type: 'list';
+			ordered: boolean;
+			start?: number;
+			items: RichTextBlock[][];
+			/** Article Markdown only: per item, whether a task is done; `null` for an ordinary item. */
+			checked?: (boolean | null)[];
+	  }
 	| { type: 'codeBlock'; value: string; lang?: string }
-	| { type: 'thematicBreak' };
+	| { type: 'thematicBreak' }
+	/** Article Markdown only. `url` is HTTP(S) or a destination the app allowed. */
+	| { type: 'image'; url: string; alt?: string; title?: string }
+	/** Article Markdown only. The first row is the header; every row has a cell per column. */
+	| { type: 'table'; align: RichTextAlign[]; rows: RichTextInline[][][] }
+	/** Article Markdown only. TeX source of a displayed formula. */
+	| { type: 'math'; value: string }
+	/** Article Markdown only. Shown at the end of the text, not where it was written. */
+	| { type: 'footnoteDefinition'; id: string; children: RichTextBlock[] };
+
+export type RichTextAlign = 'left' | 'center' | 'right' | null;
 
 export type RichTextInline =
 	| { type: 'text'; value: string }
 	| { type: 'break' }
 	| { type: 'strong' | 'emphasis' | 'delete'; children: RichTextInline[] }
 	| { type: 'code'; value: string }
+	/** Article Markdown only. TeX source of a formula in the line. */
+	| { type: 'math'; value: string }
+	/** Article Markdown only. Refers to the `footnoteDefinition` with the same id. */
+	| { type: 'footnoteReference'; id: string }
 	| { type: 'link'; url: string; children: RichTextInline[] }
 	/** A DID from a facet, or a handle detected in unfaceted text. */
 	| { type: 'mention'; actor: string; text: string }
@@ -194,7 +215,24 @@ function blockText(node: Record<string, unknown>, depth: number): string {
 		case 'thematicBreak':
 			return '';
 		case 'codeBlock':
+		case 'math':
 			return string(node.value);
+		case 'footnoteDefinition':
+			return blocksText(node.children, '\n\n', depth + 1);
+		case 'image':
+			return string(node.alt);
+		case 'table':
+			return (Array.isArray(node.rows) ? node.rows : [])
+				.map((row) =>
+					(Array.isArray(row) ? row : [])
+						.map((cell) =>
+							nodes(cell)
+								.map((child) => inlineText(child, depth + 1))
+								.join('')
+						)
+						.join('\t')
+				)
+				.join('\n');
 		default:
 			return inlineText(node, depth);
 	}
@@ -205,6 +243,33 @@ function blocksText(value: unknown, separator = '\n\n', depth = 0): string {
 		.map((block) => blockText(block, depth))
 		.filter(Boolean)
 		.join(separator);
+}
+
+export type Footnotes = {
+	/** Ids in the order their notes are shown: by first reference, then the unreferenced. */
+	order: string[];
+	definitions: Map<string, Record<string, unknown>>;
+};
+
+/** The footnotes of a document, for renderers: definitions are shown together at the end. */
+export function collectFootnotes(content: unknown): Footnotes {
+	const definitions = new Map<string, Record<string, unknown>>();
+	const referenced: string[] = [];
+	const walk = (value: unknown, depth: number) => {
+		if (depth > MAX_RENDER_DEPTH + 4 || value === null || typeof value !== 'object') return;
+		if (Array.isArray(value)) return value.forEach((item) => walk(item, depth + 1));
+		const node = value as Record<string, unknown>;
+		const id = string(node.id);
+		if (node.type === 'footnoteDefinition' && id && !definitions.has(id)) definitions.set(id, node);
+		if (node.type === 'footnoteReference' && id && !referenced.includes(id)) referenced.push(id);
+		walk(node.children, depth + 1);
+		walk(node.items, depth + 1);
+		walk(node.rows, depth + 1);
+	};
+	walk((content as { children?: unknown } | null)?.children, 0);
+	const order = referenced.filter((id) => definitions.has(id));
+	for (const id of definitions.keys()) if (!order.includes(id)) order.push(id);
+	return { order, definitions };
 }
 
 /** Readable text without Markdown syntax, for meta descriptions, previews and search. */

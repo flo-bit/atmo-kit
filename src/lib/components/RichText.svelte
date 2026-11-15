@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import {
+		collectFootnotes,
 		inlineHref,
 		inlineText,
 		lineBreaks,
 		paragraphParts,
 		trimBreaks,
 		MAX_RENDER_DEPTH,
+		type Footnotes,
 		type RichTextDocument,
 		type RichTextLinkOptions
 	} from '../richtext/document.js';
@@ -16,6 +18,7 @@
 	import type { LinkEmbed as LinkEmbedDefinition } from '../embeds/types.js';
 	import LinkEmbed from './LinkEmbed.svelte';
 	import { cn } from '../utils.js';
+	import { safeHttpUrl } from '../urls.js';
 
 	export type RichTextProps = RichTextLinkOptions & {
 		/** From `parseRichText`, usually on the server. Takes precedence over `text`. */
@@ -37,6 +40,18 @@
 		embedLink?: (url: string) => boolean;
 		/** Renders such a link. The second argument renders the ordinary link, e.g. while loading. */
 		linkEmbed?: Snippet<[url: string, fallback: Snippet]>;
+		/**
+		 * The address to load an article's image from, for destinations that are not HTTP(S),
+		 * e.g. an app's own scheme for uploaded files. Other images are shown as their description.
+		 */
+		imageSrc?: (url: string) => string | undefined;
+		/** Renders a code block in place of the plain `<pre>`, e.g. with highlighting. */
+		codeBlock?: Snippet<[value: string, lang: string | undefined]>;
+		/**
+		 * Renders the TeX source of a formula, `display` for one on its own lines. Without it the
+		 * source is shown as code.
+		 */
+		math?: Snippet<[value: string, display: boolean]>;
 		class?: string;
 	};
 
@@ -51,10 +66,18 @@
 		embeds,
 		embedLink,
 		linkEmbed,
+		imageSrc,
+		codeBlock,
+		math,
 		class: className
 	}: RichTextProps = $props();
 
+	const uid = $props.id();
 	let doc = $derived(content ?? parsePlainText(text, { facets, detectLinks }));
+	let footnotes = $derived<Footnotes>(
+		doc.markdown ? collectFootnotes(doc) : { order: [], definitions: new Map() }
+	);
+	const noteNumber = (id: unknown) => footnotes.order.indexOf(string(id)) + 1;
 
 	const embedOptions = linkEmbedOptions();
 	let embedList = $derived(selectLinkEmbeds(embeds, embedOptions()));
@@ -87,6 +110,25 @@
 		return typeof value === 'string' ? value : '';
 	}
 
+	function cells(row: unknown): unknown[] {
+		return Array.isArray(row) ? row : [];
+	}
+	function align(table: Node, index: number): string | undefined {
+		const value = Array.isArray(table.align) ? table.align[index] : undefined;
+		return value === 'left' || value === 'center' || value === 'right'
+			? `text-align: ${value}`
+			: undefined;
+	}
+	function src(node: Node): string | undefined {
+		const url = string(node.url);
+		const resolved = safeHttpUrl(url) ?? (url ? imageSrc?.(url) : undefined);
+		// An app's own address is a path on its origin or HTTP(S), never a script.
+		if (!resolved) return undefined;
+		return (resolved.startsWith('/') && !resolved.startsWith('//')) || resolved.startsWith('blob:')
+			? resolved
+			: safeHttpUrl(resolved);
+	}
+
 	function href(node: Node): string | undefined {
 		return inlineHref(node, { socialClient, mentionUrl });
 	}
@@ -113,6 +155,16 @@
 		{:else if node.type === 'emphasis'}<em>{@render inlines(node.children, inLink, depth + 1)}</em>
 		{:else if node.type === 'delete'}<del>{@render inlines(node.children, inLink, depth + 1)}</del>
 		{:else if node.type === 'code'}<code class={codeClass}>{string(node.value)}</code>
+		{:else if node.type === 'math'}{#if math}{@render math(string(node.value), false)}{:else}<code
+					class={codeClass}>{string(node.value)}</code
+				>{/if}
+		{:else if node.type === 'footnoteReference'}
+			{@const number = noteNumber(node.id)}
+			{#if number}<sup
+					><a href="#{uid}-note-{number}" aria-label="Footnote {number}" class={linkClass}
+						>{number}</a
+					></sup
+				>{:else}[^{string(node.id)}]{/if}
 		{:else if node.type === 'link' || node.type === 'mention' || node.type === 'tag'}
 			{@const url = inLink ? undefined : href(node)}
 			{#if url}<a
@@ -134,8 +186,13 @@
 
 {#snippet embedOr(url: string | undefined, paragraph: Snippet)}
 	{#if !url}{@render paragraph()}
-	{:else if linkEmbed && embedLink}{@render linkEmbed(url, paragraph)}
-	{:else}<LinkEmbed {url} embeds={embedList} fallback={paragraph} {socialClient} />{/if}
+	{:else}
+		<!-- Marked like the editor's embeds, so that text styles can leave embeds alone. -->
+		<div data-link-embed>
+			{#if linkEmbed && embedLink}{@render linkEmbed(url, paragraph)}
+			{:else}<LinkEmbed {url} embeds={embedList} fallback={paragraph} {socialClient} />{/if}
+		</div>
+	{/if}
 {/snippet}
 
 {#snippet blocks(children: unknown, depth: number)}
@@ -168,9 +225,32 @@
 				class={cn('space-y-1 pl-6', node.ordered === true ? 'list-decimal' : 'list-disc')}
 			>
 				{#each items(node.items) as item, itemIndex (itemIndex)}
-					<li class="space-y-3">{@render blocks(item, depth + 1)}</li>
+					{@const task = Array.isArray(node.checked) ? node.checked[itemIndex] : null}
+					{#if typeof task === 'boolean'}
+						<li class="relative list-none space-y-3">
+							<input
+								type="checkbox"
+								checked={task}
+								disabled
+								aria-label={task ? 'Done' : 'Not done'}
+								class="absolute top-[0.45em] -left-5 accent-accent-600"
+							/>
+							{@render blocks(item, depth + 1)}
+						</li>
+					{:else}
+						<li class="space-y-3">{@render blocks(item, depth + 1)}</li>
+					{/if}
 				{/each}
 			</svelte:element>
+		{:else if node.type === 'footnoteDefinition'}<!-- Shown with the others, below. -->
+		{:else if node.type === 'math'}{#if math}{@render math(string(node.value), true)}{:else}<pre
+					class="overflow-x-auto rounded-md bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-3 font-mono text-[0.875em] dark:bg-base-950"><code
+						>{string(node.value)}</code
+					></pre>{/if}
+		{:else if node.type === 'codeBlock' && codeBlock}{@render codeBlock(
+				string(node.value),
+				string(node.lang) || undefined
+			)}
 		{:else if node.type === 'codeBlock'}<pre
 				class="overflow-x-auto rounded-md bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-3 font-mono text-[0.875em] dark:bg-base-950"><code
 					>{string(node.value)}</code
@@ -178,6 +258,50 @@
 		{:else if node.type === 'thematicBreak'}<hr
 				class="border-base-300 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 			/>
+		{:else if node.type === 'image'}
+			{@const source = src(node)}
+			{#if source}<img
+					src={source}
+					alt={string(node.alt)}
+					title={string(node.title) || undefined}
+					loading="lazy"
+					decoding="async"
+					referrerpolicy="no-referrer"
+					class="max-w-full rounded-md"
+				/>
+			{:else if string(node.alt)}<p>{string(node.alt)}</p>{/if}
+		{:else if node.type === 'table'}
+			{@const rows = cells(node.rows)}
+			<div class="overflow-x-auto">
+				<table class="border-collapse text-left">
+					{#if rows.length}
+						<thead>
+							<tr>
+								{#each cells(rows[0]) as cell, column (column)}
+									<th
+										style={align(node, column)}
+										class="border border-base-300 px-3 py-1.5 align-top font-semibold dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+										>{@render inlines(cell, false, depth + 1)}</th
+									>
+								{/each}
+							</tr>
+						</thead>
+					{/if}
+					<tbody>
+						{#each rows.slice(1) as row, rowIndex (rowIndex)}
+							<tr>
+								{#each cells(row) as cell, column (column)}
+									<td
+										style={align(node, column)}
+										class="border border-base-300 px-3 py-1.5 align-top dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
+										>{@render inlines(cell, false, depth + 1)}</td
+									>
+								{/each}
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
 		{:else}<p>{inlineText(node, depth)}</p>{/if}
 	{/each}
 {/snippet}
@@ -187,6 +311,18 @@
 		class={cn('space-y-3 leading-relaxed wrap-anywhere text-base-950 dark:text-base-50', className)}
 	>
 		{@render blocks(doc.children, 0)}
+		{#if footnotes.order.length}
+			<ol
+				aria-label="Footnotes"
+				class="list-decimal space-y-2 border-t border-base-300 pt-4 pl-6 text-[0.9em] text-base-700 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:text-base-300"
+			>
+				{#each footnotes.order as id, index (id)}
+					<li id="{uid}-note-{index + 1}" class="scroll-mt-6 space-y-3">
+						{@render blocks(footnotes.definitions.get(id)?.children, 1)}
+					</li>
+				{/each}
+			</ol>
+		{/if}
 	</div>
 {:else if plainParts.some((part) => part.embed)}
 	<div

@@ -132,7 +132,8 @@ export { default as InlineEditor } from './components/InlineEditor.svelte';
 export { default as RichTextEditor } from './components/RichTextEditor.svelte';
 export type {
 	RichTextEditorProps,
-	RichTextEditorContent
+	RichTextEditorContent,
+	RichTextEditorImages
 } from './components/RichTextEditor.svelte';
 export { default as PostComposer } from './components/composer/PostComposer.svelte';
 export type { PostComposerProps } from './components/composer/PostComposer.svelte';
