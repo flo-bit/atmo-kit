@@ -23,7 +23,8 @@ describe('external embed providers', () => {
 			player: {
 				type: 'iframe',
 				src: 'https://www.youtube-nocookie.com/embed/M7lc1UVf-VE?autoplay=1',
-				aspectRatio: 16 / 9
+				aspectRatio: 16 / 9,
+				poster: 'https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg'
 			}
 		});
 	});

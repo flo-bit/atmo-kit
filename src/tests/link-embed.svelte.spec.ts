@@ -108,6 +108,18 @@ describe('LinkEmbed', () => {
 		});
 		await expect.element(page.getByRole('button', { name: /Play .* on YouTube/ })).toBeVisible();
 		expect(container.querySelector('iframe')).toBeNull();
+		expect(container.querySelector('img')?.getAttribute('src')).toBe(
+			'https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg'
+		);
+	});
+
+	it('requests no YouTube thumbnail when the app wants a click before anything loads', async () => {
+		const { container } = await render(LinkEmbedContextFixture, {
+			options: { clickToLoad: true },
+			text: 'https://www.youtube.com/watch?v=M7lc1UVf-VE'
+		});
+		await expect.element(page.getByRole('button', { name: /Play .* on YouTube/ })).toBeVisible();
+		expect(container.querySelector('img')).toBeNull();
 	});
 
 	it('falls back to an ordinary link, and to nothing for unsafe destinations', async () => {

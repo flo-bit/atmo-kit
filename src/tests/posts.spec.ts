@@ -287,6 +287,25 @@ describe('hasModerationLabel', () => {
 			})
 		).toBe(true);
 	});
+	it('ignores what an account says about itself that is not moderation', () => {
+		const did = 'did:plc:alice';
+		const self = (val: string) => ({
+			src: did,
+			uri: `at://${did}/app.bsky.actor.profile/self`,
+			val
+		});
+		const labeled = (...labels: unknown[]) => ({ ...base, author: { ...author, labels } });
+		expect(hasModerationLabel(labeled(self('bot'), self('pet')))).toBe(false);
+		expect(hasModerationLabel(labeled(self('bot'), self('!no-unauthenticated')))).toBe(true);
+		expect(hasModerationLabel(labeled(self('porn')))).toBe(true);
+		// The same word from a moderation service is a judgement, not a description.
+		expect(hasModerationLabel(labeled({ ...self('bot'), src: 'did:plc:labeler' }))).toBe(true);
+		expect(hasModerationLabel(labeled({ ...self('spam'), src: did, uri: did }))).toBe(false);
+		expect(hasModerationLabel(labeled({ val: 'bot' }))).toBe(true);
+		expect(
+			hasModerationLabel({ ...base, record: { text: 'x', labels: { values: [{ val: 'bot' }] } } })
+		).toBe(false);
+	});
 	it('treats implausibly deep data as labeled and ignores non-objects', () => {
 		let deep: unknown = {};
 		for (let i = 0; i < 20; i++) deep = { child: deep };
