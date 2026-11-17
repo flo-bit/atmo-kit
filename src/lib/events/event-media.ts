@@ -1,3 +1,11 @@
+/** The address of an image in an event's `media`, from the event's DID and the image's blob, or
+ *  null to leave that image out. The components use the public CDN's (`getCDNImageBlobUrl`) unless
+ *  a page supplies its own, as one must for an event whose pictures shouldn't reach a public CDN. */
+export type EventMediaUrl = (image: {
+	did: string;
+	blob: { $type: 'blob'; ref: { $link: string } };
+}) => string | null;
+
 /** Select the event's thumbnail, falling back to a flyer before any header image. */
 export function getEventThumbnail<T extends { role?: unknown }>(
 	media: readonly T[] | null | undefined

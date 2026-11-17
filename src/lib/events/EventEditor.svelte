@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
-	import { getEventThumbnail } from './event-media.js';
+	import { getEventThumbnail, type EventMediaUrl } from './event-media.js';
 	import { Avatar, Button, ToggleGroup, ToggleGroupItem } from '../index.js';
 	import { onMount, untrack } from 'svelte';
 	import { InlineEditor, RichTextEditor, type Editor } from '../index.js';
@@ -39,7 +39,8 @@
 		adapter,
 		viewer,
 		initialTheme,
-		prefill = null
+		prefill = null,
+		mediaUrl = getCDNImageBlobUrl
 	}: {
 		eventData: FlatEventRecord | null;
 		actorDid: string;
@@ -50,6 +51,8 @@
 		initialTheme?: Partial<EventTheme>;
 		/** Autofill payload for new events (e.g. imported from Luma/Meetup). */
 		prefill?: EventEditorPrefill | null;
+		/** Where the editor loads the event's current image from; the public CDN by default. */
+		mediaUrl?: EventMediaUrl;
 	} = $props();
 
 	let isNew = $derived(eventData === null);
@@ -159,7 +162,7 @@
 		if (eventData.media && eventData.media.length > 0) {
 			const media = getEventThumbnail(eventData.media);
 			if (media?.content) {
-				const url = getCDNImageBlobUrl({ did: actorDid, blob: media.content });
+				const url = mediaUrl({ did: actorDid, blob: media.content });
 				if (url) {
 					thumbnailPreview = url;
 					thumbnailChanged = false;
