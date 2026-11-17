@@ -23,6 +23,7 @@ export * from './events/theme.js';
 export {
 	getEventThumbnail,
 	getEventExternalImage,
+	type EventMediaUrl,
 	type ExternalEventImage
 } from './events/event-media.js';
 export { getCDNImageBlobUrl, compressImage, configureAtproto } from './events/atproto-helpers.js';

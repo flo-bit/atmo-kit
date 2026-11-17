@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
-	import { getEventThumbnail, getEventExternalImage } from './event-media.js';
+	import { getEventThumbnail, getEventExternalImage, type EventMediaUrl } from './event-media.js';
 	import { eventUrl, isEventOngoing, type FlatEventRecord } from './contrail.js';
 	import Avatar from 'svelte-boring-avatars';
 	import { Badge, Icon } from '../index.js';
@@ -10,12 +10,15 @@
 	let {
 		event,
 		actor,
-		href
+		href,
+		mediaUrl = getCDNImageBlobUrl
 	}: {
 		event: FlatEventRecord;
 		actor?: string;
 		/** Where the card links, for an event whose page is not its creator's. */
 		href?: string;
+		/** Where the card loads the event's own images from; the public CDN by default. */
+		mediaUrl?: EventMediaUrl;
 	} = $props();
 
 	function formatDateTime(dateStr: string): string {
@@ -68,13 +71,13 @@
 	function getThumbnail(event: FlatEventRecord): { url: string; alt: string } | null {
 		const media = getEventThumbnail(event.media);
 		if (media?.content) {
-			const url = getCDNImageBlobUrl({ did: event.did, blob: media.content });
+			const url = mediaUrl({ did: event.did, blob: media.content });
 			if (url) return { url, alt: media.alt || event.name };
 		}
 
 		const banner = event.media?.find((m) => m.role === 'header');
 		if (banner?.content) {
-			const url = getCDNImageBlobUrl({ did: event.did, blob: banner.content });
+			const url = mediaUrl({ did: event.did, blob: banner.content });
 			if (url) return { url, alt: banner.alt || event.name };
 		}
 
