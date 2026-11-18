@@ -40,7 +40,10 @@
 		viewer,
 		initialTheme,
 		prefill = null,
-		mediaUrl = getCDNImageBlobUrl
+		mediaUrl = getCDNImageBlobUrl,
+		visibility = $bindable('public'),
+		visibilityOptions = ['public', 'unlisted'],
+		confirmVisibility
 	}: {
 		eventData: FlatEventRecord | null;
 		actorDid: string;
@@ -53,6 +56,12 @@
 		prefill?: EventEditorPrefill | null;
 		/** Where the editor loads the event's current image from; the public CDN by default. */
 		mediaUrl?: EventMediaUrl;
+		/** Who can see the event. Bind it to follow the host's choice; an existing event's record sets it. */
+		visibility?: Visibility;
+		/** The choices the switch offers, in order. Public and Unlisted by default. */
+		visibilityOptions?: readonly Visibility[];
+		/** Asked before the choice changes; returning false keeps the current one. */
+		confirmVisibility?: (next: Visibility) => boolean | Promise<boolean>;
 	} = $props();
 
 	let isNew = $derived(eventData === null);
@@ -79,7 +88,6 @@
 	);
 	let timezone = $state(initialTimezone);
 	let mode: EventMode = $state(initialPrefill?.mode ?? 'inperson');
-	let visibility: Visibility = $state('public');
 	// svelte-ignore state_referenced_locally
 	let eventTheme: EventTheme = $state(
 		eventData === null
@@ -124,6 +132,16 @@
 		];
 	});
 	let showVisibility = $derived(adapter.features.visibility !== false);
+	const VISIBILITY_LABELS: Record<Visibility, string> = {
+		public: 'Public',
+		unlisted: 'Unlisted',
+		private: 'Private'
+	};
+	async function chooseVisibility(next: Visibility) {
+		if (next === visibility) return;
+		if (confirmVisibility && !(await confirmVisibility(next))) return;
+		visibility = next;
+	}
 	let submitting = $state(false);
 	let error: string | null = $state(null);
 	let titleEditor = $state<Editor | null>(null);
@@ -438,20 +456,23 @@
 									bind:value={
 										() => visibility,
 										(val) => {
-											if (val) visibility = val as Visibility;
+											if (val) void chooseVisibility(val as Visibility);
 										}
 									}
 									class="w-fit"
 									size="xs"
 								>
-									<ToggleGroupItem value="public">Public</ToggleGroupItem>
-									<ToggleGroupItem value="unlisted">Unlisted</ToggleGroupItem>
+									{#each visibilityOptions as option (option)}
+										<ToggleGroupItem value={option}>{VISIBILITY_LABELS[option]}</ToggleGroupItem>
+									{/each}
 								</ToggleGroup>
 								<div class="mt-1.5 text-xs text-base-600 dark:text-base-400">
 									{#if visibility === 'public'}
 										Anyone can view and it appears in discovery.
-									{:else}
+									{:else if visibility === 'unlisted'}
 										Public to anyone with the link, but hidden from discovery.
+									{:else}
+										Only people you invite can see it.
 									{/if}
 								</div>
 							</div>
