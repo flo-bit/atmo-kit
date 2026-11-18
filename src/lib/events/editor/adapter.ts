@@ -45,8 +45,8 @@ export type EditorAdapter = {
 		 */
 		images?: boolean;
 		/**
-		 * False for an event with no public listing to appear in: no Public / Unlisted switch, and
-		 * the record's discovery preference is left as it is.
+		 * False for an event with no public listing to appear in: no visibility switch, and the
+		 * record's discovery preference is left as it is.
 		 */
 		visibility?: boolean;
 	};

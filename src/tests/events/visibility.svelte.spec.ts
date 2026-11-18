@@ -1,0 +1,119 @@
+import { describe, expect, it, vi } from 'vitest';
+import { page } from 'vitest/browser';
+import { render } from 'vitest-browser-svelte';
+import type { Visibility } from '../../lib/events/editor/types.js';
+import { createAdapter, event, viewer } from './fixtures.js';
+import VisibilityFixture from './VisibilityFixture.svelte';
+import './theme.css';
+
+const choice = (name: string) => page.getByRole('radio', { name, exact: true });
+const chosen = () => page.getByRole('status', { name: 'Chosen visibility' });
+
+async function publishedPreferences(adapter: ReturnType<typeof createAdapter>) {
+	await page.getByRole('button', { name: 'Publish Event', exact: true }).click();
+	await expect.poll(() => adapter.putRecord.mock.calls.length).toBe(1);
+	const [{ record }] = adapter.putRecord.mock.calls[0];
+	return record.preferences as { showInDiscovery?: boolean } | undefined;
+}
+
+describe('the editor visibility switch', () => {
+	it('offers Public and Unlisted by default', async () => {
+		render(VisibilityFixture, { adapter: createAdapter(), viewer });
+		await expect.element(choice('Public')).toBeVisible();
+		await expect.element(choice('Unlisted')).toBeVisible();
+		expect(choice('Private').elements()).toHaveLength(0);
+	});
+
+	it('offers Private when the page lists it, and the bound value follows the pick', async () => {
+		render(VisibilityFixture, {
+			adapter: createAdapter(),
+			viewer,
+			visibilityOptions: ['public', 'unlisted', 'private']
+		});
+		await choice('Private').click();
+		await expect.element(chosen()).toHaveTextContent('private');
+		await expect.element(page.getByText('Only people you invite can see it.')).toBeVisible();
+		await choice('Unlisted').click();
+		await expect.element(chosen()).toHaveTextContent('unlisted');
+	});
+
+	it('keeps the current choice when the page declines the change', async () => {
+		const confirmVisibility = vi.fn<(next: Visibility) => boolean>(() => false);
+		render(VisibilityFixture, {
+			adapter: createAdapter(),
+			viewer,
+			visibilityOptions: ['public', 'unlisted', 'private'],
+			confirmVisibility
+		});
+		await choice('Private').click();
+		await expect.poll(() => confirmVisibility.mock.calls.length).toBe(1);
+		expect(confirmVisibility).toHaveBeenCalledWith('private');
+		await expect.element(chosen()).toHaveTextContent('public');
+		await expect.element(choice('Public')).toHaveAttribute('aria-checked', 'true');
+		await expect.element(choice('Private')).toHaveAttribute('aria-checked', 'false');
+	});
+
+	it('switches once the page accepts the change, however long it takes', async () => {
+		let accept: (ok: boolean) => void = () => {};
+		const confirmVisibility = vi.fn<(next: Visibility) => Promise<boolean>>(
+			() => new Promise<boolean>((resolve) => (accept = resolve))
+		);
+		render(VisibilityFixture, {
+			adapter: createAdapter(),
+			viewer,
+			visibilityOptions: ['public', 'unlisted', 'private'],
+			confirmVisibility
+		});
+		await choice('Private').click();
+		await expect.poll(() => confirmVisibility.mock.calls.length).toBe(1);
+		await expect.element(chosen()).toHaveTextContent('public');
+		accept(true);
+		await expect.element(chosen()).toHaveTextContent('private');
+		await expect.element(choice('Private')).toHaveAttribute('aria-checked', 'true');
+	});
+
+	it('asks before every change, and not when the host picks the current choice', async () => {
+		const confirmVisibility = vi.fn<(next: Visibility) => boolean>(() => true);
+		render(VisibilityFixture, {
+			adapter: createAdapter(),
+			viewer,
+			visibilityOptions: ['public', 'unlisted', 'private'],
+			confirmVisibility
+		});
+		await choice('Unlisted').click();
+		await expect.element(chosen()).toHaveTextContent('unlisted');
+		await choice('Public').click();
+		await expect.element(chosen()).toHaveTextContent('public');
+		await choice('Public').click();
+		await expect.element(choice('Public')).toHaveAttribute('aria-checked', 'true');
+		expect(confirmVisibility.mock.calls.map(([next]) => next)).toEqual(['unlisted', 'public']);
+	});
+
+	it('saves a private event as not in discovery', async () => {
+		const adapter = createAdapter();
+		render(VisibilityFixture, {
+			adapter,
+			viewer,
+			visibilityOptions: ['public', 'unlisted', 'private']
+		});
+		await choice('Private').click();
+		await expect.element(chosen()).toHaveTextContent('private');
+		expect(await publishedPreferences(adapter)).toEqual({ showInDiscovery: false });
+	});
+
+	it('still saves a public event as in discovery', async () => {
+		const adapter = createAdapter();
+		render(VisibilityFixture, { adapter, viewer });
+		expect(await publishedPreferences(adapter)).toEqual({ showInDiscovery: true });
+	});
+
+	it("sets the bound value from an existing event's record", async () => {
+		render(VisibilityFixture, {
+			adapter: createAdapter(),
+			viewer,
+			eventData: { ...event, preferences: { showInDiscovery: false } } as typeof event
+		});
+		await expect.element(chosen()).toHaveTextContent('unlisted');
+		await expect.element(choice('Unlisted')).toHaveAttribute('aria-checked', 'true');
+	});
+});
