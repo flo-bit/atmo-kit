@@ -6,7 +6,9 @@
 	let signedIn = $state(true),
 		open = $state(false),
 		selected = $state('Home'),
-		status = $state('');
+		status = $state(''),
+		current = $state({ did: 'did:example:mika', name: 'Mika Chen', handle: 'mika.example.com' }),
+		others = $state([{ did: 'did:example:noor', name: 'Noor Haddad', handle: 'noor.example.com' }]);
 	const items = $derived([
 		{ label: 'Home', icon: Home, active: selected === 'Home', onclick: () => (selected = 'Home') },
 		{
@@ -20,9 +22,24 @@
 
 {#snippet account(expanded: boolean, close: () => void)}
 	{#if signedIn}<AccountMenu
-			name="Mika Chen"
-			handle="mika.example.com"
-			avatar={mika}
+			name={current.name}
+			handle={current.handle}
+			avatar={current.did === 'did:example:mika' ? mika : undefined}
+			accounts={others.map((account) => ({
+				...account,
+				avatar: account.did === 'did:example:mika' ? mika : undefined
+			}))}
+			onswitch={(did) => {
+				const next = others.find((account) => account.did === did)!;
+				others = [current, ...others.filter((account) => account.did !== did)];
+				current = next;
+				status = `Switched to ${next.name} locally.`;
+				close();
+			}}
+			onadd={() => {
+				status = 'Add account selected.';
+				close();
+			}}
 			{expanded}
 			onprofile={() => {
 				selected = 'Profile';
