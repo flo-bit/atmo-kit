@@ -22,6 +22,9 @@ export type Engine = {
 	toLive?: () => void;
 };
 
+/** How long the node gets to answer one playback request. */
+const ANSWER_DEADLINE = 8000;
+
 /**
  * Sub-second playback over WHEP. Reconnects by itself and gives up after `attempts` failures
  * in a row (4 by default; 1 never retries).
@@ -41,9 +44,12 @@ export function startWebRTC(
 	let lastBytes = 0;
 	let lastBytesAt = 0;
 	let previous: { bytes: number; at: number } | undefined;
+	let request: AbortController | undefined;
 
 	const close = () => {
 		clearInterval(watchdog);
+		request?.abort();
+		request = undefined;
 		pc?.close();
 		pc = undefined;
 	};
@@ -89,15 +95,31 @@ export function startWebRTC(
 					}
 				});
 			});
-			const response = await fetch(url, {
-				method: 'POST',
-				headers: { 'content-type': 'application/sdp' },
-				body: connection.localDescription?.sdp
-			});
+			// Destroyed or superseded while gathering: nothing is requested.
+			if (connection !== pc || destroyed) return;
+			const attempt = new AbortController();
+			request = attempt;
+			const deadline = setTimeout(() => attempt.abort(), ANSWER_DEADLINE);
+			let response: Response;
+			let answer: string;
+			try {
+				response = await fetch(url, {
+					method: 'POST',
+					headers: { 'content-type': 'application/sdp' },
+					body: connection.localDescription?.sdp,
+					signal: attempt.signal
+				});
+				// The deadline covers the body too.
+				answer = await response.text();
+			} finally {
+				clearTimeout(deadline);
+			}
 			if (connection !== pc || destroyed) return;
 			if (!response.ok) return failed(response.status >= 500 ? 'offline' : 'network');
-			await connection.setRemoteDescription({ type: 'answer', sdp: await response.text() });
+			await connection.setRemoteDescription({ type: 'answer', sdp: answer });
 		} catch {
+			// A superseded attempt must not count as a failure of the current one.
+			if (connection !== pc) return;
 			return failed('network');
 		}
 

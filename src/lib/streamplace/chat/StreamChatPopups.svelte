@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import type { Channel } from '../channel.svelte.js';
 	import type { ChatMessage } from '../types.js';
@@ -55,7 +55,10 @@
 
 	$effect(() => {
 		const fresh: ChatMessage[] = [];
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt on every run
+		const present = new Set<string>();
 		for (const message of channel.messages) {
+			present.add(message.uri);
 			if (known.has(message.uri)) continue;
 			known.add(message.uri);
 			if (ready && active && !message.pending && message.author.did !== viewerDid) {
@@ -74,6 +77,9 @@
 				);
 			popups = [...popups, ...fresh].slice(-3);
 		}
+		// A message hidden or deleted while its popup is up goes with it.
+		const visible = untrack(() => popups).filter((message) => present.has(message.uri));
+		if (visible.length !== untrack(() => popups).length) popups = visible;
 	});
 </script>
 

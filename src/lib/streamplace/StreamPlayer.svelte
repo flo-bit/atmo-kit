@@ -77,7 +77,11 @@
 	let video = $state<HTMLVideoElement>();
 	let engine: Engine | undefined;
 
-	let status = $state<'idle' | 'loading' | 'playing' | 'reconnecting' | 'blocked'>('idle');
+	let status = $state<'idle' | 'loading' | 'playing' | 'reconnecting' | 'blocked' | 'failed'>(
+		'idle'
+	);
+	/** Bumped by "Try again" to start playback from scratch. */
+	let attempt = $state(0);
 	/** The browser refused sound without a click, so playback started silently. */
 	let needsGesture = $state(false);
 	let webrtcFailed = $state(false);
@@ -135,6 +139,7 @@
 		const name = user;
 		const mode = protocol;
 		const chosen = rendition;
+		void attempt;
 		if (!element || (!source && (!name || !live))) {
 			status = 'idle';
 			return;
@@ -148,7 +153,8 @@
 			onlevels: (list: Level[]) => (levels = list),
 			onfail: () => {
 				if (mode === 'webrtc') webrtcFailed = true;
-				else status = 'reconnecting';
+				// The engine has stopped trying; say so instead of spinning forever.
+				else status = 'failed';
 			}
 		};
 		const next = source
@@ -210,6 +216,10 @@
 		return () => clearInterval(timer);
 	});
 
+	function retry() {
+		webrtcFailed = false;
+		attempt += 1;
+	}
 	function unmute() {
 		if (!video) return;
 		if (!video.volume) video.volume = 1;
@@ -383,6 +393,19 @@
 			{#if offline}{@render offline()}{:else}
 				<p class="grid h-full place-items-center text-sm text-white/80">Offline</p>
 			{/if}
+		</div>
+	{:else if status === 'failed'}
+		<div class="absolute inset-0 z-20 grid place-items-center bg-black/80 text-white" role="alert">
+			<div class="px-6 text-center">
+				<p class="text-sm">This video could not be played.</p>
+				<button
+					type="button"
+					class="mt-3 cursor-pointer rounded-full bg-white px-4 py-2 text-xs font-medium text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+					onclick={retry}
+				>
+					Try again
+				</button>
+			</div>
 		</div>
 	{:else if status === 'reconnecting'}
 		<p

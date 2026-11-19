@@ -209,12 +209,16 @@ export class Channel {
 				case 'place.stream.chat.gate': {
 					const uri = data.hiddenMessage as string;
 					this.#hidden.add(uri);
-					chatChanged = this.#index.delete(uri) || chatChanged;
+					this.#index.delete(uri);
+					// Even when the message itself is not loaded, a quote or the pin may show it.
+					chatChanged = true;
 					break;
 				}
-				case 'place.stream.chat.defs#pinnedRecordView':
-					this.pinned = data as unknown as PinnedRecordView;
+				case 'place.stream.chat.defs#pinnedRecordView': {
+					const pin = data as unknown as PinnedRecordView;
+					if (!this.#gone(pin.record.pinnedMessage, pin.message?.author.did)) this.pinned = pin;
 					break;
+				}
 				case 'place.stream.chat.pinnedRecord':
 					if (data.deleted) this.pinned = null;
 					break;
@@ -257,7 +261,12 @@ export class Channel {
 	}
 
 	#message(message: ChatMessage): boolean {
-		if (message.deleted) return this.#index.delete(message.uri);
+		if (message.deleted) {
+			// Remembered, so its text also goes from quotes and the pin, and it cannot come back.
+			this.#hidden.add(message.uri);
+			this.#index.delete(message.uri);
+			return true;
+		}
 		if (this.#hidden.has(message.uri) || this.#blocked.has(message.author.did)) return false;
 		// Only this tab's own unconfirmed copy is replaced; anything else is a repeat.
 		const existing = this.#index.get(message.uri);
@@ -266,8 +275,6 @@ export class Channel {
 			handle: message.author.handle,
 			chatProfile: message.chatProfile
 		});
-		const parent = message.record.reply?.parent.uri;
-		if (parent && !message.replyTo) message.replyTo = this.#index.get(parent);
 		this.#index.set(message.uri, message);
 		return true;
 	}
@@ -285,8 +292,23 @@ export class Channel {
 			}
 			list = list.slice(-MAX_MESSAGES);
 		}
-		this.messages = list;
+		// A reply quotes the message it answers. The quote is taken from what is on screen now,
+		// so a hidden, deleted or blocked message does not live on inside its replies.
+		this.messages = list.map((message) => {
+			const parent = message.record.reply?.parent.uri;
+			if (!parent) return message;
+			const quoted = this.#index.get(parent) ?? message.replyTo;
+			const replyTo = quoted && !this.#gone(parent, quoted.author.did) ? quoted : undefined;
+			return replyTo === message.replyTo ? message : { ...message, replyTo };
+		});
 		this.reactions = groupReactions(all);
+		const pin = this.pinned;
+		if (pin && this.#gone(pin.record.pinnedMessage, pin.message?.author.did)) this.pinned = null;
+	}
+
+	/** Whether a message must not be shown anywhere: hidden, deleted, or from a blocked account. */
+	#gone(uri: string, author?: string) {
+		return this.#hidden.has(uri) || (!!author && this.#blocked.has(author));
 	}
 
 	/** Resolves a mentioned handle from chat first, then from the network. */

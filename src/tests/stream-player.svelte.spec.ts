@@ -38,6 +38,22 @@ describe('StreamPlayer', () => {
 			.toBeVisible();
 	});
 
+	it('says so when a recording cannot be played, and tries again on request', async () => {
+		const { container } = await render(StreamPlayer, {
+			src: '/playground/video/missing.m3u8',
+			title: 'Gone'
+		});
+		// The engine retries a few times before giving up.
+		await expect
+			.element(page.getByText('This video could not be played.'), { timeout: 40_000 })
+			.toBeVisible();
+		// Not an endless spinner.
+		expect(container.querySelector('.animate-spin')).toBeNull();
+		expect(container.textContent).not.toContain('Reconnecting');
+		await page.getByRole('button', { name: 'Try again' }).click();
+		await expect.poll(() => container.textContent).not.toContain('could not be played');
+	}, 60_000);
+
 	it('hands volume changes back to the app', async () => {
 		let volume = 0.4;
 		let muted = false;

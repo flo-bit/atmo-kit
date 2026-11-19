@@ -115,6 +115,61 @@ describe('Channel', () => {
 		expect(texts(channel)).toEqual(['kept']);
 	});
 
+	it('takes a hidden message out of reply quotes and the pin too', () => {
+		const { channel, emit } = open();
+		const bad = message('did:plc:bob', 'something awful', 1);
+		const reply = message('did:plc:alice', 'what?', 2, bad);
+		const pin = (target: ChatMessage) => ({
+			$type: 'place.stream.chat.defs#pinnedRecordView',
+			uri: 'at://did:plc:streamer/place.stream.chat.pinnedRecord/1',
+			cid: 'p',
+			record: { pinnedMessage: target.uri, createdAt: new Date().toISOString() },
+			message: target
+		});
+		emit(bad, reply, pin(bad));
+		expect(channel.messages[1].replyTo?.record.text).toBe('something awful');
+		expect(channel.pinned?.message?.record.text).toBe('something awful');
+
+		emit({ $type: 'place.stream.chat.gate', hiddenMessage: bad.uri });
+		expect(texts(channel)).toEqual(['what?']);
+		expect(channel.messages[0].replyTo).toBeUndefined();
+		expect(channel.pinned).toBeNull();
+		// A pin of it arriving later is not shown either.
+		emit(pin(bad));
+		expect(channel.pinned).toBeNull();
+	});
+
+	it('does the same for deleted messages and blocked accounts', () => {
+		const { channel, emit } = open();
+		const deleted = message('did:plc:bob', 'deleted later', 1);
+		const blocked = message('did:plc:carol', 'from a blocked account', 2);
+		emit(
+			deleted,
+			blocked,
+			message('did:plc:alice', 'reply one', 3, deleted),
+			message('did:plc:alice', 'reply two', 4, blocked)
+		);
+		expect(channel.messages.map((item) => !!item.replyTo)).toEqual([false, false, true, true]);
+		emit(
+			{ ...deleted, deleted: true },
+			{ $type: 'place.stream.defs#blockView', record: { subject: 'did:plc:carol' } }
+		);
+		expect(texts(channel)).toEqual(['reply one', 'reply two']);
+		expect(channel.messages.map((item) => item.replyTo)).toEqual([undefined, undefined]);
+		// A deleted message does not come back when the node replays history.
+		emit(deleted);
+		expect(texts(channel)).toEqual(['reply one', 'reply two']);
+	});
+
+	it('quotes a message that arrives after its reply', () => {
+		const { channel, emit } = open();
+		const first = message('did:plc:alice', 'the original', 1);
+		emit(message('did:plc:bob', 'the reply', 2, first));
+		expect(channel.messages[0].replyTo).toBeUndefined();
+		emit(first);
+		expect(channel.messages[1].replyTo?.record.text).toBe('the original');
+	});
+
 	it('counts a stream as live only while segments keep arriving', () => {
 		const { channel, emit } = open();
 		expect(channel.live).toBe(false);

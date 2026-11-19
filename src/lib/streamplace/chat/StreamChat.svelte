@@ -212,6 +212,12 @@
 		return () => clearTimeout(timer);
 	});
 
+	// A message that was hidden or deleted is no longer something to reply to.
+	$effect(() => {
+		const target = replyTo;
+		if (target && !channel.messages.some((message) => message.uri === target.uri)) replyTo = null;
+	});
+
 	// Handles typed into the message box mark everything those people wrote.
 	const marked = $derived.by(() => {
 		const typed = new Set(
