@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { asset } from '$app/paths';
+	import { coast } from './fixtures.js';
 	import { Button, Checkbox, Label } from '#lib';
 	import {
 		Channel,
+		StreamCard,
 		StreamChat,
 		StreamChatPopups,
 		StreamPlayer,
+		VideoCard,
 		type RecordWriter
 	} from '#lib/streamplace.js';
 	let { name, compact = false }: { name: string; compact?: boolean } = $props();
@@ -141,6 +144,46 @@
 				Messages that were already there when the page loaded do not pop up.
 			</p>
 		{/if}
+	{:else if name === 'StreamCard'}
+		<!-- Fixture data: the picture is local and the hover preview is off, so nothing is fetched. -->
+		<div class="w-full max-w-xs">
+			<StreamCard
+				preview={false}
+				href="/components/StreamCard"
+				thumbnail={coast}
+				stream={{
+					uri: `at://${streamer}/place.stream.livestream/demo`,
+					cid: '',
+					author: { did: streamer, handle: 'forest.example.com', displayName: 'Forest' },
+					indexedAt: new Date().toISOString(),
+					viewerCount: { count: 1284 },
+					record: {
+						$type: 'place.stream.livestream',
+						title: 'Building a map view, questions welcome',
+						createdAt: new Date().toISOString(),
+						activity: { $type: 'place.stream.defs#activityLabel', label: 'software_dev' }
+					}
+				}}
+			/>
+		</div>
+	{:else if name === 'VideoCard'}
+		<div class="w-full max-w-xs">
+			<VideoCard
+				href="/components/VideoCard"
+				video={{
+					uri: `at://${streamer}/place.stream.video/demo`,
+					cid: '',
+					author: { did: streamer, handle: 'forest.example.com', displayName: 'Forest' },
+					viewCounts: { count: 412 },
+					record: {
+						$type: 'place.stream.video',
+						title: 'Map view, part one',
+						createdAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+						durationMs: 4_512_000
+					}
+				}}
+			/>
+		</div>
 	{/if}
 	{#if status}<p class="text-sm text-base-600 dark:text-base-400" role="status">{status}</p>{/if}
 </div>

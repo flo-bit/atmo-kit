@@ -267,6 +267,16 @@ export const catalog: CatalogGroup[] = [
 				'StreamChatPopups',
 				'New chat messages shown briefly while the chat is hidden.',
 				'streamplace/chat/StreamChatPopups.svelte'
+			),
+			component(
+				'StreamCard',
+				'A live stream with picture, viewers and a hover preview.',
+				'streamplace/StreamCard.svelte'
+			),
+			component(
+				'VideoCard',
+				'A recording with thumbnail, length and views.',
+				'streamplace/VideoCard.svelte'
 			)
 		]
 	}

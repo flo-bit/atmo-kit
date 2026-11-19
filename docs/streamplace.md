@@ -7,7 +7,7 @@ are written.
 | Import                           | Contents                                                           |
 | -------------------------------- | ------------------------------------------------------------------ |
 | `@atmo-dev/kit/streamplace-data` | Types, API reads, chat text helpers. No Svelte; safe on the server |
-| `@atmo-dev/kit/streamplace`      | The same, plus `Channel`, `StreamPlayer` and the chat components   |
+| `@atmo-dev/kit/streamplace`      | The same, plus `Channel`, the player, chat and cards               |
 
 The main entry still exports `parseStreamplaceLink` and `StreamplacePicker`.
 
@@ -182,6 +182,21 @@ is hidden: `active` turns it on, `onopen(message)` is where the app shows the ch
 unless `class` places it elsewhere.
 
 `streamLinkEmbed({ href? })` is a link embed for channel links, usable in any `RichText`.
+
+## Cards
+
+`StreamCard` shows a live stream (picture, viewer count, title, streamer) and `VideoCard` a
+recording (thumbnail, length, views, age). Both link to stream.place unless `href` gives the
+app's own page; a path stays in the tab.
+
+```svelte
+<StreamCard {stream} href="/{handle}" eager />
+<VideoCard {video} href="/{handle}/video/{rkey}" showAuthor={false} />
+```
+
+Resting the mouse on a `StreamCard` plays the stream in place, silently, after a moment.
+That opens a connection to the node; pass `preview={false}` to turn it off. It never runs
+for touch or with reduced motion.
 
 `startBroadcast(media, streamKey, onstate)` sends a camera or screen capture to the node and
 returns a function that stops it. Each attempt gives the node ten seconds to answer before

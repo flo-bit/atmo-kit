@@ -7,3 +7,9 @@ export { default as StreamChat } from './streamplace/chat/StreamChat.svelte';
 export type { StreamChatProps } from './streamplace/chat/StreamChat.svelte';
 export { default as StreamChatPopups } from './streamplace/chat/StreamChatPopups.svelte';
 export { streamLinkEmbed, type StreamLinkEmbedRef } from './streamplace/link-embed.js';
+export { default as StreamCard } from './streamplace/StreamCard.svelte';
+export type { StreamCardProps } from './streamplace/StreamCard.svelte';
+export { default as VideoCard } from './streamplace/VideoCard.svelte';
+export type { VideoCardProps } from './streamplace/VideoCard.svelte';
+// For apps building their own playback, e.g. a go-live preview.
+export { startHls, startWebRTC, type Engine, type EngineEvents } from './video/engines.js';

@@ -108,7 +108,7 @@ export const demoGroups: DemoGroup[] = [
 		load: () => import('./Articles.svelte')
 	},
 	{
-		names: ['StreamPlayer', 'StreamChat', 'StreamChatPopups'],
+		names: ['StreamPlayer', 'StreamChat', 'StreamChatPopups', 'StreamCard', 'VideoCard'],
 		load: () => import('./Streamplace.svelte')
 	}
 ];
