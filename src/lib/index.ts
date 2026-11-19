@@ -44,7 +44,7 @@ export { default as SembleCollectionView } from './components/SembleCollectionVi
 export type { SembleCollectionViewProps } from './components/SembleCollectionView.svelte';
 export * from './grain.js';
 export * from './semble.js';
-export * from './streamplace.js';
+export * from './streamplace/links.js';
 export { default as InsetImage } from './components/InsetImage.svelte';
 export { default as Badge } from './components/Badge.svelte';
 export { default as Modal } from './components/Modal.svelte';

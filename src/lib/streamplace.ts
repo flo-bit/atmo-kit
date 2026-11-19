@@ -1,5 +1,3 @@
-export { parseStreamplaceLink } from './grain/urls.js';
-export type StreamplaceLink = { actor: string; url: string };
-export type StreamplaceSelection = (
-	stream: StreamplaceLink
-) => void | string | Promise<void | string>;
+/** Streamplace: live channels, chat and playback. Apps own sessions, routes and persistence. */
+export * from './streamplace-data.js';
+export { Channel, type Teleport } from './streamplace/channel.svelte.js';

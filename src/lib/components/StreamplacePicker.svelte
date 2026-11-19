@@ -2,8 +2,8 @@
 	import Button from './Button.svelte';
 	import Input from './Input.svelte';
 	import Modal from './Modal.svelte';
-	import { parseStreamplaceLink } from '../streamplace.js';
-	import type { StreamplaceSelection } from '../streamplace.js';
+	import { parseStreamplaceLink } from '../streamplace/links.js';
+	import type { StreamplaceSelection } from '../streamplace/links.js';
 
 	export type StreamplacePickerProps = {
 		open?: boolean;

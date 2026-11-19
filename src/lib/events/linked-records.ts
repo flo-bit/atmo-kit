@@ -1,11 +1,11 @@
 import { isLinkedActor, parseGrainLink, type GrainClient } from '../grain.js';
 import type { FlatEventRecord } from './contrail.js';
 import { parseSembleLink, type SembleClient } from '../semble.js';
-import { parseStreamplaceLink } from '../streamplace.js';
+import { parseStreamplaceLink } from '../streamplace/links.js';
 
 export { parseGrainLink, isLinkedActor } from '../grain.js';
 export { parseSembleLink } from '../semble.js';
-export { parseStreamplaceLink } from '../streamplace.js';
+export { parseStreamplaceLink } from '../streamplace/links.js';
 export type {
 	GrainReference,
 	GrainAlbum,

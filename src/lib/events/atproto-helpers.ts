@@ -18,6 +18,10 @@ export function appviewUrl(): string {
 	return services.appview;
 }
 
+export function cdnUrl(): string {
+	return services.cdn;
+}
+
 export function getCDNImageBlobUrl({
 	did,
 	blob,

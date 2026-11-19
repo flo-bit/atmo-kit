@@ -81,7 +81,12 @@
 		},
 		"./streamplace": {
 			"types": "./dist/streamplace.d.ts",
+			"svelte": "./dist/streamplace.js",
 			"default": "./dist/streamplace.js"
+		},
+		"./streamplace-data": {
+			"types": "./dist/streamplace-data.d.ts",
+			"default": "./dist/streamplace-data.js"
 		},
 		"./media": {
 			"types": "./dist/media.d.ts",
