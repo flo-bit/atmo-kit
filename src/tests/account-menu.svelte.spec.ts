@@ -65,3 +65,51 @@ it('shows identity only when expanded and keeps the menu inside a narrow viewpor
 	await rerender({ expanded: false });
 	await expect.element(page.getByText('@alice.test', { exact: true })).not.toBeInTheDocument();
 });
+
+it('lists other accounts and an add action between profile and sign-out', async () => {
+	const onswitch = vi.fn();
+	const onadd = vi.fn();
+	const onsignout = vi.fn();
+	render(AccountMenu, {
+		name: 'Alice',
+		onprofile: vi.fn(),
+		onsignout,
+		onswitch,
+		onadd,
+		accounts: [
+			{ did: 'did:plc:bob', name: 'Bob', handle: '@bob.test' },
+			{ did: 'did:plc:carol', handle: 'carol.test' },
+			{ did: 'did:plc:dave' }
+		]
+	});
+	const trigger = page.getByRole('button', { name: 'Account menu', exact: true });
+	await trigger.click();
+	const labels = [...document.querySelectorAll('[role="menuitem"]')].map(
+		(item) => item.getAttribute('aria-label') ?? item.textContent?.replace(/\s+/g, ' ').trim()
+	);
+	expect(labels).toEqual([
+		'Go to profile',
+		'Switch to Bob',
+		'Switch to carol.test',
+		'Switch to did:plc:dave',
+		'Add account',
+		'Sign out'
+	]);
+	await expect.element(page.getByText('@bob.test', { exact: true })).toBeVisible();
+	await expect.element(page.getByRole('group', { name: 'Switch account' })).toBeVisible();
+	await page.getByRole('menuitem', { name: 'Switch to carol.test' }).click();
+	expect(onswitch).toHaveBeenCalledExactlyOnceWith('did:plc:carol');
+	await expect.element(page.getByRole('menu')).not.toBeInTheDocument();
+	await trigger.click();
+	await page.getByRole('menuitem', { name: 'Add account' }).click();
+	expect(onadd).toHaveBeenCalledOnce();
+	expect(onsignout).not.toHaveBeenCalled();
+});
+
+it('offers adding an account when there is nothing to switch to', async () => {
+	render(AccountMenu, { name: 'Alice', onprofile: vi.fn(), onsignout: vi.fn(), onadd: vi.fn() });
+	await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+	await expect.element(page.getByRole('menuitem', { name: 'Add account' })).toBeVisible();
+	expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(3);
+	expect(document.querySelectorAll('[role="separator"]')).toHaveLength(2);
+});
