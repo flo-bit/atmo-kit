@@ -180,6 +180,8 @@ necessarily supported imports.
 Import from **`@atmo-dev/kit/streamplace`**. See the [Streamplace guide](streamplace.md) for
 the data helpers and the channel store.
 
-| Component      | Purpose                                                              |
-| -------------- | -------------------------------------------------------------------- |
-| `StreamPlayer` | Live streams and recordings with quality, delay and theater controls |
+| Component          | Purpose                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| `StreamPlayer`     | Live streams and recordings with quality, delay and theater controls |
+| `StreamChat`       | Live chat with replies, reactions, link previews and moderation      |
+| `StreamChatPopups` | New chat messages shown briefly while the chat is hidden             |

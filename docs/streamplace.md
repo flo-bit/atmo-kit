@@ -7,7 +7,7 @@ are written.
 | Import                           | Contents                                                           |
 | -------------------------------- | ------------------------------------------------------------------ |
 | `@atmo-dev/kit/streamplace-data` | Types, API reads, chat text helpers. No Svelte; safe on the server |
-| `@atmo-dev/kit/streamplace`      | The same, plus the `Channel` store and `StreamPlayer`              |
+| `@atmo-dev/kit/streamplace`      | The same, plus `Channel`, `StreamPlayer` and the chat components   |
 
 The main entry still exports `parseStreamplaceLink` and `StreamplacePicker`.
 
@@ -75,6 +75,8 @@ viewer)` adds one, or removes the viewer's by deleting that reply.
   failure, so show the error.
 - Collections written: `place.stream.chat.message`, and for the streamer
   `place.stream.chat.gate`, `place.stream.chat.pinnedRecord` and `app.bsky.graph.block`.
+- `receive(events)` applies events as if the node had sent them, for history an app loaded
+  itself and for tests.
 - `live` follows arriving video segments. Pass `{ live }` when the server already knows, so
   the first render is right; `settled` says when the channel itself knows.
 
@@ -123,6 +125,59 @@ viewer)` adds one, or removes the viewer's by deleting that reply.
 
 Event recordings and event live streams use the same controls (`VodPlayer` in
 `@atmo-dev/kit/events`).
+
+## Chat
+
+`StreamChat` is the chat for one `Channel`, filling whatever box the page gives it.
+
+```svelte
+<script lang="ts">
+	import { blueskyLinkPreview, defaultLinkEmbeds, setLinkEmbeds } from '@atmo-dev/kit';
+	import { StreamChat, StreamChatPopups, streamLinkEmbed } from '@atmo-dev/kit/streamplace';
+
+	// Once for the app: channel links as cards that open this app's own stream page.
+	setLinkEmbeds({
+		embeds: [streamLinkEmbed({ href: (actor) => `/${actor}` }), ...defaultLinkEmbeds]
+	});
+</script>
+
+<aside class="h-dvh w-80">
+	<StreamChat
+		{channel}
+		{viewer}
+		onsignin={() => (loginOpen = true)}
+		linkPreview={blueskyLinkPreview}
+		channelUrl={(actor) => `/${actor}`}
+		bind:previews
+		bind:times
+	/>
+</aside>
+```
+
+- The app connects the channel and gives it the `write` adapter; the chat calls its actions.
+  Errors from a failed write are shown above the message box.
+- Without `viewer` the chat is read-only. With `onsignin` it offers "Sign in to chat", and
+  reacting calls it too.
+- Messages show replies (the quoted line jumps to the original), reactions as chips, badges,
+  and a small age. Handles typed into the message box mark everything those people wrote.
+- Links: the first link of a message is shown as an embed from the app's link embeds
+  (`embeds` overrides the list), an image after a click, or a card when `linkPreview` finds
+  a title. A link that is on screen this way is left out of the message text. Nothing is
+  looked up for ordinary links without `linkPreview`.
+- The streamer (the viewer whose DID is the channel's) also gets pin, hide and ban. Ban asks
+  first, since it blocks the account everywhere.
+- `previews` and `times` are bindable and not stored. `settings` adds rows to the settings
+  menu, `popoutHref` an "open in a new window" button, and `focus` (bindable) scrolls to a
+  message and marks it.
+- Name colours keep the hue a chatter chose and fix lightness per theme, so every name stays
+  readable.
+
+`StreamChatPopups` shows new messages for a few seconds, at most three, while the chat itself
+is hidden: `active` turns it on, `onopen(message)` is where the app shows the chat again
+(pass the message's URI to the chat's `focus`). It sits in the window's bottom right corner
+unless `class` places it elsewhere.
+
+`streamLinkEmbed({ href? })` is a link embed for channel links, usable in any `RichText`.
 
 `startBroadcast(media, streamKey, onstate)` sends a camera or screen capture to the node and
 returns a function that stops it. Each attempt gives the node ten seconds to answer before

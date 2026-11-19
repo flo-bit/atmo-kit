@@ -107,7 +107,10 @@ export const demoGroups: DemoGroup[] = [
 		],
 		load: () => import('./Articles.svelte')
 	},
-	{ names: ['StreamPlayer'], load: () => import('./Streamplace.svelte') }
+	{
+		names: ['StreamPlayer', 'StreamChat', 'StreamChatPopups'],
+		load: () => import('./Streamplace.svelte')
+	}
 ];
 
 export const demos = Object.fromEntries(

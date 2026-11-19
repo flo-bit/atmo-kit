@@ -257,6 +257,16 @@ export const catalog: CatalogGroup[] = [
 				'StreamPlayer',
 				'Live streams and recordings with quality, delay and theater controls.',
 				'streamplace/StreamPlayer.svelte'
+			),
+			component(
+				'StreamChat',
+				'Live chat with replies, reactions, link previews and moderation.',
+				'streamplace/chat/StreamChat.svelte'
+			),
+			component(
+				'StreamChatPopups',
+				'New chat messages shown briefly while the chat is hidden.',
+				'streamplace/chat/StreamChatPopups.svelte'
 			)
 		]
 	}

@@ -156,6 +156,14 @@ export class Channel {
 		};
 	}
 
+	/**
+	 * Applies events as if the node had sent them: history an app loaded itself, or fixtures
+	 * in tests and examples. The socket is not needed for this.
+	 */
+	receive(events: object[]) {
+		this.#apply(events as Record<string, unknown>[]);
+	}
+
 	#apply(batch: Record<string, unknown>[]) {
 		let chatChanged = false;
 		for (const data of batch) {
