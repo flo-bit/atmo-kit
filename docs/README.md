@@ -27,6 +27,7 @@ gallery shows every public component and links to individual interactive example
 | `@atmo-dev/kit`               | General Svelte components and shared helpers                                  |
 | `@atmo-dev/kit/events`        | Event components and event-data exports; not in the main entry                |
 | `@atmo-dev/kit/events-data`   | Event types, adapter contracts, dates, URLs, and configuration; no UI imports |
+| `@atmo-dev/kit/events/card`   | `EventCard` and event link embeds alone; needs no optional peers              |
 | `@atmo-dev/kit/events/editor` | Record construction, including browser-oriented thumbnail code                |
 | `@atmo-dev/kit/articles`      | Article components, plus everything in `articles-data`                        |
 | `@atmo-dev/kit/articles-data` | Publication and article records, Markdown helpers; no UI imports              |

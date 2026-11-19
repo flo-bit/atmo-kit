@@ -62,6 +62,11 @@
 			"types": "./dist/events-data.d.ts",
 			"default": "./dist/events-data.js"
 		},
+		"./events/card": {
+			"types": "./dist/events-card.d.ts",
+			"svelte": "./dist/events-card.js",
+			"default": "./dist/events-card.js"
+		},
 		"./events/editor": {
 			"types": "./dist/events-editor.d.ts",
 			"default": "./dist/events-editor.js"

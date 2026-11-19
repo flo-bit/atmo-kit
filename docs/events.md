@@ -55,6 +55,18 @@ When a new event is created with the default cover the editor gives it, and the 
 
 Apps implement `EditorAdapter` for authentication prompts, repository IO, uploads, save/delete navigation, and optional linked-record transport/indexing notifications. Keep sessions, Cloudflare bindings, app routes, server endpoints, caching and moderation in the app. The editor/view never imports a consumer's app state. See `EventViewData` and `EditorAdapter` in the public types for the data and callback contracts.
 
+An app that only shows events as cards, or event links as cards in its own text, imports from `@atmo-dev/kit/events/card` instead. That entry has `EventCard`, `eventLinkEmbed` and `loadAtmoRsvpEvent` and none of the map or player code, so it needs no optional peers:
+
+```ts
+import { defaultLinkEmbeds, setLinkEmbeds } from '@atmo-dev/kit';
+import { eventLinkEmbed } from '@atmo-dev/kit/events/card';
+
+// Links to atmo.rsvp events, read from its public index in the browser.
+setLinkEmbeds({ embeds: [eventLinkEmbed(), ...defaultLinkEmbeds] });
+```
+
+Pass `loadEvent` (and `origins`) for events from another index. A card whose link leaves the app opens in a new tab.
+
 Full event UI requires optional peers (ordinary Kit consumers do not):
 
 ```sh

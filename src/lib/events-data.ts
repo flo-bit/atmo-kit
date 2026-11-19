@@ -15,6 +15,7 @@ export type {
 	AttendeeInfo,
 	AttendeeListLoader
 } from './events/contrail.js';
+export { loadAtmoRsvpEvent } from './events/atmo-rsvp.js';
 export { eventUrl, isEventOngoing, RSVP_GOING, RSVP_INTERESTED } from './events/contrail.js';
 export * from './events/conference.js';
 export * from './events/linked-records.js';
