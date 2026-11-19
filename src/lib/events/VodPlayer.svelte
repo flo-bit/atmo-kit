@@ -7,7 +7,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type HlsType from 'hls.js';
-	import Player from './event-view/Player.svelte';
+	import Player from '../video/Player.svelte';
 
 	let {
 		playlistUrl,

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import VodPlayer, { type VodPlayerApi } from '../../lib/events/VodPlayer.svelte';
-import Player from '../../lib/events/event-view/Player.svelte';
+import Player from '../../lib/video/Player.svelte';
 import './theme.css';
 
 const playlist = '/playground/video/sample.m3u8';
@@ -63,6 +63,31 @@ describe('event video player', () => {
 
 		(document.activeElement as HTMLElement).blur();
 		await expect.poll(hidden).toBe(true);
+	});
+
+	it('keeps the sound the way the viewer set it', async () => {
+		const { container } = await render(Player, { title: 'Recording' });
+		const video = container.querySelector('video')!;
+		await page.getByRole('button', { name: 'Mute', exact: true }).click({ force: true });
+		await expect.element(page.getByRole('button', { name: 'Unmute' })).toBeInTheDocument();
+		// Still muted after the controls have re-rendered.
+		await new Promise((resolve) => setTimeout(resolve, 300));
+		expect(video.muted).toBe(true);
+	});
+
+	it('starts an autoplaying stream muted and lets the viewer unmute it', async () => {
+		const { container } = await render(Player, {
+			title: 'Live stream',
+			live: true,
+			autoplay: true
+		});
+		const video = container.querySelector('video')!;
+		await expect.poll(() => video.muted).toBe(true);
+		// A live player shows its controls once playback has started.
+		video.dispatchEvent(new Event('play'));
+		await page.getByRole('button', { name: 'Unmute' }).click();
+		await new Promise((resolve) => setTimeout(resolve, 300));
+		expect(video.muted).toBe(false);
 	});
 
 	it('leaves out the timeline for a live stream', async () => {

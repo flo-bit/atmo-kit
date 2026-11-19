@@ -7,7 +7,7 @@ are written.
 | Import                           | Contents                                                           |
 | -------------------------------- | ------------------------------------------------------------------ |
 | `@atmo-dev/kit/streamplace-data` | Types, API reads, chat text helpers. No Svelte; safe on the server |
-| `@atmo-dev/kit/streamplace`      | The same, plus the `Channel` store                                 |
+| `@atmo-dev/kit/streamplace`      | The same, plus the `Channel` store and `StreamPlayer`              |
 
 The main entry still exports `parseStreamplaceLink` and `StreamplacePicker`.
 
@@ -77,6 +77,52 @@ viewer)` adds one, or removes the viewer's by deleting that reply.
   `place.stream.chat.gate`, `place.stream.chat.pinnedRecord` and `app.bsky.graph.block`.
 - `live` follows arriving video segments. Pass `{ live }` when the server already knows, so
   the first render is right; `settled` says when the channel itself knows.
+
+## Player
+
+`StreamPlayer` plays a live channel or a recording inside whatever box the page gives it.
+
+```svelte
+<script lang="ts">
+	import { Channel, StreamPlayer, liveThumbnail, videoPlaylist } from '@atmo-dev/kit/streamplace';
+</script>
+
+<!-- Live -->
+<div class="aspect-video">
+	<StreamPlayer
+		user={did}
+		live={channel.live}
+		renditions={channel.renditions}
+		poster={liveThumbnail(did)}
+		title={channel.livestream?.record.title}
+		bind:volume
+		bind:muted
+		bind:delay
+	/>
+</div>
+
+<!-- Recording -->
+<StreamPlayer src={videoPlaylist(video.uri)} title={video.record.title} startAt={90} />
+```
+
+- Live plays over WebRTC for the shortest delay and falls back to HLS when that fails;
+  `delay="smooth"` chooses HLS, which buffers a few seconds. Playback starts and stops with
+  `live`. While offline the `offline` snippet covers the player.
+- Playback starts by itself; pass `autoplay={false}` to wait for the play button.
+- Sound: if the browser refuses to start with sound, the stream starts silently with an
+  Unmute button.
+- `volume`, `muted`, `delay` and `theater` are bindable and not stored: the app remembers
+  them. `showTheater` adds the theater button and the `t` key on wide screens; the page does
+  the layout.
+- `cornerControls` adds page-owned buttons to the top right corner, and `controlsVisible`
+  (bindable) lets page elements appear and disappear with the controls.
+- Keys: space or `k`, `m`, `f`, and the arrows on a recording. They work with focus in the
+  player; `shortcuts="page"` makes them work anywhere on the page except while typing.
+- The settings menu has quality, delay and a stats overlay. Recordings keep the shared
+  player's speed button and captions.
+
+Event recordings and event live streams use the same controls (`VodPlayer` in
+`@atmo-dev/kit/events`).
 
 `startBroadcast(media, streamKey, onstate)` sends a camera or screen capture to the node and
 returns a function that stops it. Each attempt gives the node ten seconds to answer before

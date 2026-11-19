@@ -106,7 +106,8 @@ export const demoGroups: DemoGroup[] = [
 			'PostComments'
 		],
 		load: () => import('./Articles.svelte')
-	}
+	},
+	{ names: ['StreamPlayer'], load: () => import('./Streamplace.svelte') }
 ];
 
 export const demos = Object.fromEntries(

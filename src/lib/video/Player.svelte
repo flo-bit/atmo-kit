@@ -12,8 +12,8 @@
 </script>
 
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { Icon } from '../../index.js';
+	import { untrack, type Snippet } from 'svelte';
+	import Icon from '../components/Icon.svelte';
 	import {
 		Captions,
 		CaptionsOff,
@@ -39,6 +39,12 @@
 		video = $bindable(),
 		currentTime = $bindable(0),
 		controlsVisible = $bindable(true),
+		fullscreen = $bindable(false),
+		loading = false,
+		keepControls = false,
+		shortcuts = 'focus',
+		liveStatus,
+		controls,
 		onplay,
 		children
 	}: {
@@ -54,6 +60,18 @@
 		currentTime?: number;
 		/** Whether the controls are on screen, for overlays that come and go with them. */
 		controlsVisible?: boolean;
+		/** Whether the player fills the screen. */
+		fullscreen?: boolean;
+		/** Media is being fetched or reconnected: a spinner replaces the play button. */
+		loading?: boolean;
+		/** Keep the controls up, e.g. while a menu opened from them is showing. */
+		keepControls?: boolean;
+		/** Where the keyboard shortcuts work: with focus in the player, or anywhere on the page. */
+		shortcuts?: 'focus' | 'page';
+		/** Replaces the "Live" label of a live stream. */
+		liveStatus?: Snippet;
+		/** More buttons before the full-screen one; receives the class the built-in buttons use. */
+		controls?: Snippet<[string]>;
 		onplay?: () => void;
 		/** Overlay content, positioned by the caller inside the frame. */
 		children?: Snippet;
@@ -70,7 +88,6 @@
 	let duration = $state(0);
 	let buffered = $state(0);
 	let speed = $state(1);
-	let fullscreen = $state(false);
 	let hasCaptions = $state(false);
 	// svelte-ignore state_referenced_locally
 	let captions = $state(!!captionsUrl);
@@ -81,9 +98,15 @@
 	let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
 	$effect(() => {
-		controlsVisible = active || !playing || scrubbing || focused;
+		controlsVisible = active || !playing || scrubbing || focused || keepControls;
 	});
 	$effect(() => () => clearTimeout(hideTimer));
+
+	// Autoplay has to start muted. Set once, by hand: as a template attribute it is written
+	// again on every re-render, which undoes the viewer's own mute or unmute.
+	$effect(() => {
+		if (video && untrack(() => autoplay)) video.muted = true;
+	});
 
 	// Caption tracks arrive from the `<track>` below or from the stream itself.
 	const captionTracks = (node: HTMLVideoElement) =>
@@ -180,10 +203,20 @@
 		currentTime = video.currentTime;
 	}
 	function key(event: KeyboardEvent) {
-		if (!video) return;
+		if (!video || event.defaultPrevented) return;
 		const target = event.target as HTMLElement;
 		// Buttons and the volume slider keep their own keys.
 		if (target.tagName === 'INPUT' || (target.tagName === 'BUTTON' && event.key === ' ')) return;
+		// Page-wide shortcuts never fire while typing or together with a modifier.
+		if (
+			shortcuts === 'page' &&
+			(event.metaKey ||
+				event.ctrlKey ||
+				event.altKey ||
+				target.isContentEditable ||
+				/^(TEXTAREA|SELECT)$/.test(target.tagName))
+		)
+			return;
 		const step = (delta: number) => {
 			if (!live) seek(Math.min(duration || 0, Math.max(0, video!.currentTime + delta)));
 		};
@@ -192,10 +225,13 @@
 			case 'k':
 				toggle();
 				break;
+			// A live stream has nothing to step through; the page keeps its arrow keys.
 			case 'ArrowLeft':
+				if (live) return;
 				step(-5);
 				break;
 			case 'ArrowRight':
+				if (live) return;
 				step(5);
 				break;
 			case 'm':
@@ -216,6 +252,7 @@
 </script>
 
 <svelte:document onfullscreenchange={() => (fullscreen = document.fullscreenElement === frame)} />
+<svelte:window onkeydown={shortcuts === 'page' ? key : undefined} />
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div
@@ -228,13 +265,12 @@
 		: 'cursor-none'}"
 	onpointermove={poke}
 	onpointerleave={() => playing && (active = false)}
-	onkeydown={key}
+	onkeydown={shortcuts === 'page' ? undefined : key}
 >
 	<video
 		bind:this={video}
 		{poster}
 		{autoplay}
-		muted={autoplay}
 		playsinline
 		crossorigin="anonymous"
 		class="size-full object-contain"
@@ -255,14 +291,17 @@
 			const ranges = event.currentTarget.buffered;
 			buffered = ranges.length ? ranges.end(ranges.length - 1) : 0;
 		}}
-		onvolumechange={(event) => (muted = event.currentTarget.muted)}
+		onvolumechange={(event) => {
+			muted = event.currentTarget.muted;
+			volume = event.currentTarget.volume;
+		}}
 	>
 		{#if captionsUrl}
 			<track kind="captions" label="English" srclang="en" src={captionsUrl} default />
 		{/if}
 	</video>
 
-	{#if !playing && !waiting && !scrubbing}
+	{#if !playing && !waiting && !scrubbing && !loading}
 		<button
 			type="button"
 			aria-label="Play"
@@ -277,7 +316,7 @@
 		</button>
 	{/if}
 
-	{#if waiting && playing}
+	{#if loading || (waiting && playing)}
 		<div class="pointer-events-none absolute inset-0 grid place-items-center">
 			<span
 				class="size-9 animate-spin rounded-full border-[3px] border-white/25 border-t-white motion-reduce:animate-none"
@@ -342,7 +381,9 @@
 				<Icon img={playing ? Pause : Play} size={18} />
 			</button>
 			{#if live}
-				<span class="px-1.5 text-xs font-medium text-white">Live</span>
+				{#if liveStatus}{@render liveStatus()}{:else}
+					<span class="px-1.5 text-xs font-medium text-white">Live</span>
+				{/if}
 			{:else}
 				<span class="px-1.5 text-xs text-white tabular-nums"
 					>{clock(currentTime)} / {clock(duration)}</span
@@ -388,6 +429,7 @@
 					onclick={nextSpeed}>{speed}×</button
 				>
 			{/if}
+			{@render controls?.(button)}
 			<button
 				type="button"
 				class={button}

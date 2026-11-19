@@ -10,7 +10,8 @@ it('lists every public Svelte component exactly once with its real source and en
 	const entries = [
 		['@atmo-dev/kit', 'src/lib/index.ts'],
 		['@atmo-dev/kit/events', 'src/lib/events.ts'],
-		['@atmo-dev/kit/articles', 'src/lib/articles.ts']
+		['@atmo-dev/kit/articles', 'src/lib/articles.ts'],
+		['@atmo-dev/kit/streamplace', 'src/lib/streamplace.ts']
 	] as const;
 	const actual = catalog.flatMap((group) =>
 		group.components.map((item) => ({ ...item, entry: group.entry }))
