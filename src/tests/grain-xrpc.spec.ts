@@ -40,7 +40,7 @@ describe('Grain adapter', () => {
 		});
 		const [url, options] = fetcher.mock.calls[0] as unknown as [URL, RequestInit];
 		expect(url.origin).toBe('https://grain.social');
-		expect(url.pathname).toBe('/xrpc/social.grain.unspecced.getGallery');
+		expect(url.pathname).toBe('/xrpc/social.grain.gallery.getGallery');
 		expect(url.searchParams.get('gallery')).toBe('at://alice.example/social.grain.gallery/album');
 		expect(options.redirect).toBe('error');
 		expect(options.signal).toBeInstanceOf(AbortSignal);
@@ -52,9 +52,24 @@ describe('Grain adapter', () => {
 			cursor: 'next-page'
 		});
 		const url = fetcher.mock.calls[0][0] as unknown as URL;
-		expect(url.pathname).toBe('/xrpc/dev.hatk.getFeed');
+		expect(url.pathname).toBe('/xrpc/social.grain.feed.getFeed');
+		expect(url.searchParams.get('feed')).toBe(
+			'at://did:web:grain.social/social.grain.feed.generator/actor'
+		);
 		expect(url.searchParams.get('cursor')).toBe('previous');
 		expect(url.searchParams.get('actor')).toBe(did);
+	});
+	it('fails on the notice a retired endpoint returns instead of listing it as an album', async () => {
+		const notice = {
+			...gallery(),
+			uri: 'at://did:plc:e7rftrdyz5e2rw4y6ocszew2/social.grain.gallery/update-notice',
+			title: 'This version of Grain has stopped working',
+			creator: { did: 'did:plc:e7rftrdyz5e2rw4y6ocszew2', handle: 'grain.social' }
+		};
+		await expect(client({ items: [notice] }).api.listAlbums('alice.example')).rejects.toThrow(
+			'retired'
+		);
+		await expect(client({ gallery: notice }).api.getGallery(notice.uri)).rejects.toThrow('retired');
 	});
 	it('does not expose a warned album cover', async () => {
 		const g = gallery();
