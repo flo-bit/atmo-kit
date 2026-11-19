@@ -127,7 +127,8 @@ export type Viewer = { did: string; handle: string; displayName?: string; avatar
  * nobody is signed in or a permission is missing.
  */
 export type RecordWriter = {
-	create: (collection: string, record: object) => Promise<{ uri?: string; cid?: string }>;
+	/** Resolves with the new record's AT URI, which is how its copy from the network is recognised. */
+	create: (collection: string, record: object) => Promise<{ uri: string; cid?: string }>;
 	/** By the record's AT URI. */
 	delete: (uri: string) => Promise<unknown>;
 };

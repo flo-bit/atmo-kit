@@ -60,17 +60,24 @@ whether video is arriving, chat, reactions, the pinned message and teleports.
 - Without `write` the channel is read-only; sending and moderating reject with "Sign in to
   continue". The writer should reject when nobody is signed in or a permission is missing.
 - `send(text, viewer, replyTo?)` shows the message at once (`pending`), detects links and
-  mentions, and takes the message back if the write fails.
+  mentions, and takes the message back if the write fails. `create` must resolve with the
+  record's URI: that is how the copy arriving from the node replaces the pending one. Chat
+  history that merely has the same text never does.
+- `connect()` and `close()` can be called repeatedly; a second `connect()` opens no second
+  socket, and `close()` drops updates that were not applied yet.
 - A reaction is an ordinary reply whose whole text is one emoji. Those are kept out of
   `messages` and grouped in `reactions` by the message they answer. `react(message, emoji,
 viewer)` adds one, or removes the viewer's by deleting that reply.
 - `remove(uri)` deletes the viewer's own message. `hide(uri)`, `pin(uri)`, `unpin()` and
   `ban(did)` are for the streamer; `ban` writes an `app.bsky.graph.block`, so it blocks the
-  account everywhere.
+  account everywhere. A removed or hidden message disappears at once and comes back if the
+  write fails; a ban only takes effect on screen once it is written. All of them reject on
+  failure, so show the error.
 - Collections written: `place.stream.chat.message`, and for the streamer
   `place.stream.chat.gate`, `place.stream.chat.pinnedRecord` and `app.bsky.graph.block`.
 - `live` follows arriving video segments. Pass `{ live }` when the server already knows, so
   the first render is right; `settled` says when the channel itself knows.
 
 `startBroadcast(media, streamKey, onstate)` sends a camera or screen capture to the node and
-returns a function that stops it. Stream keys are the app's to create and keep.
+returns a function that stops it. Each attempt gives the node ten seconds to answer before
+retrying, and stopping cancels a request in flight. Stream keys are the app's to create and keep.

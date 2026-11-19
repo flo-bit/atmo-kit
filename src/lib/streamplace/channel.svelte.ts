@@ -62,7 +62,8 @@ export class Channel {
 
 	#write?: RecordWriter;
 	#socket?: WebSocket;
-	#closed = false;
+	#closed = true;
+	#settle?: ReturnType<typeof setTimeout>;
 	#attempt = 0;
 	#retry?: ReturnType<typeof setTimeout>;
 	#clock?: ReturnType<typeof setInterval>;
@@ -97,19 +98,27 @@ export class Channel {
 		}
 	}
 
+	/** Opens the socket. Does nothing while already connected, connecting or waiting to retry. */
 	connect() {
+		if (!this.#closed) return;
 		this.#closed = false;
-		this.#clock ??= setInterval(() => (this.#now = Date.now()), 2000);
+		this.#clock = setInterval(() => (this.#now = Date.now()), 2000);
 		this.#open();
 	}
 
+	/** Closes the socket and drops anything not yet applied. `connect()` starts again. */
 	close() {
 		this.#closed = true;
 		clearTimeout(this.#retry);
+		clearTimeout(this.#settle);
 		clearTimeout(this.#flush);
+		this.#flush = undefined;
+		this.#queue = [];
 		clearInterval(this.#clock);
 		this.#clock = undefined;
-		this.#socket?.close();
+		const socket = this.#socket;
+		this.#socket = undefined;
+		socket?.close();
 		this.connected = false;
 	}
 
@@ -120,9 +129,11 @@ export class Channel {
 			this.#attempt = 0;
 			this.connected = true;
 			// Channels that never streamed send no segment at all.
-			setTimeout(() => (this.settled = true), 2500);
+			clearTimeout(this.#settle);
+			this.#settle = setTimeout(() => (this.settled = true), 2500);
 		};
 		socket.onmessage = (event) => {
+			if (this.#socket !== socket) return;
 			try {
 				this.#queue.push(JSON.parse(event.data));
 			} catch {
@@ -240,23 +251,13 @@ export class Channel {
 	#message(message: ChatMessage): boolean {
 		if (message.deleted) return this.#index.delete(message.uri);
 		if (this.#hidden.has(message.uri) || this.#blocked.has(message.author.did)) return false;
-		if (this.#index.has(message.uri)) return false;
+		// Only this tab's own unconfirmed copy is replaced; anything else is a repeat.
+		const existing = this.#index.get(message.uri);
+		if (existing && !existing.pending) return false;
 		this.authors.set(message.author.did, {
 			handle: message.author.handle,
 			chatProfile: message.chatProfile
 		});
-		// The confirmed copy replaces what this tab showed while sending.
-		for (const [uri, existing] of this.#index) {
-			if (
-				existing.pending &&
-				existing.author.did === message.author.did &&
-				existing.record.text === message.record.text &&
-				existing.record.reply?.parent.uri === message.record.reply?.parent.uri
-			) {
-				this.#index.delete(uri);
-				break;
-			}
-		}
 		const parent = message.record.reply?.parent.uri;
 		if (parent && !message.replyTo) message.replyTo = this.#index.get(parent);
 		this.#index.set(message.uri, message);
@@ -329,13 +330,22 @@ export class Channel {
 		};
 		this.#index.set(local.uri, local);
 		this.#publish();
+		let created: { uri?: string; cid?: string } | undefined;
 		try {
-			await write.create('place.stream.chat.message', record);
+			created = await write.create('place.stream.chat.message', record);
 		} catch (cause) {
 			this.#index.delete(local.uri);
 			this.#publish();
 			throw cause;
 		}
+		// From here the record's own URI identifies it. The copy from the node replaces this one
+		// when it arrives; if it already has, or the writer named no URI, this one just goes.
+		this.#index.delete(local.uri);
+		const uri = created?.uri;
+		if (uri && !this.#index.has(uri) && !this.#hidden.has(uri)) {
+			this.#index.set(uri, { ...local, uri, cid: created?.cid ?? '' });
+		}
+		this.#publish();
 	}
 
 	/** Adds the viewer's reaction to a message, or takes it back if it is already there. */
@@ -345,23 +355,37 @@ export class Channel {
 			?.find((reaction) => reaction.emoji === emoji)
 			?.by.find((person) => person.did === viewer.did);
 		if (!mine) return this.send(emoji, viewer, target);
-		// Still being sent: there is no record to remove yet.
-		if (mine.pending) return;
+		// Still being written: there is no record to remove yet.
+		if (mine.uri.startsWith('local:')) return;
 		await this.remove(mine.uri);
 	}
 
-	/** Deletes one of the viewer's own messages. */
-	async remove(uri: string) {
-		const write = this.#writer();
+	/** Takes a message off screen for a write, and puts it back if the write fails. */
+	async #withoutMessage(uri: string, write: () => Promise<unknown>) {
+		const message = this.#index.get(uri);
 		this.hideLocally(uri);
-		await write.delete(uri);
+		try {
+			await write();
+		} catch (cause) {
+			this.#hidden.delete(uri);
+			if (message) this.#index.set(uri, message);
+			this.#publish();
+			throw cause;
+		}
 	}
 
-	/** Streamer: hides someone's message from this chat. */
+	/** Deletes one of the viewer's own messages. It comes back if that fails. */
+	async remove(uri: string) {
+		const write = this.#writer();
+		await this.#withoutMessage(uri, () => write.delete(uri));
+	}
+
+	/** Streamer: hides someone's message from this chat. It comes back if that fails. */
 	async hide(uri: string) {
 		const write = this.#writer();
-		this.hideLocally(uri);
-		await write.create('place.stream.chat.gate', { hiddenMessage: uri });
+		await this.#withoutMessage(uri, () =>
+			write.create('place.stream.chat.gate', { hiddenMessage: uri })
+		);
 	}
 
 	/** Streamer: pins a message above the chat. */
@@ -379,14 +403,16 @@ export class Channel {
 		this.pinned = null;
 	}
 
-	/** Streamer: bans an account from this chat. This blocks the account. */
+	/**
+	 * Streamer: bans an account from this chat. This blocks the account. Their messages go
+	 * once the block is written, so a failed ban changes nothing on screen.
+	 */
 	async ban(did: string) {
-		const write = this.#writer();
-		this.banLocally(did);
-		await write.create('app.bsky.graph.block', {
+		await this.#writer().create('app.bsky.graph.block', {
 			subject: did,
 			createdAt: new Date().toISOString()
 		});
+		this.banLocally(did);
 	}
 
 	/** Removes a message from this tab right away; the network confirms later. */

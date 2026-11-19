@@ -1,5 +1,8 @@
 import { NODE } from './api.js';
 
+/** How long the node gets to answer one connection attempt. */
+const ANSWER_DEADLINE = 10_000;
+
 export type BroadcastState = 'connecting' | 'live' | 'reconnecting' | 'stopped' | 'failed';
 
 /** Sends a camera or screen capture to the node over WHIP until stopped. */
@@ -12,6 +15,7 @@ export function startBroadcast(
 	let pc: RTCPeerConnection | undefined;
 	let retry: ReturnType<typeof setTimeout> | undefined;
 	let attempts = 0;
+	let request: AbortController | undefined;
 
 	async function connect() {
 		if (stopped) return;
@@ -51,11 +55,25 @@ export function startBroadcast(
 					resolve();
 				});
 			});
-			const response = await fetch(`${NODE}/api/ingest/webrtc`, {
-				method: 'POST',
-				headers: { 'content-type': 'application/sdp', authorization: `Bearer ${streamKey}` },
-				body: connection.localDescription?.sdp
-			});
+			// Stopped or superseded while gathering: the stream key must not go out.
+			if (stopped || connection !== pc) return;
+			const attempt = new AbortController();
+			request = attempt;
+			const deadline = setTimeout(() => attempt.abort(), ANSWER_DEADLINE);
+			let response: Response;
+			let answer: string;
+			try {
+				response = await fetch(`${NODE}/api/ingest/webrtc`, {
+					method: 'POST',
+					headers: { 'content-type': 'application/sdp', authorization: `Bearer ${streamKey}` },
+					body: connection.localDescription?.sdp,
+					signal: attempt.signal
+				});
+				// The deadline covers the body too; a node that stalls mid-answer is retried.
+				answer = await response.text();
+			} finally {
+				clearTimeout(deadline);
+			}
 			if (stopped || connection !== pc) return;
 			if (response.status === 401 || response.status === 403) {
 				stopped = true;
@@ -63,9 +81,10 @@ export function startBroadcast(
 				return onstate('failed');
 			}
 			if (!response.ok) return again();
-			await connection.setRemoteDescription({ type: 'answer', sdp: await response.text() });
+			await connection.setRemoteDescription({ type: 'answer', sdp: answer });
 		} catch {
-			again();
+			// A superseded attempt must not schedule a second retry.
+			if (connection === pc) again();
 		}
 	}
 
@@ -82,6 +101,7 @@ export function startBroadcast(
 	return () => {
 		stopped = true;
 		clearTimeout(retry);
+		request?.abort();
 		pc?.close();
 		onstate('stopped');
 	};
