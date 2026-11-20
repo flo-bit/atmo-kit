@@ -50,9 +50,12 @@ const content = parseRichText(text, { facets, markdown: true, detectLinks: true 
 Each feature can be turned on separately:
 
 - `markdown`: CommonMark plus `~~strikethrough~~`. Single newlines are line breaks. Raw HTML is shown as written. Images are never loaded; they become links labeled by their alt text. Tables and other extensions stay literal text. Text over 10,000 characters, with more than 1,000 `*`, `_`, `~` or `[` characters, or with more than 8 nested quote or list markers on a line, is rendered as plain text, because the parser slows down quadratically on some inputs. Without `markdown`, text is plain and whitespace is preserved.
+- `article` (with `markdown`): standard Markdown for long-form writing. A single newline wraps instead of breaking the line (`\\` at the end of a line, or two trailing spaces, is a break), tables (up to 20,000 cells in a document; tables beyond that are shown as their source), footnotes (`[^1]`), task lists (`- [ ]`), math (`$x^2$`, and `$$` on lines of their own), highlights (`==marked==`) and callouts (a quote starting with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` on a line of its own, as on GitHub) are parsed, and images are kept as `image` blocks of their own; an image inside a link or heading is still a link. The limits rise to 200,000 characters and 20,000 delimiter characters. HTTP(S) images are kept; `allowImage(url)` admits other destinations, such as an app's own scheme for uploaded files, which `RichText` then loads through its `imageSrc(url)` prop. Use the same option when writing: `richTextToMarkdown(document, { article: true })`.
 - `facets`: record facets are validated at runtime. Malformed, overlapping or mid-character ranges are ignored without dropping text. In Markdown, facets apply to formatted text such as `**@alice**`; facets in code, inside Markdown links, across Markdown syntax or on text changed by escapes or entities are ignored.
 - `detectLinks`: detects URLs, mentions and hashtags when there are no facets, outside code and existing links. Detection uses the mention, hashtag and URL rules of `@atcute/bluesky-richtext-parser` in one linear pass. Its `tokenize` also parses emphasis and backtracks badly on runs of `*` (a hundred take minutes), so do not run it on untrusted text; `detectTokens` from `@atmo-dev/kit/richtext` returns compatible tokens.
 
+- `math`: a snippet `(value, display)` that renders the TeX source of a formula, e.g. with KaTeX on the server. Without it the source is shown as code. A `$` is a formula only when the dollars hug it and no digit follows, so prices stay text.
+- `codeBlock`: a snippet `(value, lang)` that renders code blocks instead of the plain `<pre>`, for app-owned highlighting or a copy button.
 - `embeds`: a bare link alone on its line is shown as an embed instead of a link, in plain text and in Markdown. Labeled links and links inside a sentence are unaffected. Off by default; pass `embeds` for the app's embeds or a list for this one place. See [Link embeds](#link-embeds).
 
 Links accept only HTTP(S) URLs without credentials. `socialClient` selects mention and hashtag destinations; `mentionUrl` overrides mention routing with an HTTP(S) URL or root-relative path. Local links stay in the same tab; external links use `noopener noreferrer nofollow ugc`. Post text keeps Bluesky destinations by default.
@@ -78,7 +81,11 @@ To parse in the browser, for example in an editor preview, load the parser on de
 
 `value` only changes when the user edits, so opening and saving existing text does not rewrite it. After an edit the whole text is written again in the kit's own style (`-` bullets, `**`/`*`, fenced code), reading back as the same document; `richTextToMarkdown(document)` from `@atmo-dev/kit/richtext` is that writer, and `sameRichText(a, b)` compares two documents the way it does. Only characters that would otherwise become syntax are escaped (`1\. not a list`, `\*literally\*`), so links, mentions and hashtags stay detectable in the source.
 
-The Markdown blocks and the parser are loaded on demand, the first time a `markdown` editor is shown. Formatting inside inline code and images are not editable; images keep showing as links.
+`markdown="article"` edits article Markdown (see `article` above): task lists with boxes to tick, footnotes (type `[^1]`, and `[^1]: ` at the start of a line for the note), math as its TeX source (type `$x^2$`; a displayed formula is a code block in the language `math`), tables, and images on their own line with a description field below. Pass `images={{ upload, src }}` to accept pasted, dropped or picked files: `upload(file)` stores a file and returns the destination to write in the Markdown (a URL, or the app's own reference such as `local:1`), `src(url)` returns the address to load such a reference from. `bind:this` exposes `insertImages(files)` for a file picker. A whole pasted Markdown document, images and tables included, becomes editable content. Highlights (type `==marked==`, or `Mod-Shift-H`) and callouts (type `[!note] ` at the start of a quote; the label changes the kind) are edited as they will look, and a code block has a field for its language.
+
+`menus` adds the menus of a writing app to an article editor: typing `/` at the start of a line or after a space lists the blocks and insertions, filtered by what is typed next (inside a table it lists row and column changes instead); selected text gets a bar with the block type, bold, italic, strikethrough, code, highlight and link; `Mod-K` edits a link, and a link under the cursor shows its address with edit and remove. On touch screens the bar is a toolbar above the keyboard instead, with indent, undo and redo. An empty line being written says `Type / for commands`. The menus are loaded on demand with the editor.
+
+The Markdown blocks and the parser are loaded on demand, the first time a `markdown` editor is shown. Formatting inside inline code is not editable. Outside article mode, images keep showing as links.
 
 ### Link embeds
 
@@ -100,7 +107,27 @@ One ordered list of embeds serves `RichText`, `RichTextEditor`, event descriptio
 <LinkEmbed url="https://youtu.be/M7lc1UVf-VE" />
 ```
 
-An embed is a URL matcher and a lazily loaded component. Matching uses the URL alone and does no network IO; the component receives `{ url, ref, fallback, socialClient }` and renders `fallback` (the ordinary link) until it has something to show and whenever it can't.
+Embeds normally load in the browser, so they appear a moment after the text and move what is below. To have them in the page from the start, load them on the server and pass the result on:
+
+```ts
+// +page.server.ts
+import { loadLinkEmbedData } from '@atmo-dev/kit';
+const embedData = await loadLinkEmbedData(content, linkEmbeds, { fetch });
+
+// +page.ts: the embeds' components, before the page is drawn
+import { preloadLinkEmbeds } from '@atmo-dev/kit';
+await preloadLinkEmbeds(data.content, linkEmbeds);
+```
+
+```svelte
+<RichText {content} embeds {embedData} />
+```
+
+`EventView` and `ArticleView` take the same `embedData`. For an event page, load with the list `EventView` uses: `[eventLinkEmbed({ loadEvent }), ...yourEmbeds]`.
+
+`loadLinkEmbedData` waits at most `timeout` (1.5 s) for at most `limit` (20) embeds; whatever is missing loads in the browser as before. It reads plain-text documents (`parsePlainText`) as well as Markdown. Nothing is loaded for an embed that waits for a click: one with `requests: 'click'`, or any behind a load button, for which pass the same `clickToLoad` as to `setLinkEmbeds`. Posts, profiles, articles and events can be loaded ahead; players need nothing loaded.
+
+An embed is a URL matcher and a lazily loaded component. Matching uses the URL alone and does no network IO; the component receives `{ url, ref, data, fallback, socialClient }` and renders `fallback` (the ordinary link) until it has something to show and whenever it can't. An optional `data(ref, { fetch, signal })` returns what the component shows as plain data (`null` for nothing to show); the component then gets it as `data` and renders it right away.
 
 ```ts
 import type { LinkEmbedDefinition } from '@atmo-dev/kit';
@@ -116,9 +143,19 @@ export const myEmbed: LinkEmbedDefinition<{ id: string }> = {
 };
 ```
 
-Each embed decides when it contacts other servers. Posts, profiles and GIFs load when shown. YouTube sets `requests: 'click'`: nothing is requested before its play button is pressed. An app that wants a click before anything loads passes `clickToLoad: true` (or a function per embed) to `setLinkEmbeds` or `LinkEmbed`; embeds then show the link and a load button first, and embeds with their own play button are not gated twice. `playerLinkEmbed(provider)` turns an `ExternalEmbedProvider` (below) into a link embed. `eventLinkEmbed({ loadEvent, origins })` from `@atmo-dev/kit/events` shows links to event pages as event cards; `EventView` adds it when the host supplies `getEvent`.
+Each embed decides when it contacts other servers. Posts, profiles and GIFs load when shown. YouTube sets `requests: 'click'`: its player is not loaded before its play button is pressed. A YouTube link embed does show the video's thumbnail, which comes from YouTube's image host; with `clickToLoad` set, it shows a plain play button instead and requests nothing. An app that wants a click before anything loads passes `clickToLoad: true` (or a function per embed) to `setLinkEmbeds` or `LinkEmbed`; embeds then show the link and a load button first, and embeds with their own play button are not gated twice. `playerLinkEmbed(provider)` turns an `ExternalEmbedProvider` (below) into a link embed. `eventLinkEmbed({ loadEvent, origins })` from `@atmo-dev/kit/events` shows links to event pages as event cards; `EventView` adds it when the host supplies `getEvent`.
 
 The older `embedLink` and `linkEmbed` snippet props of `RichText` still work for one-off custom rendering.
+
+### Comments
+
+`PostComments` loads the replies to a Bluesky post and shows them with `NestedComments`: the comments of whatever that post announces.
+
+```svelte
+<PostComments postUri={announcement} {socialClient} oncomment={openComposer} refresh={posted} />
+```
+
+Replies with a moderation label are left out, with the replies beneath them, because the thread is shown to everyone without their moderation settings. Without `oncomment`, commenting is a link to the post in the viewer's client. Change `refresh` to load the thread again, e.g. after the viewer commented. `configureAtproto({ appview })` from `@atmo-dev/kit/events-data` changes where threads load from.
 
 ### Link cards
 
@@ -168,10 +205,13 @@ What can be changed:
 | `requireAlt`                         | Every image needs a description before posting                                                                              |
 | `replyTo`, `quote`                   | The post replied to (`{ name, text }`) and a snippet with the quoted post                                                   |
 | `text`, `files`                      | What a new composer starts with                                                                                             |
+| `notice`                             | A line above the toolbar saying where the post goes, e.g. "This will be posted on Bluesky."; none by default                |
 | `actions`                            | A snippet with more toolbar buttons; it gets `{ post, insert, disabled }`                                                   |
 | `searchActors`                       | Mention suggestions                                                                                                         |
 
 `languages`, `replyRules` and `allowQuotes` are bindable, so the app can keep them between posts. `addFiles(files)` on the component attaches files from elsewhere, such as a page-wide drop.
+
+Pass `link` (`{ uri, title, description, image? }`) to start the first post with a card the app already knows, such as the page being shared. It needs no lookup, replaces previews of links in the text, stays until the author removes it or attaches media, and can be posted without any text. Leaving a composer that still has only the `text` and `link` it opened with does not ask to discard.
 
 `blueskyGifSearch` and `blueskyLinkPreview` use Bluesky's public GIF and card services; nothing is requested from them unless they are passed in. `CharRing` is the composer's character counter on its own.
 

@@ -4,6 +4,7 @@
 	import { Captions, X } from '@sketchyicons/svelte';
 	import type {
 		ComposerLimits,
+		ComposerLink,
 		ComposerLinkPreview,
 		ComposerPost as Post
 	} from '../../social/composer.js';
@@ -31,6 +32,7 @@
 		limits,
 		searchActors,
 		linkPreview,
+		fixedLink,
 		onfocus,
 		onremove
 	}: {
@@ -49,6 +51,8 @@
 		limits: ComposerLimits;
 		searchActors?: ActorSearch;
 		linkPreview?: ComposerLinkPreview;
+		/** A card given by the app. It replaces previews of links in the text. */
+		fixedLink?: ComposerLink;
 		onfocus: () => void;
 		onremove?: () => void;
 	} = $props();
@@ -72,6 +76,12 @@
 	let loadingLink = $state(false);
 	let firstLink = $derived(post.facets.flatMap((f) => f.features).find((f) => f.uri)?.uri ?? '');
 	$effect(() => {
+		if (fixedLink) {
+			const card = hasMedia || dismissed === fixedLink.uri ? undefined : fixedLink;
+			if (untrack(() => post.link?.uri) !== card?.uri) post.link = card && { ...card };
+			loadingLink = false;
+			return;
+		}
 		const uri = firstLink;
 		const preview = linkPreview;
 		if (!preview || hasMedia) {

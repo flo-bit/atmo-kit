@@ -49,6 +49,7 @@
 		extraActions,
 		attendeeActions,
 		loadAttendees,
+		embedData,
 		mediaUrl = getCDNImageBlobUrl
 	}: {
 		data: EventViewData;
@@ -71,6 +72,9 @@
 		/** Fetches the complete attendee lists the first time one is opened, when
 		 *  `data.attendees` holds only a sample of the counted RSVPs. */
 		loadAttendees?: AttendeeListLoader;
+		/** What `loadLinkEmbedData` loaded for the description's embeds, so that they are shown
+		 *  with the page instead of appearing after it. */
+		embedData?: Record<string, unknown>;
 		/** Where the page loads the event's own images from; the public CDN by default. */
 		mediaUrl?: EventMediaUrl;
 	} = $props();
@@ -488,6 +492,7 @@
 								detectLinks
 								headingOffset={1}
 								embeds={descriptionEmbeds}
+								{embedData}
 								class="text-base-700 dark:text-base-300"
 							/>
 						{:else if activeTab === 'comments' && eventData.bskyPostRef?.uri}

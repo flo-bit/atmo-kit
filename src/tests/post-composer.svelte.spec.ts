@@ -79,6 +79,7 @@ describe('PostComposer', () => {
 			limits: { posts: 1 }
 		});
 		await expect.element(page.getByRole('button', { name: 'Add images' })).toBeVisible();
+		expect(page.getByText('posted on Bluesky').query()).toBeNull();
 		for (const name of [
 			'Add video',
 			'Add GIF',
@@ -192,5 +193,40 @@ describe('PostComposer', () => {
 		expect(page.getByRole('button', { name: 'Drafts' }).query()).toBeNull();
 		await page.getByRole('button', { name: 'Quotes allowed' }).click();
 		expect(page.getByRole('radiogroup', { name: 'Who can reply' }).query()).toBeNull();
+	});
+
+	it('keeps a card given by the app until it is removed, and does not ask before leaving untouched', async () => {
+		const onsubmit = vi.fn(async (content: ComposerContent) => void content);
+		const oncancel = vi.fn();
+		const link = { uri: 'https://atmo.blog/a', title: 'An article', description: 'About it' };
+		const linkPreview = vi.fn(async () => undefined);
+		const notice = 'This will be posted on Bluesky.';
+		render(PostComposer, { onsubmit, oncancel, text: 'An article', link, linkPreview, notice });
+		await expect.element(page.getByText(notice)).toBeVisible();
+		await expect.element(page.getByRole('link', { name: /An article/ })).toBeVisible();
+		// What the composer opened with is not the author's writing.
+		await page.getByRole('button', { name: 'Cancel' }).click();
+		expect(oncancel).toHaveBeenCalledTimes(1);
+		// Other links in the text neither replace the card nor are looked up.
+		await editor().fill('Read https://example.com');
+		await page.getByRole('button', { name: 'Post', exact: true }).click();
+		await expect.poll(() => onsubmit.mock.calls.length).toBe(1);
+		expect(onsubmit.mock.calls[0][0].posts[0]).toMatchObject({
+			text: 'Read https://example.com',
+			link
+		});
+		expect(linkPreview).not.toHaveBeenCalled();
+
+		// The card is enough for a post; without it and without text there is nothing to post.
+		await expect.element(page.getByRole('link', { name: /An article/ })).toBeVisible();
+		await page.getByRole('button', { name: 'Post', exact: true }).click();
+		await expect.poll(() => onsubmit.mock.calls.length).toBe(2);
+		expect(onsubmit.mock.calls[1][0].posts[0]).toMatchObject({ text: '', link });
+		await page.getByRole('button', { name: 'Remove link preview' }).click();
+		await expect.element(page.getByRole('button', { name: 'Post', exact: true })).toBeDisabled();
+		await editor().fill('Again');
+		await page.getByRole('button', { name: 'Post', exact: true }).click();
+		await expect.poll(() => onsubmit.mock.calls.length).toBe(3);
+		expect(onsubmit.mock.calls[2][0].posts[0].link).toBeUndefined();
 	});
 });

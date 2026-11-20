@@ -37,6 +37,8 @@ Without `data.description`, `EventView` shows the description as plain text with
 
 Descriptions use the app's [link embeds](social.md#link-embeds), and `EventEditor` edits them with `RichTextEditor`, showing the same formatting and embeds while typing. A link to a Bluesky post alone on its own line of a description (also on mu, Blacksky and Witchsky, or any client added to `socialClients`) is shown as the post itself. It is read in the browser from the public AppView set with `configureAtproto`; posts that are missing, hidden from logged-out viewers, or carry a moderation label (on the post, its author, or anything it quotes, at any depth) stay ordinary links. Clicking the post opens it in the viewer's preferred social client.
 
+A label counts when it comes from a moderation service, or when the account applied it to itself and it is a system label (`!no-unauthenticated`, `!hide`, …) or a content warning (`porn`, `sexual`, `nudity`, `graphic-media`). Other self-applied labels, such as `bot`, describe the account and do not keep its posts from being shown.
+
 `EventComments` applies the same rule to the comment thread: a labeled reply is left out together with the replies beneath it.
 
 A link to a profile on one of those clients, alone on its line, is shown as a small card with avatar, name and handle, under the same rules.

@@ -48,6 +48,8 @@ export * from './streamplace.js';
 export { default as InsetImage } from './components/InsetImage.svelte';
 export { default as Badge } from './components/Badge.svelte';
 export { default as Modal } from './components/Modal.svelte';
+export { default as IconMaker } from './components/IconMaker.svelte';
+export { iconColors, iconSvg, iconPng } from './icon-maker/index.js';
 export { default as LegalDocument } from './components/legal/LegalDocument.svelte';
 export type { LegalDocumentProps } from './components/legal/LegalDocument.svelte';
 export { default as LegalFooter } from './components/legal/LegalFooter.svelte';
@@ -133,7 +135,8 @@ export { default as InlineEditor } from './components/InlineEditor.svelte';
 export { default as RichTextEditor } from './components/RichTextEditor.svelte';
 export type {
 	RichTextEditorProps,
-	RichTextEditorContent
+	RichTextEditorContent,
+	RichTextEditorImages
 } from './components/RichTextEditor.svelte';
 export { default as PostComposer } from './components/composer/PostComposer.svelte';
 export type { PostComposerProps } from './components/composer/PostComposer.svelte';
@@ -165,6 +168,7 @@ export type {
 	ComposerContentWarning
 } from './social/composer.js';
 export { default as NestedComments } from './components/NestedComments.svelte';
+export { default as PostComments } from './components/PostComments.svelte';
 export { default as PostContent } from './components/PostContent.svelte';
 export { safeHttpUrl, safeLinkHref } from './urls.js';
 export { default as RichText } from './components/RichText.svelte';
@@ -182,11 +186,18 @@ export {
 	playerLinkEmbed
 } from './embeds/defaults.js';
 export { resolveLinkEmbed } from './embeds/resolve.js';
+export {
+	linkEmbedUrls,
+	loadLinkEmbedData,
+	preloadLinkEmbeds,
+	type LinkEmbedData
+} from './embeds/load.js';
 export { setLinkEmbeds } from './embeds/context.js';
 export type {
 	LinkEmbed as LinkEmbedDefinition,
 	LinkEmbedProps,
-	LinkEmbedOptions
+	LinkEmbedOptions,
+	LinkEmbedLoadOptions
 } from './embeds/types.js';
 export {
 	defaultExternalEmbedProviders,
@@ -207,4 +218,14 @@ export type { Facet, RichTextOptions, RichTextSegment } from './social/richtext.
 export type { Editor, JSONContent } from '@tiptap/core';
 export { launchConfetti } from './confetti.js';
 export { cn } from './utils.js';
-export { baseColors, accentColors } from './palettes.js';
+export {
+	baseColors,
+	accentColors,
+	baseColorRgb,
+	accentColorRgb,
+	isBaseColor,
+	isAccentColor
+} from './palettes.js';
+export type { BaseColor, AccentColor, Palette } from './palettes.js';
+export { default as PalettePicker } from './components/PalettePicker.svelte';
+export { default as PaletteApply } from './components/PaletteApply.svelte';

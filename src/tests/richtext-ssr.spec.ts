@@ -3,7 +3,108 @@ import { render } from 'svelte/server';
 import { chromium } from 'playwright';
 import RichText from '../lib/components/RichText.svelte';
 import { descriptionAttacks } from './richtext-security-fixtures.js';
-import { parseRichText, type RichTextDocument } from '../lib/richtext.js';
+import { parsePlainText, parseRichText, type RichTextDocument } from '../lib/richtext.js';
+import { linkEmbedUrls, loadLinkEmbedData, preloadLinkEmbeds } from '../lib/embeds/load.js';
+import type { LinkEmbed } from '../lib/embeds/types.js';
+
+describe('rich text SSR', () => {
+	const post = 'https://things.example/t/abc';
+	const embed: LinkEmbed<{ id: string }, { title: string }> = {
+		id: 'thing',
+		label: 'thing',
+		match: (url) => (url.hostname === 'things.example' ? { id: url.pathname.slice(3) } : null),
+		load: () => import('./LinkEmbedDataFixture.svelte'),
+		data: async (ref) => (ref.id === 'abc' ? { title: 'A thing' } : null)
+	};
+
+	it('renders embeds loaded ahead with the text', async () => {
+		const content = parseRichText(`Before\n\n${post}\n\n[label](${post})`, {
+			markdown: true,
+			detectLinks: true
+		});
+		expect(linkEmbedUrls(content, [embed])).toEqual([post]);
+		const embedData = await loadLinkEmbedData(content, [embed]);
+		expect(embedData).toEqual({ [post]: { title: 'A thing' } });
+		// Without its component the link is a link; once loaded it is the embed.
+		expect(render(RichText, { props: { content, embeds: [embed], embedData } }).body).not.toContain(
+			'link-embed-fixture'
+		);
+		await preloadLinkEmbeds(content, [embed]);
+		const { body } = render(RichText, { props: { content, embeds: [embed], embedData } });
+		expect(body).toContain('abc: A thing');
+		// An embed made anew with the same `load`, as components do, has its component too.
+		expect(
+			render(RichText, { props: { content, embeds: [{ ...embed }], embedData } }).body
+		).toContain('abc: A thing');
+	});
+
+	it('leaves embeds that fail or take too long to the browser', async () => {
+		const slow: LinkEmbed<{ id: string }, { title: string }> = {
+			...embed,
+			data: (ref) =>
+				ref.id === 'slow'
+					? new Promise(() => {})
+					: ref.id === 'broken'
+						? Promise.reject(new Error('down'))
+						: Promise.resolve(null)
+		};
+		const content = parseRichText(
+			'https://things.example/t/slow\n\nhttps://things.example/t/broken\n\nhttps://things.example/t/gone',
+			{ markdown: true, detectLinks: true }
+		);
+		expect(await loadLinkEmbedData(content, [slow], { timeout: 50 })).toEqual({
+			'https://things.example/t/gone': null
+		});
+	});
+
+	it('loads nothing ahead for embeds that wait for a click', async () => {
+		const calls: string[] = [];
+		const counted = (requests?: 'click'): LinkEmbed<{ id: string }, { title: string }> => ({
+			...embed,
+			requests,
+			data: async (ref) => (calls.push(ref.id), { title: 'A thing' })
+		});
+		const content = parseRichText(post, { markdown: true, detectLinks: true });
+		expect(await loadLinkEmbedData(content, [counted('click')])).toEqual({});
+		expect(await loadLinkEmbedData(content, [counted()], { clickToLoad: true })).toEqual({});
+		expect(
+			await loadLinkEmbedData(content, [counted()], { clickToLoad: (item) => item.id === 'thing' })
+		).toEqual({});
+		expect(calls).toEqual([]);
+		expect(
+			await loadLinkEmbedData(content, [counted()], { clickToLoad: (item) => item.id === 'other' })
+		).toEqual({ [post]: { title: 'A thing' } });
+		expect(calls).toEqual(['abc']);
+	});
+
+	it('loads the embeds of plain text ahead, as it shows them', async () => {
+		const content = parsePlainText(`Before\n${post}\nAfter ${post}/inline`, { detectLinks: true });
+		expect(content.markdown).toBe(false);
+		expect(linkEmbedUrls(content, [embed])).toEqual([post]);
+		const embedData = await loadLinkEmbedData(content, [embed]);
+		expect(embedData).toEqual({ [post]: { title: 'A thing' } });
+		await preloadLinkEmbeds(content, [embed]);
+		const { body } = render(RichText, { props: { content, embeds: [embed], embedData } });
+		expect(body).toContain('abc: A thing');
+		expect(body).toContain('Before');
+	});
+
+	it('links footnotes and their references both ways', () => {
+		const content = parseRichText('A[^a] B[^a] C[^b]\n\n[^a]: First.\n\n[^c]: Unused.', {
+			markdown: true,
+			article: true
+		});
+		const body = render(RichText, { props: { content } }).body.replace(/<!--.*?-->/g, '');
+		const refs = [...body.matchAll(/<sup[^>]*\bid="([^"]+)"/g)].map((match) => match[1]);
+		const back = [...body.matchAll(/<a\s+href="#([^"]+)"\s+aria-label="Back to the text"/g)].map(
+			(match) => match[1]
+		);
+		// Only the first reference is a target, and only a referenced note leads back.
+		expect(refs).toHaveLength(1);
+		expect(back).toEqual(refs);
+		expect(body).toContain('[^b]');
+	});
+});
 
 describe('rich text SSR security', () => {
 	it.each(descriptionAttacks)('escapes untrusted descriptions: %s', (text) => {

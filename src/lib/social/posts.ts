@@ -101,10 +101,49 @@ type BlueskyEmbedView = {
 };
 
 /**
+ * The values an account or a record's author may apply to their own content that call for
+ * hiding it or putting it behind a warning. Anything else self-applied (`bot`, `pet`, …) is a
+ * description, not moderation.
+ */
+const SELF_LABELS: ReadonlySet<string> = new Set([
+	'porn',
+	'sexual',
+	'nudity',
+	'graphic-media',
+	'gore',
+	'nsfl'
+]);
+
+/** The account an AT URI or DID names. */
+function subjectDid(uri: unknown): string | undefined {
+	if (typeof uri !== 'string') return undefined;
+	return uri.startsWith('at://') ? uri.slice(5).split('/')[0] : uri;
+}
+
+/**
+ * Whether a label asks for content to be hidden or warned about. Labels from a moderation
+ * service always do. Self-applied ones do when they are system labels (`!no-unauthenticated`,
+ * `!hide`, …) or one of the known content warnings.
+ */
+function isModerating(label: unknown, inRecord: boolean): boolean {
+	if (!label || typeof label !== 'object') return false;
+	const { neg, val, src, uri } = label as Record<string, unknown>;
+	if (neg) return false;
+	// A record's own `{ values: [{ val }] }` is always self-applied. In a view, a label is
+	// self-applied when its source is the account it is about; one without a source counts as
+	// a moderation service's.
+	const self = inRecord || (typeof src === 'string' && src === subjectDid(uri));
+	if (!self) return true;
+	return typeof val !== 'string' || val.startsWith('!') || SELF_LABELS.has(val);
+}
+
+/**
  * Whether an AppView view carries a moderation label anywhere: for a post, on the post, its
  * author, or anything it embeds (a quoted post and its author, at any depth). Apps without the
  * viewer's moderation preferences can use it to leave such content out. Pass a single post
  * view, not a thread: a thread's replies would count too.
+ *
+ * Labels an account gives itself that are not about moderation, such as `bot`, do not count.
  */
 export function hasModerationLabel(value: unknown, depth = 0): boolean {
 	if (!value || typeof value !== 'object') return false;
@@ -113,8 +152,9 @@ export function hasModerationLabel(value: unknown, depth = 0): boolean {
 	if (Array.isArray(value)) return value.some((item) => hasModerationLabel(item, depth + 1));
 	const { labels } = value as { labels?: unknown };
 	// Views list labels; records self-label with `{ values: [...] }`.
-	const list = Array.isArray(labels) ? labels : (labels as { values?: unknown })?.values;
-	if (Array.isArray(list) && list.some((label) => !(label as { neg?: boolean })?.neg)) return true;
+	const inRecord = !Array.isArray(labels);
+	const list = inRecord ? (labels as { values?: unknown })?.values : labels;
+	if (Array.isArray(list) && list.some((label) => isModerating(label, inRecord))) return true;
 	return Object.entries(value).some(
 		([key, child]) => key !== 'labels' && hasModerationLabel(child, depth + 1)
 	);

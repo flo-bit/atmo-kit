@@ -17,6 +17,9 @@ export const demoGroups: DemoGroup[] = [
 			'Avatar',
 			'InsetImage',
 			'Modal',
+			'IconMaker',
+			'PalettePicker',
+			'PaletteApply',
 			'Tabs'
 		],
 		load: () => import('./Foundation.svelte')
@@ -92,6 +95,17 @@ export const demoGroups: DemoGroup[] = [
 			'VodTranscript'
 		],
 		load: () => import('./Events.svelte')
+	},
+	{
+		names: [
+			'ArticleCard',
+			'ArticleView',
+			'ArticleEditor',
+			'ArticleCodeBlock',
+			'PublicationIcon',
+			'PostComments'
+		],
+		load: () => import('./Articles.svelte')
 	}
 ];
 
@@ -107,5 +121,6 @@ export const isolatedDemos = new Set([
 	'EventView',
 	'EventEditor',
 	'EventComments',
+	'PostComments',
 	'ImageDropper'
 ]);

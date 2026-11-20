@@ -4,7 +4,16 @@ import { safeHttpUrl as safeWebUrl } from '../urls.js';
 export type ExternalPostEmbed = Extract<PostEmbed, { type: 'external' }>;
 /** Iframes are always click-to-load. Providers perform no network IO. */
 export type ExternalEmbedPlayer =
-	| { type: 'iframe'; src: string; aspectRatio?: number }
+	| {
+			type: 'iframe';
+			src: string;
+			aspectRatio?: number;
+			/**
+			 * A preview image the provider can name without a request. Loading it contacts its
+			 * host, so it is shown only where `ExternalEmbed` is given `providerPoster`.
+			 */
+			poster?: string;
+	  }
 	| {
 			type: 'video';
 			sources: readonly { src: string; type: string }[];
@@ -61,7 +70,12 @@ export const youtubeEmbedProvider: ExternalEmbedProvider = {
 		player.searchParams.set('autoplay', '1');
 		const start = youtubeStart(url.searchParams.get('t') ?? url.searchParams.get('start'));
 		if (start) player.searchParams.set('start', String(start));
-		return { type: 'iframe', src: player.href, aspectRatio: shorts ? 9 / 16 : 16 / 9 };
+		return {
+			type: 'iframe',
+			src: player.href,
+			aspectRatio: shorts ? 9 / 16 : 16 / 9,
+			poster: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
+		};
 	}
 };
 

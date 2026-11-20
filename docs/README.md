@@ -13,6 +13,7 @@ gallery shows every public component and links to individual interactive example
 | [Preferred social client](preferred-client.md) | Client selection, public record, permissions             |
 | [Photos and linked media](media.md)            | Photo grids, lightbox, Grain and Streamplace adapters    |
 | [Events](events.md)                            | Event UI, editor adapters, optional peers, host defaults |
+| [Articles](articles.md)                        | Publications, Markdown articles, editor, link embed      |
 | [AT Tags](at-tags.md)                          | Record metadata and page ownership                       |
 | [Safe URLs](urls.md)                           | Link validation and security boundaries                  |
 | [Legal pages](legal.md)                        | Documents, footer links, draft authoring and review      |
@@ -27,6 +28,8 @@ gallery shows every public component and links to individual interactive example
 | `@atmo-dev/kit/events`        | Event components and event-data exports; not in the main entry                |
 | `@atmo-dev/kit/events-data`   | Event types, adapter contracts, dates, URLs, and configuration; no UI imports |
 | `@atmo-dev/kit/events/editor` | Record construction, including browser-oriented thumbnail code                |
+| `@atmo-dev/kit/articles`      | Article components, plus everything in `articles-data`                        |
+| `@atmo-dev/kit/articles-data` | Publication and article records, Markdown helpers; no UI imports              |
 | `@atmo-dev/kit/at-tags`       | Framework-free record metadata helpers                                        |
 | `@atmo-dev/kit/urls`          | Dependency-free navigation URL validation                                     |
 | `@atmo-dev/kit/richtext`      | Framework-free rich-text parsing and plain-text conversion                    |

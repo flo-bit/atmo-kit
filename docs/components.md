@@ -13,19 +13,22 @@ Typed props live alongside each component in
 
 Local examples: `/`.
 
-| Component    | Purpose                                            |
-| ------------ | -------------------------------------------------- |
-| `Button`     | Actions and links, variants, sizes, loading states |
-| `IconButton` | Icon-only actions with accessible labels           |
-| `Icon`       | Sketchyicons rendering and sizing                  |
-| `Heading`    | Section and page headings                          |
-| `Subheading` | Compact section headings                           |
-| `Surface`    | Recessed containers                                |
-| `Badge`      | Labels and statuses                                |
-| `Avatar`     | Profile images with generated fallbacks            |
-| `InsetImage` | Framed images                                      |
-| `Modal`      | Portaled dialogs with focus management             |
-| `Tabs`       | Keyboard-accessible tabs and panels                |
+| Component       | Purpose                                            |
+| --------------- | -------------------------------------------------- |
+| `Button`        | Actions and links, variants, sizes, loading states |
+| `IconButton`    | Icon-only actions with accessible labels           |
+| `Icon`          | Sketchyicons rendering and sizing                  |
+| `Heading`       | Section and page headings                          |
+| `Subheading`    | Compact section headings                           |
+| `Surface`       | Recessed containers                                |
+| `Badge`         | Labels and statuses                                |
+| `Avatar`        | Profile images with generated fallbacks            |
+| `InsetImage`    | Framed images                                      |
+| `Modal`         | Portaled dialogs with focus management             |
+| `IconMaker`     | A dialog that makes a square icon                  |
+| `PalettePicker` | Choosing an accent and a base color                |
+| `PaletteApply`  | Gives the document a chosen palette                |
+| `Tabs`          | Keyboard-accessible tabs and panels                |
 
 ## Forms and editing
 
@@ -87,15 +90,16 @@ These are UI components, not an OAuth implementation.
 
 [Guide](social.md) · [Preferred-client integration](preferred-client.md) · Local examples: `/examples`.
 
-| Component            | Purpose                                     |
-| -------------------- | ------------------------------------------- |
-| `RichText`           | Plain text, facets, and pre-parsed Markdown |
-| `PostContent`        | Post text, media, quotes, and record cards  |
-| `NestedComments`     | Threaded replies with foldable branches     |
-| `LinkCard`           | External link previews                      |
-| `ExternalEmbed`      | Provider-based media and playback controls  |
-| `LinkEmbed`          | A link shown as a post, profile, or player  |
-| `SocialClientPicker` | Preferred social-client form fields         |
+| Component            | Purpose                                             |
+| -------------------- | --------------------------------------------------- |
+| `RichText`           | Plain text, facets, and pre-parsed Markdown         |
+| `PostContent`        | Post text, media, quotes, and record cards          |
+| `NestedComments`     | Threaded replies with foldable branches             |
+| `PostComments`       | The replies to a post, loaded and shown as comments |
+| `LinkCard`           | External link previews                              |
+| `ExternalEmbed`      | Provider-based media and playback controls          |
+| `LinkEmbed`          | A link shown as a post, profile, or player          |
+| `SocialClientPicker` | Preferred social-client form fields                 |
 
 ## Photos and linked media
 
@@ -149,6 +153,19 @@ Types and non-UI helpers are available separately from `@atmo-dev/kit/events-dat
 | `ConferenceTimetable` | Conference tracks and talk schedules                    |
 | `VodPlayer`           | Recording playback                                      |
 | `VodTranscript`       | Transcript with playback navigation                     |
+
+## Articles
+
+Import from **`@atmo-dev/kit/articles`**. See the [article guide](articles.md). Records and
+pure helpers are available separately from `@atmo-dev/kit/articles-data`.
+
+| Component          | Purpose                                              |
+| ------------------ | ---------------------------------------------------- |
+| `ArticleCard`      | An article as a row with its cover                   |
+| `ArticleView`      | An article as it is read                             |
+| `ArticleEditor`    | The writing surface: cover, title, description, text |
+| `ArticleCodeBlock` | Code block with copy button, app-owned highlighting  |
+| `PublicationIcon`  | A publication icon, or its initial                   |
 
 The date/time controls and `ImageDropper` are core components. Existing imports
 from `@atmo-dev/kit/events` remain compatibility aliases of the same components.

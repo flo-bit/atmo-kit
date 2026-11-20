@@ -6,17 +6,24 @@
 		Heading,
 		Icon,
 		IconButton,
+		IconMaker,
 		InsetImage,
 		Modal,
+		PaletteApply,
+		PalettePicker,
 		Subheading,
 		Surface,
 		Tabs
 	} from '#lib';
+	import type { AccentColor, BaseColor } from '#lib';
 	import { Check, Heart, Settings2, Sun } from '@sketchyicons/svelte';
 	import { coast, mika } from './fixtures.js';
 	let { name, compact = false }: { name: string; compact?: boolean } = $props();
 	let liked = $state(false),
 		open = $state(false),
+		made = $state<string>(),
+		accent = $state<AccentColor>('pink'),
+		base = $state<BaseColor>('zinc'),
 		tab = $state('photos');
 </script>
 
@@ -90,6 +97,28 @@
 			>
 		</div></Modal
 	>
+{:else if name === 'IconMaker'}
+	<div class="flex items-center gap-3">
+		<Button onclick={() => (open = true)}>Make an icon</Button>
+		{#if made}<img src={made} alt="The icon that was made" class="size-10 rounded-[22%]" />{/if}
+	</div>
+	<IconMaker bind:open onmade={(icon) => (made = URL.createObjectURL(icon))} />
+{:else if name === 'PalettePicker' || name === 'PaletteApply'}
+	<!-- The example wears the palette itself; `PaletteApply` gives it to the whole document. -->
+	<div
+		class={[
+			'atmo-theme grid w-full gap-6 rounded-ui bg-base-50 p-4 dark:bg-base-925',
+			accent,
+			base
+		]}
+	>
+		{#if name === 'PaletteApply'}<PaletteApply {accent} {base} />{/if}
+		<PalettePicker bind:accent bind:base />
+		<div class="flex flex-wrap items-center gap-3">
+			<Button>Primary</Button><Button variant="secondary">Secondary</Button>
+			<a href="#palette" class="text-sm text-accent-700 underline dark:text-accent-300">A link</a>
+		</div>
+	</div>
 {:else if name === 'Tabs'}
 	<Tabs
 		label="Collection"

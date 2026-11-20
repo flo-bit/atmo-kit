@@ -8,6 +8,7 @@
 		ComposerGifSearch,
 		ComposerLabels,
 		ComposerLimits,
+		ComposerLink,
 		ComposerLinkPreview,
 		ComposerPost as Post,
 		ComposerReplyRule
@@ -54,8 +55,19 @@
 		gifCredit?: string;
 		/** Enables link preview cards, e.g. `blueskyLinkPreview`. */
 		linkPreview?: ComposerLinkPreview;
+		/**
+		 * A card for the first post that needs no lookup, e.g. the page being shared. It stays,
+		 * whatever links the text has, until the author removes it or attaches media, and can be
+		 * posted without text.
+		 */
+		link?: ComposerLink;
 		/** Enables drafts. */
 		drafts?: ComposerDrafts;
+		/**
+		 * A line above the toolbar saying where this goes, for apps where posting is a side step:
+		 * e.g. "This will be posted on Bluesky." Nothing is shown without it.
+		 */
+		notice?: string;
 		/** More toolbar buttons, after the built-in ones. */
 		actions?: Snippet<[{ post: Post; insert: (text: string) => void; disabled: boolean }]>;
 		class?: string;
@@ -118,6 +130,8 @@
 		searchGifs,
 		gifCredit,
 		linkPreview,
+		link,
+		notice,
 		drafts: draftStore,
 		actions,
 		class: className
@@ -128,7 +142,8 @@
 	let reply = $derived(!!replyTo);
 	let canDraft = $derived(!!draftStore && on('drafts') && !reply);
 
-	let posts = $state<Post[]>([blankComposerPost(untrack(() => text))]);
+	const startingText = untrack(() => text);
+	let posts = $state<Post[]>([blankComposerPost(startingText)]);
 	// Text editors by post id.
 	let editors = $state.raw<Record<string, Editor | null>>({});
 	let active = $state(0);
@@ -163,9 +178,17 @@
 	let current = $derived(posts[Math.min(active, posts.length - 1)]);
 	const lengthOf = (post: Post) => graphemeLength(post.text.trim());
 	const hasMedia = (post: Post) => post.images.length > 0 || !!post.video || !!post.gif;
+	// A card can be posted on its own, as a quote can.
 	const isEmpty = (post: Post, index: number) =>
 		!lengthOf(post) && !hasMedia(post) && !post.link && !(index === 0 && quote);
-	let dirty = $derived(posts.some((post, index) => !isEmpty(post, index)));
+	/** Still what the composer opened with: nothing of the author's would be lost. */
+	let untouched = $derived(
+		posts.length === 1 &&
+			!hasMedia(posts[0]) &&
+			posts[0].text.trim() === startingText.trim() &&
+			(!posts[0].link || posts[0].link.uri === link?.uri)
+	);
+	let dirty = $derived(!untouched && posts.some((post, index) => !isEmpty(post, index)));
 	let missingAlt = $derived(
 		requireAlt && posts.some((p) => p.images.some((image) => !image.alt.trim()))
 	);
@@ -431,6 +454,7 @@
 				{limits}
 				{searchActors}
 				linkPreview={on('linkPreviews') ? linkPreview : undefined}
+				fixedLink={index === 0 ? link : undefined}
 				onfocus={() => (active = index)}
 				onremove={posts.length > 1 ? () => removePost(index) : undefined}
 			/>
@@ -441,6 +465,8 @@
 			<p class="mb-3 text-sm {muted}">Add a description to every image to post.</p>
 		{/if}
 	</div>
+
+	{#if notice}<p class="shrink-0 px-4 pb-2 text-xs {muted}">{notice}</p>{/if}
 
 	{#if on('interactions') || (on('contentWarnings') && contentWarnings.length && hasMedia(current))}
 		<div class="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-1.5">

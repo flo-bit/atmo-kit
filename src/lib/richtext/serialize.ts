@@ -1,11 +1,17 @@
 import { detectTokens } from './detect.js';
 import {
+	isCallout,
 	safeWebUrl,
 	type RichTextBlock,
 	type RichTextDocument,
 	type RichTextInline
 } from './document.js';
-import { exceedsMarkdownLimits, parseMarkdown } from './markdown.js';
+import { exceedsMarkdownLimits, FOOTNOTE_ID, parseMarkdown } from './markdown.js';
+
+export type MarkdownWriteOptions = {
+	/** Write article Markdown, as `parseMarkdown` reads with `article`: line breaks are explicit. */
+	article?: boolean;
+};
 
 /** A stretch of text with one set of formatting; `br` is a line break. */
 type Run = {
@@ -13,13 +19,18 @@ type Run = {
 	strong?: boolean;
 	emphasis?: boolean;
 	delete?: boolean;
+	highlight?: boolean;
 	code?: boolean;
+	/** TeX source, written between dollars. */
+	math?: boolean;
+	/** A footnote reference with this id; it has no text. */
+	ref?: string;
 	link?: string;
 	br?: boolean;
 };
 
 const MAX_DEPTH = 32;
-const STYLES = ['strong', 'emphasis', 'delete'] as const;
+const STYLES = ['strong', 'emphasis', 'delete', 'highlight'] as const;
 
 function sameMarks(a: Run, b: Run): boolean {
 	return (
@@ -27,7 +38,10 @@ function sameMarks(a: Run, b: Run): boolean {
 		!a.strong === !b.strong &&
 		!a.emphasis === !b.emphasis &&
 		!a.delete === !b.delete &&
+		!a.highlight === !b.highlight &&
 		!a.code === !b.code &&
+		!a.math === !b.math &&
+		a.ref === b.ref &&
 		a.link === b.link
 	);
 }
@@ -35,9 +49,10 @@ function sameMarks(a: Run, b: Run): boolean {
 function merge(runs: Run[]): Run[] {
 	const result: Run[] = [];
 	for (const run of runs) {
-		if (!run.br && !run.text) continue;
+		if (!run.br && !run.ref && !run.text) continue;
 		const previous = result.at(-1);
-		if (previous && !run.br && !previous.br && sameMarks(previous, run)) previous.text += run.text;
+		if (previous && !run.br && !previous.br && !run.ref && sameMarks(previous, run))
+			previous.text += run.text;
 		else result.push({ ...run });
 	}
 	return result;
@@ -47,13 +62,15 @@ function plainText(nodes: readonly RichTextInline[], depth = 0): string {
 	if (depth > MAX_DEPTH) return '';
 	return nodes
 		.map((node) =>
-			node.type === 'text' || node.type === 'code'
+			node.type === 'text' || node.type === 'code' || node.type === 'math'
 				? node.value
 				: node.type === 'break'
 					? '\n'
 					: node.type === 'mention' || node.type === 'tag'
 						? node.text
-						: plainText(node.children, depth + 1)
+						: node.type === 'footnoteReference'
+							? ''
+							: plainText(node.children, depth + 1)
 		)
 		.join('');
 }
@@ -80,6 +97,11 @@ function flatten(nodes: readonly RichTextInline[], marks: Omit<Run, 'text'>, dep
 				return [{ text: '', br: true }];
 			case 'code':
 				return [{ ...marks, code: true, text: node.value.replace(/\n/g, ' ') }];
+			case 'math':
+				return [{ ...marks, math: true, text: node.value.replace(/\n/g, ' ') }];
+			case 'footnoteReference':
+				// Without the surrounding formatting, which then closes and opens around it.
+				return FOOTNOTE_ID.test(node.id) ? [{ text: '', ref: node.id }] : [];
 			case 'mention':
 			case 'tag':
 				return [{ ...marks, text: node.text.replace(/\n/g, ' ') }];
@@ -92,6 +114,7 @@ function flatten(nodes: readonly RichTextInline[], marks: Omit<Run, 'text'>, dep
 			case 'strong':
 			case 'emphasis':
 			case 'delete':
+			case 'highlight':
 				return flatten(node.children, { ...marks, [node.type]: true }, depth + 1);
 			default:
 				return [];
@@ -107,7 +130,8 @@ function hoistWhitespace(input: Run[]): Run[] {
 	let runs = merge(input);
 	const result: Run[] = [];
 	runs.forEach((run, index) => {
-		if (run.br || run.code || !STYLES.some((style) => run[style])) return void result.push(run);
+		if (run.br || run.code || run.math || run.ref || !STYLES.some((style) => run[style]))
+			return void result.push(run);
 		const previous = runs[index - 1];
 		const next = runs[index + 1];
 		const keep = (...neighbors: (Run | undefined)[]): Run => {
@@ -131,7 +155,7 @@ function hoistWhitespace(input: Run[]): Run[] {
 	for (;;) {
 		const trimmed: Run[] = [];
 		runs.forEach((run, index) => {
-			if (run.br || run.code) return void trimmed.push(run);
+			if (run.br || run.code || run.math || run.ref) return void trimmed.push(run);
 			let text = run.text;
 			const previous = runs[index - 1];
 			const next = runs[index + 1];
@@ -175,6 +199,17 @@ function paragraphs(nodes: readonly RichTextInline[]): Run[][][] {
 
 type Shape = unknown;
 
+function cellRuns(cell: readonly RichTextInline[]): Run[] {
+	return headingRuns(paragraphs(cell).flat());
+}
+
+/** Per item whether it is a task and done; undefined for a list without tasks. */
+function tasks(block: Extract<RichTextBlock, { type: 'list' }>): (boolean | null)[] | undefined {
+	return block.checked?.some((value) => typeof value === 'boolean')
+		? block.items.map((_, index) => block.checked![index] ?? null)
+		: undefined;
+}
+
 function shapeOf(blocks: readonly RichTextBlock[], depth = 0): Shape[] {
 	if (depth > MAX_DEPTH) return [];
 	return blocks.flatMap((block): Shape[] => {
@@ -186,18 +221,38 @@ function shapeOf(blocks: readonly RichTextBlock[], depth = 0): Shape[] {
 				return [{ h: block.depth, runs: headingRuns(lines) }];
 			}
 			case 'blockquote':
-				return [{ q: shapeOf(block.children, depth + 1) }];
+				return [{ q: shapeOf(block.children, depth + 1), co: block.callout ?? false }];
 			case 'list':
 				return [
 					{
 						l: block.ordered ? (block.start ?? 1) : false,
+						k: tasks(block) ?? false,
 						items: block.items.map((item) => shapeOf(item, depth + 1))
 					}
 				];
+			case 'math':
+				return [{ m: block.value }];
+			case 'footnoteDefinition':
+				return [{ f: block.id, c: shapeOf(block.children, depth + 1) }];
 			case 'codeBlock':
 				return [{ c: block.value, lang: block.lang ?? '' }];
 			case 'thematicBreak':
 				return [{ hr: true }];
+			case 'image':
+				return [
+					{
+						img: safeWebUrl(block.url) ?? block.url,
+						alt: block.alt ?? '',
+						title: block.title ?? ''
+					}
+				];
+			case 'table':
+				return [
+					{
+						t: block.align.map((align) => align ?? ''),
+						rows: block.rows.map((row) => row.map(cellRuns))
+					}
+				];
 			default:
 				return [];
 		}
@@ -219,7 +274,7 @@ const ALNUM = /[\p{L}\p{N}]/u;
 const ENTITY = /^&(?:[A-Za-z][A-Za-z0-9]{0,31}|#[0-9]{1,7}|#[xX][0-9A-Fa-f]{1,6});/;
 
 /** Backslash-escape only what Markdown would otherwise read as syntax. */
-function escapeText(text: string, inLink: boolean): string {
+function escapeText(text: string, inLink: boolean, article = false): string {
 	let out = '';
 	for (let index = 0; index < text.length; index++) {
 		const char = text[index];
@@ -249,6 +304,15 @@ function escapeText(text: string, inLink: boolean): string {
 			case '~':
 				escape = before === '~' || after === '~';
 				break;
+			case '=':
+				// Exactly two could open or close a highlight, unless spaces surround them.
+				escape =
+					article &&
+					after === '=' &&
+					before !== '=' &&
+					text[index + 2] !== '=' &&
+					!(before !== undefined && /\s/.test(before) && /\s/.test(text[index + 2] ?? 'x'));
+				break;
 			case '`':
 			case '[':
 				escape = true;
@@ -273,9 +337,14 @@ function escapeAll(text: string): string {
 }
 
 /** URLs keep their own characters so that they are still found as links afterwards. */
-function textMarkdown(text: string, inLink: boolean, aggressive: boolean): string {
+function textMarkdown(
+	text: string,
+	inLink: boolean,
+	aggressive: boolean,
+	article: boolean
+): string {
 	if (aggressive) return escapeAll(text);
-	if (inLink) return escapeText(text, true);
+	if (inLink) return escapeText(text, true, article);
 	// Text next to a URL is escaped on its own, without the URL as a neighbor.
 	let out = '';
 	let chunk = '';
@@ -284,7 +353,7 @@ function textMarkdown(text: string, inLink: boolean, aggressive: boolean): strin
 			chunk += token.raw;
 			continue;
 		}
-		out += escapeText(chunk, false);
+		out += escapeText(chunk, false, article);
 		chunk = '';
 		out +=
 			escapeText(token.raw, false) === token.raw
@@ -293,7 +362,7 @@ function textMarkdown(text: string, inLink: boolean, aggressive: boolean): strin
 					? escapeText(token.raw, false)
 					: `<${token.raw}>`;
 	}
-	return out + escapeText(chunk, false);
+	return out + escapeText(chunk, false, article);
 }
 
 function codeSpan(value: string): string {
@@ -304,6 +373,12 @@ function codeSpan(value: string): string {
 			? ' '
 			: '';
 	return value ? `${fence}${pad}${value}${pad}${fence}` : '';
+}
+
+/** A formula holding a dollar is written between two. */
+function mathSpan(value: string): string {
+	const fence = value.includes('$') ? '$$' : '$';
+	return value ? `${fence}${value}${fence}` : '';
 }
 
 function linkDestination(url: string): string {
@@ -333,7 +408,7 @@ function reference(char: string): string {
 	return `&#x${char.codePointAt(0)!.toString(16)};`;
 }
 
-function lineMarkdown(runs: Run[], aggressive: boolean): string {
+function lineMarkdown(runs: Run[], aggressive: boolean, article = false): string {
 	let out = '';
 	const stack: Open[] = [];
 	// Set when formatting has just closed in a way that needs a non-word character after it.
@@ -362,7 +437,13 @@ function lineMarkdown(runs: Run[], aggressive: boolean): string {
 		)
 			keep++;
 		close(keep);
-		let piece = run.code ? codeSpan(run.text) : textMarkdown(run.text, !!run.link, aggressive);
+		let piece = run.ref
+			? `[^${run.ref}]`
+			: run.math
+				? mathSpan(run.text)
+				: run.code
+					? codeSpan(run.text)
+					: textMarkdown(run.text, !!run.link, aggressive, article);
 		const first = Array.from(piece)[0] ?? '';
 		for (const open of wanted) {
 			if (stack.some((item) => item.mark === open.mark)) continue;
@@ -375,7 +456,14 @@ function lineMarkdown(runs: Run[], aggressive: boolean): string {
 				if (WORD.test(before) && PUNCTUATION.test(first))
 					out = out.slice(0, -before.length) + reference(before);
 				// Next to an asterisk, underscores keep the two delimiter runs apart.
-				const char = open.mark === 'delete' ? '~' : out.endsWith('*') ? '_' : '*';
+				const char =
+					open.mark === 'delete'
+						? '~'
+						: open.mark === 'highlight'
+							? '='
+							: out.endsWith('*')
+								? '_'
+								: '*';
 				open.close = char.repeat(open.mark === 'emphasis' ? 1 : 2);
 				out += open.close;
 			}
@@ -414,11 +502,67 @@ function isTight(items: readonly RichTextBlock[][]): boolean {
 	);
 }
 
+const ALIGN = { left: ':--', center: ':-:', right: '--:' } as const;
+const alignMark = (align: keyof typeof ALIGN | null | undefined) =>
+	(align && ALIGN[align]) || '---';
+
+/**
+ * In a table a pipe ends the cell unless a backslash escapes it, also inside code, where the
+ * backslash is otherwise content. Code cannot say "an odd number of backslashes, then a pipe",
+ * so such a pipe is written as text between two pieces of code.
+ */
+/** A pipe after an odd number of backslashes. */
+const ODD_PIPE = /(?<=(?<!\\)(?:\\\\)*\\)(\|)/;
+
+function cellSafe(runs: Run[]): Run[] {
+	return runs.flatMap((run): Run[] => {
+		if (!run.code || !ODD_PIPE.test(run.text)) return [run];
+		return run.text
+			.split(ODD_PIPE)
+			.map((text) => (text === '|' ? { ...run, code: undefined, text } : { ...run, text }))
+			.filter((piece) => piece.text);
+	});
+}
+
+function tableMarkdown(
+	block: Extract<RichTextBlock, { type: 'table' }>,
+	aggressive: boolean,
+	article: boolean
+): string {
+	const width = Math.max(1, block.align.length, ...block.rows.map((row) => row.length));
+	const line = (cells: string[]) => `| ${cells.join(' | ')} |`;
+	const row = (cells: readonly RichTextInline[][]) =>
+		line(
+			Array.from({ length: width }, (_, index) =>
+				// Escape each pipe that is not escaped yet: one after an even number of backslashes.
+				lineMarkdown(cellSafe(cellRuns(cells[index] ?? [])), aggressive, article).replace(
+					/(\\*)\|/g,
+					(match, slashes: string) => (slashes.length % 2 ? match : `${slashes}\\|`)
+				)
+			)
+		);
+	const [header = [], ...body] = block.rows;
+	return [
+		row(header),
+		line(Array.from({ length: width }, (_, index) => alignMark(block.align[index]))),
+		...body.map(row)
+	].join('\n');
+}
+
+function imageMarkdown(block: Extract<RichTextBlock, { type: 'image' }>): string {
+	const title = block.title
+		? ` "${block.title.replace(/["\\]/g, '\\$&').replace(/\n+/g, ' ')}"`
+		: '';
+	const alt = escapeText((block.alt ?? '').replace(/\n+/g, ' '), true);
+	return `![${alt}](${linkDestination(block.url)}${title})`;
+}
+
 function blocksMarkdown(
 	blocks: readonly RichTextBlock[],
 	aggressive: boolean,
 	depth: number,
-	inList = false
+	inList = false,
+	article = false
 ): string[] {
 	if (depth > MAX_DEPTH) return [];
 	const result: string[] = [];
@@ -428,18 +572,32 @@ function blocksMarkdown(
 		switch (block.type) {
 			case 'paragraph':
 				for (const lines of paragraphs(block.children))
-					result.push(lines.map((line) => lineMarkdown(line, aggressive)).join('\n'));
+					result.push(
+						lines
+							.map((line) => lineMarkdown(line, aggressive, article))
+							.join(article ? '\\\n' : '\n')
+					);
 				break;
 			case 'heading': {
-				const text = lineMarkdown(headingRuns(paragraphs(block.children).flat()), aggressive);
+				const text = lineMarkdown(
+					headingRuns(paragraphs(block.children).flat()),
+					aggressive,
+					article
+				);
 				const depthMark = '#'.repeat(Math.min(6, Math.max(1, Math.trunc(block.depth) || 1)));
 				// A trailing run of # would be read as the optional closing sequence.
 				result.push(text ? `${depthMark} ${text.replace(/(^|\s)(#+)$/, '$1\\$2')}` : depthMark);
 				break;
 			}
 			case 'blockquote': {
-				const inner = blocksMarkdown(block.children, aggressive, depth + 1).join('\n\n');
-				result.push(indent(inner, '> ', '> '));
+				const inner = blocksMarkdown(block.children, aggressive, depth + 1, false, article).join(
+					'\n\n'
+				);
+				// A callout opens with its marker; other blocks than text follow after an empty line.
+				const mark =
+					article && isCallout(block.callout) ? `[!${block.callout.toUpperCase()}]` : undefined;
+				const gap = block.children[0]?.type === 'paragraph' ? '\n' : '\n\n';
+				result.push(indent(mark ? (inner ? mark + gap + inner : mark) : inner, '> ', '> '));
 				break;
 			}
 			case 'list': {
@@ -449,15 +607,17 @@ function blocksMarkdown(
 					alternate: previousList?.ordered === block.ordered && !previousList.alternate
 				};
 				const tight = isTight(block.items);
+				const checked = tasks(block);
 				const items = block.items.map((item, index) => {
 					const marker = block.ordered
 						? `${(block.start ?? 1) + index}${list!.alternate ? ')' : '.'}`
 						: list!.alternate
 							? '*'
 							: '-';
-					const inner = blocksMarkdown(item, aggressive, depth + 1, true).join(
-						tight ? '\n' : '\n\n'
-					);
+					const task = checked?.[index];
+					const inner =
+						(typeof task === 'boolean' ? (task ? '[x] ' : '[ ] ') : '') +
+						blocksMarkdown(item, aggressive, depth + 1, true, article).join(tight ? '\n' : '\n\n');
 					return inner ? indent(inner, `${marker} `, ' '.repeat(marker.length + 1)) : marker;
 				});
 				result.push(items.join(tight ? '\n' : '\n\n'));
@@ -474,6 +634,23 @@ function blocksMarkdown(
 				// `- ---` would itself be a thematic break.
 				result.push(inList ? '***' : '---');
 				break;
+			case 'image':
+				result.push(imageMarkdown(block));
+				break;
+			case 'math':
+				result.push(`$$\n${block.value}\n$$`);
+				break;
+			case 'footnoteDefinition': {
+				if (!FOOTNOTE_ID.test(block.id)) break;
+				const inner = blocksMarkdown(block.children, aggressive, depth + 1, false, article).join(
+					'\n\n'
+				);
+				result.push(indent(inner, `[^${block.id}]: `, '    '));
+				break;
+			}
+			case 'table':
+				result.push(tableMarkdown(block, aggressive, article));
+				break;
 		}
 		previousList = list;
 	}
@@ -487,22 +664,29 @@ function blocksMarkdown(
  * their text; a link labeled with its own URL is written as that URL. Output that fails to
  * read back (unusual punctuation next to formatting) is escaped more heavily instead.
  */
-export function richTextToMarkdown(content: RichTextDocument): string {
+export function richTextToMarkdown(
+	content: RichTextDocument,
+	options: MarkdownWriteOptions = {}
+): string {
+	const article = !!options.article;
 	const blocks = Array.isArray(content.children) ? content.children : [];
-	const minimal = blocksMarkdown(blocks, false, 0).join('\n\n');
-	if (exceedsMarkdownLimits(minimal) || reads(minimal, blocks)) return minimal;
+	const write = (part: readonly RichTextBlock[], aggressive: boolean) =>
+		blocksMarkdown(part, aggressive, 0, false, article).join('\n\n');
+	const minimal = write(blocks, false);
+	if (exceedsMarkdownLimits(minimal, article) || reads(minimal, blocks, article)) return minimal;
 	// Find the blocks that did not survive and escape only those.
 	return blocks
 		.flatMap((block) => {
-			const text = blocksMarkdown([block], false, 0).join('\n\n');
-			return reads(text, [block]) ? text : blocksMarkdown([block], true, 0).join('\n\n');
+			const text = write([block], false);
+			return reads(text, [block], article) ? text : write([block], true);
 		})
 		.filter(Boolean)
 		.join('\n\n');
 }
 
-function reads(markdown: string, blocks: readonly RichTextBlock[]): boolean {
-	return sameShape(parseMarkdown(markdown).children, blocks);
+function reads(markdown: string, blocks: readonly RichTextBlock[], article: boolean): boolean {
+	const parsed = parseMarkdown(markdown, article ? { article, allowImage: () => true } : {});
+	return sameShape(parsed.children, blocks);
 }
 
 /** Whether two documents render the same, ignoring how links, mentions and tags were found. */

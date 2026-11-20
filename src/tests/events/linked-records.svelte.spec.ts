@@ -587,4 +587,22 @@ describe('profile links in the description', () => {
 		await expect.poll(() => fetcher.mock.results[0]?.type).toBe('return');
 		await expect.poll(() => document.querySelectorAll(`a[href="${url}"]`).length).toBe(1);
 	});
+	it('shows a profile that only describes itself, as posts by it are shown', async () => {
+		await show({
+			did,
+			handle: 'alice.example',
+			displayName: 'Alice',
+			labels: [{ val: 'bot', src: did, uri: did }]
+		});
+		await expect.element(page.getByRole('link', { name: 'Alice @alice.example' })).toBeVisible();
+	});
+	it('keeps the link for a profile a moderation service labeled', async () => {
+		const fetcher = await show({
+			did,
+			handle: 'alice.example',
+			labels: [{ val: 'bot', src: 'did:plc:labeler', uri: did }]
+		});
+		await expect.poll(() => fetcher.mock.results[0]?.type).toBe('return');
+		await expect.poll(() => document.querySelectorAll(`a[href="${url}"]`).length).toBe(1);
+	});
 });

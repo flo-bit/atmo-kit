@@ -1,10 +1,23 @@
-import type { Definition, Nodes, PhrasingContent, Root, RootContent, Text } from 'mdast';
+import type {
+	Blockquote,
+	Definition,
+	Image,
+	ImageReference,
+	Nodes,
+	PhrasingContent,
+	Root,
+	RootContent,
+	Text
+} from 'mdast';
 // The parser is bundled into the kit. Its packages' development builds need bundler setup in
 // every app (they import CommonJS), and this is the same production build everywhere.
 import { markdownTree } from './vendor/markdown-tree.js';
 import {
+	isCallout,
 	safeWebUrl,
+	type RichTextAlign,
 	type RichTextBlock,
+	type RichTextCallout,
 	type RichTextDocument,
 	type RichTextInline
 } from './document.js';
@@ -21,18 +34,39 @@ const MAX_LENGTH = 10_000;
 const MAX_DELIMITERS = 1_000;
 const MAX_LINE_CONTAINERS = 8;
 const MAX_LIST_INDENT = 32;
+// Articles are written by their author and are much longer than descriptions.
+const MAX_ARTICLE_LENGTH = 200_000;
+const MAX_ARTICLE_DELIMITERS = 20_000;
+// Every row of a table gets a cell per column, so a few short lines under a wide header stand
+// for far more cells than they have characters. Tables beyond this many cells in one document
+// are shown as their source.
+const MAX_TABLE_CELLS = 20_000;
+
+export type MarkdownOptions = PlainTextOptions & {
+	/**
+	 * Standard Markdown for long-form writing: a single newline wraps instead of breaking the
+	 * line, images and tables are kept, and far longer text is parsed.
+	 */
+	article?: boolean;
+	/**
+	 * With `article`, image destinations to keep besides HTTP(S), e.g. an app's own scheme for
+	 * uploaded files. Such a destination is kept as written; rendering it is up to the app.
+	 */
+	allowImage?: (url: string) => boolean;
+};
 const CONTAINER_RE = /[ \t]*(?:>|(?:[-*+]|\d{1,9}[.)])(?=[ \t]|$))/y;
 const LIST_RE = /[ \t]*(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)/y;
 
 /** Whether Markdown parsing could be slow; checked in linear time. */
-export function exceedsMarkdownLimits(text: string): boolean {
-	if (text.length > MAX_LENGTH) return true;
+export function exceedsMarkdownLimits(text: string, article = false): boolean {
+	if (text.length > (article ? MAX_ARTICLE_LENGTH : MAX_LENGTH)) return true;
+	const maxDelimiters = article ? MAX_ARTICLE_DELIMITERS : MAX_DELIMITERS;
 	let delimiters = 0;
 	for (let index = 0; index < text.length; index++) {
 		const char = text[index];
 		if (
 			(char === '*' || char === '_' || char === '~' || char === '[') &&
-			++delimiters > MAX_DELIMITERS
+			++delimiters > maxDelimiters
 		)
 			return true;
 	}
@@ -54,7 +88,15 @@ type Context = {
 	ranges: FacetRange[];
 	detect: boolean;
 	definitions: Map<string, Definition>;
+	article: boolean;
+	allowImage?: (url: string) => boolean;
+	/** Table cells still to give out; see `MAX_TABLE_CELLS`. */
+	cells: number;
 };
+
+type ImageBlock = Extract<RichTextBlock, { type: 'image' }>;
+/** Inline content of a paragraph, before its images are lifted out as blocks. */
+type Phrase = RichTextInline | ImageBlock;
 
 function literal(node: Nodes, context: Context): string {
 	const start = node.position?.start.offset;
@@ -108,28 +150,116 @@ function facetText(node: Text, context: Context): RichTextInline[] {
 	return applyRanges(value, local);
 }
 
+/** Text left as written (a `$` that is no formula) joins the text around it. */
+function joinText(nodes: Phrase[]): Phrase[] {
+	const result: Phrase[] = [];
+	for (const node of nodes) {
+		const previous = result.at(-1);
+		if (node.type === 'text' && previous?.type === 'text')
+			result[result.length - 1] = { type: 'text', value: previous.value + node.value };
+		else result.push(node);
+	}
+	return result;
+}
+
+/** In an article a newline inside a paragraph is a space; only an explicit break breaks. */
+function soften(nodes: Phrase[]): Phrase[] {
+	return nodes.map((node) =>
+		node.type === 'text' && node.value.includes('\n')
+			? { type: 'text', value: node.value.replace(/\n/g, ' ') }
+			: node
+	);
+}
+
+function image(node: Image | ImageReference, context: Context): ImageBlock | undefined {
+	if (!context.article) return undefined;
+	const definition = node.type === 'image' ? node : context.definitions.get(node.identifier);
+	const raw = definition?.url;
+	if (typeof raw !== 'string' || !raw) return undefined;
+	const url = safeWebUrl(raw) ?? (context.allowImage?.(raw) ? raw : undefined);
+	if (!url) return undefined;
+	return {
+		type: 'image',
+		url,
+		...(node.alt ? { alt: node.alt } : {}),
+		...(definition?.title ? { title: definition.title } : {})
+	};
+}
+
+export const FOOTNOTE_ID = /^[^\s[\]^]{1,100}$/;
+
+/**
+ * `$…$` is a formula only when the dollars hug it and no digit follows, so that "$5 and $10"
+ * stays text. `$$…$$` in a line is always one.
+ */
+function isInlineMath(raw: string, after: string | undefined): boolean {
+	if (raw.startsWith('$$')) return true;
+	const inner = raw.slice(1, -1);
+	return !!inner && !/^\s|\s$/.test(inner) && !/[0-9]/.test(after ?? '');
+}
+
 function inline(
 	nodes: PhrasingContent[],
 	context: Context,
 	depth: number,
 	inLink = false
 ): RichTextInline[] {
-	const result: RichTextInline[] = [];
+	return phrases(nodes, context, depth, inLink, false) as RichTextInline[];
+}
+
+/** With `images`, images that can be shown are returned as image blocks among the inline nodes. */
+function phrases(
+	nodes: PhrasingContent[],
+	context: Context,
+	depth: number,
+	inLink: boolean,
+	images: boolean
+): Phrase[] {
+	const result: Phrase[] = [];
 	for (const node of nodes) {
 		if (depth > MAX_DEPTH && node.type !== 'text') {
 			result.push({ type: 'text', value: literal(node, context) });
 			continue;
 		}
+		const extra = node as { type: string; value?: string; identifier?: string };
+		if (extra.type === 'highlight') {
+			result.push({
+				type: 'highlight',
+				children: inline(
+					(node as unknown as { children: PhrasingContent[] }).children,
+					context,
+					depth + 1,
+					inLink
+				)
+			});
+			continue;
+		}
+		if (extra.type === 'inlineMath') {
+			const raw = literal(node, context);
+			result.push(
+				isInlineMath(raw, context.source[node.position?.end.offset ?? -1])
+					? { type: 'math', value: extra.value ?? '' }
+					: { type: 'text', value: raw }
+			);
+			continue;
+		}
 		switch (node.type) {
-			case 'text':
+			case 'footnoteReference':
 				result.push(
-					...(inLink
-						? [{ type: 'text' as const, value: node.value }]
-						: context.detect
-							? detectLinks(node.value)
-							: facetText(node, context))
+					FOOTNOTE_ID.test(node.identifier)
+						? { type: 'footnoteReference', id: node.identifier }
+						: { type: 'text', value: literal(node, context) }
 				);
 				break;
+			case 'text': {
+				const text = inLink
+					? [{ type: 'text' as const, value: node.value }]
+					: context.detect
+						? detectLinks(node.value)
+						: facetText(node, context);
+				result.push(...text);
+				break;
+			}
 			case 'emphasis':
 			case 'strong':
 			case 'delete':
@@ -156,7 +286,12 @@ function inline(
 			}
 			case 'image':
 			case 'imageReference': {
-				// Images are never loaded; a safe image becomes a link labeled by its alt text.
+				const block = images && !inLink ? image(node, context) : undefined;
+				if (block) {
+					result.push(block);
+					break;
+				}
+				// Elsewhere images are never loaded; a safe image becomes a link labeled by its alt text.
 				const url = safeWebUrl(
 					node.type === 'image' ? node.url : context.definitions.get(node.identifier)?.url
 				);
@@ -174,7 +309,78 @@ function inline(
 				});
 		}
 	}
-	return withBreaks(result);
+	return context.article ? joinText(soften(result)) : withBreaks(result as RichTextInline[]);
+}
+
+/** A paragraph's text, with its images as blocks of their own between the pieces. */
+function paragraph(nodes: PhrasingContent[], context: Context, depth: number): RichTextBlock[] {
+	if (!context.article) return [{ type: 'paragraph', children: inline(nodes, context, depth) }];
+	const result: RichTextBlock[] = [];
+	let run: RichTextInline[] = [];
+	const blank = (node: RichTextInline | undefined) =>
+		node?.type === 'break' || (node?.type === 'text' && !node.value.trim());
+	const flush = () => {
+		while (run.length && blank(run[0])) run.shift();
+		while (run.length && blank(run.at(-1))) run.pop();
+		const first = run[0];
+		if (first?.type === 'text') run[0] = { type: 'text', value: first.value.trimStart() };
+		const last = run.at(-1);
+		if (last?.type === 'text') run[run.length - 1] = { type: 'text', value: last.value.trimEnd() };
+		if (run.length) result.push({ type: 'paragraph', children: run });
+		run = [];
+	};
+	for (const node of phrases(nodes, context, depth, false, true)) {
+		if (node.type === 'image') {
+			flush();
+			result.push(node);
+		} else run.push(node);
+	}
+	flush();
+	return result.length ? result : [{ type: 'paragraph', children: [] }];
+}
+
+const CALLOUT_MARK = /^\[!([A-Za-z]+)\][ \t]*(\n|$)/;
+
+/**
+ * A quote whose first line is `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`
+ * alone is a callout, as on GitHub. Returns its kind and the content without that line.
+ */
+function calloutOf(
+	node: Blockquote,
+	context: Context
+): { kind: RichTextCallout; children: RootContent[] } | undefined {
+	const [first, ...rest] = node.children;
+	if (first?.type !== 'paragraph') return undefined;
+	const [text, ...others] = first.children;
+	const start = text?.position?.start.offset;
+	if (text?.type !== 'text' || start === undefined) return undefined;
+	const match = CALLOUT_MARK.exec(text.value);
+	const kind = match?.[1].toLowerCase();
+	// An escaped `\[!NOTE]` has the same value, and is no callout.
+	if (!match || !isCallout(kind) || !context.source.startsWith('[!', start)) return undefined;
+	const value = text.value.slice(match[0].length);
+	const line = context.source.indexOf('\n', start);
+	// The marker alone, then a hard break: the break goes with it.
+	if (!value && !match[2] && others.length && others[0].type !== 'break') return undefined;
+	const remaining: PhrasingContent[] = value
+		? [
+				{
+					...text,
+					value,
+					position: {
+						...text.position!,
+						start: { ...text.position!.start, offset: line < 0 ? start : line + 1 }
+					}
+				},
+				...others
+			]
+		: others[0]?.type === 'break'
+			? others.slice(1)
+			: others;
+	return {
+		kind,
+		children: remaining.length ? [{ ...first, children: remaining }, ...rest] : rest
+	};
 }
 
 function blocks(nodes: RootContent[], context: Context, depth: number): RichTextBlock[] {
@@ -187,10 +393,46 @@ function blocks(nodes: RootContent[], context: Context, depth: number): RichText
 			});
 			continue;
 		}
+		if ((node as { type: string }).type === 'math') {
+			result.push({ type: 'math', value: (node as { value?: string }).value ?? '' });
+			continue;
+		}
 		switch (node.type) {
-			case 'paragraph':
-				result.push({ type: 'paragraph', children: inline(node.children, context, depth) });
+			case 'footnoteDefinition':
+				if (FOOTNOTE_ID.test(node.identifier))
+					result.push({
+						type: 'footnoteDefinition',
+						id: node.identifier,
+						children: blocks(node.children, context, depth + 1)
+					});
 				break;
+			case 'paragraph':
+				result.push(...paragraph(node.children, context, depth));
+				break;
+			case 'table': {
+				const width = Math.max(1, ...node.children.map((row) => row.children.length));
+				context.cells -= width * node.children.length;
+				if (context.cells < 0) {
+					result.push({
+						type: 'paragraph',
+						children: withBreaks([{ type: 'text', value: literal(node, context) }])
+					});
+					break;
+				}
+				result.push({
+					type: 'table',
+					align: Array.from(
+						{ length: width },
+						(_, index): RichTextAlign => node.align?.[index] ?? null
+					),
+					rows: node.children.map((row) =>
+						Array.from({ length: width }, (_, index) =>
+							inline(row.children[index]?.children ?? [], context, depth + 1)
+						)
+					)
+				});
+				break;
+			}
 			case 'heading':
 				result.push({
 					type: 'heading',
@@ -198,15 +440,24 @@ function blocks(nodes: RootContent[], context: Context, depth: number): RichText
 					children: inline(node.children, context, depth)
 				});
 				break;
-			case 'blockquote':
-				result.push({ type: 'blockquote', children: blocks(node.children, context, depth + 1) });
+			case 'blockquote': {
+				const callout = context.article ? calloutOf(node, context) : undefined;
+				result.push({
+					type: 'blockquote',
+					children: blocks(callout?.children ?? node.children, context, depth + 1),
+					...(callout ? { callout: callout.kind } : {})
+				});
 				break;
+			}
 			case 'list':
 				result.push({
 					type: 'list',
 					ordered: !!node.ordered,
 					...(node.ordered && typeof node.start === 'number' ? { start: node.start } : {}),
-					items: node.children.map((item) => blocks(item.children, context, depth + 1))
+					items: node.children.map((item) => blocks(item.children, context, depth + 1)),
+					...(node.children.some((item) => typeof item.checked === 'boolean')
+						? { checked: node.children.map((item) => item.checked ?? null) }
+						: {})
 				});
 				break;
 			case 'code':
@@ -243,19 +494,25 @@ function collectDefinitions(node: Nodes, definitions: Map<string, Definition>, d
 
 /**
  * CommonMark plus ~~strikethrough~~, with facets applied to the parsed text. Raw HTML is shown
- * literally, images become links and only HTTP(S) destinations are kept. Text that exceeds
- * the parser's limits is returned as a plain-text document.
+ * literally, images become links and only HTTP(S) destinations are kept. With `article`,
+ * images, tables, footnotes, task lists, `$math$`, `==highlights==` and callouts (`> [!NOTE]`)
+ * are kept and newlines inside a paragraph wrap. Text that exceeds the parser's limits is
+ * returned as a plain-text document.
  */
-export function parseMarkdown(text: string, options: PlainTextOptions = {}): RichTextDocument {
-	if (exceedsMarkdownLimits(text)) return parsePlainText(text, options);
-	const tree = markdownTree(text) as Root;
+export function parseMarkdown(text: string, options: MarkdownOptions = {}): RichTextDocument {
+	const article = !!options.article;
+	if (exceedsMarkdownLimits(text, article)) return parsePlainText(text, options);
+	const tree = markdownTree(text, { article }) as Root;
 	const definitions = new Map<string, Definition>();
 	collectDefinitions(tree, definitions);
 	const context: Context = {
 		source: text,
 		ranges: resolveFacets(text, options.facets),
 		detect: !hasFacets(options.facets) && !!options.detectLinks,
-		definitions
+		definitions,
+		article,
+		allowImage: options.allowImage,
+		cells: MAX_TABLE_CELLS
 	};
 	return { version: 1, markdown: true, children: blocks(tree.children, context, 0) };
 }

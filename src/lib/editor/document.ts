@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import { detectTokens } from '../richtext/detect.js';
 import {
+	isCallout,
 	paragraphParts,
 	safeWebUrl,
 	type RichTextBlock,
@@ -10,25 +11,42 @@ import {
 import type { Facet } from '../social/richtext.js';
 
 export const LINK_EMBED = 'linkEmbed';
+export const IMAGE = 'image';
+export const MATH = 'math';
+export const FOOTNOTE_REFERENCE = 'footnoteReference';
+export const FOOTNOTE_DEFINITION = 'footnoteDefinition';
 
 type Marks = NonNullable<JSONContent['marks']>;
 type EmbedTest = ((url: string) => boolean) | undefined;
 
 const MAX_DEPTH = 32;
-const MARKS = { strong: 'bold', emphasis: 'italic', delete: 'strike' } as const;
-const STYLES = { bold: 'strong', italic: 'emphasis', strike: 'delete' } as const;
+export const HIGHLIGHT = 'highlight';
+const MARKS = {
+	strong: 'bold',
+	emphasis: 'italic',
+	delete: 'strike',
+	highlight: HIGHLIGHT
+} as const;
+const STYLES = {
+	bold: 'strong',
+	italic: 'emphasis',
+	strike: 'delete',
+	highlight: 'highlight'
+} as const;
 
 function labelOf(nodes: readonly RichTextInline[], depth = 0): string {
 	if (depth > MAX_DEPTH) return '';
 	return nodes
 		.map((node) =>
-			node.type === 'text' || node.type === 'code'
+			node.type === 'text' || node.type === 'code' || node.type === 'math'
 				? node.value
 				: node.type === 'break'
 					? '\n'
 					: node.type === 'mention' || node.type === 'tag'
 						? node.text
-						: labelOf(node.children, depth + 1)
+						: node.type === 'footnoteReference'
+							? ''
+							: labelOf(node.children, depth + 1)
 		)
 		.join('');
 }
@@ -59,6 +77,12 @@ function inlineContent(nodes: readonly RichTextInline[], marks: Marks, depth = 0
 				return node.value
 					? [{ type: 'text', text: node.value.replace(/\n/g, ' '), marks: [{ type: 'code' }] }]
 					: [];
+			case 'math':
+				return node.value
+					? [{ type: 'text', text: node.value.replace(/\n/g, ' '), marks: [{ type: MATH }] }]
+					: [];
+			case 'footnoteReference':
+				return [{ type: FOOTNOTE_REFERENCE, attrs: { id: node.id } }];
 			case 'mention':
 				return node.actor.startsWith('did:')
 					? [{ type: 'mention', attrs: { id: node.actor, label: node.text.replace(/^[@＠]/, '') } }]
@@ -80,6 +104,7 @@ function inlineContent(nodes: readonly RichTextInline[], marks: Marks, depth = 0
 			case 'strong':
 			case 'emphasis':
 			case 'delete':
+			case 'highlight':
 				return inlineContent(
 					node.children,
 					marks.some((mark) => mark.type === MARKS[node.type])
@@ -125,25 +150,58 @@ function blockContent(
 				return [
 					{
 						type: 'blockquote',
+						...(isCallout(block.callout) ? { attrs: { callout: block.callout } } : {}),
 						content: atLeastOne(blockContent(block.children, isEmbed, depth + 1))
 					}
 				];
-			case 'list':
+			case 'math':
+				// Edited as a code block in the language "math".
+				return [
+					{
+						type: 'codeBlock',
+						attrs: { language: MATH },
+						...(block.value ? { content: [{ type: 'text', text: block.value }] } : {})
+					}
+				];
+			case 'footnoteDefinition':
+				return [
+					{
+						type: FOOTNOTE_DEFINITION,
+						attrs: { id: block.id },
+						content: atLeastOne(blockContent(block.children, isEmbed, depth + 1))
+					}
+				];
+			case 'list': {
+				const checked = block.checked ?? [];
+				const isTask = (index: number) => typeof checked[index] === 'boolean';
+				// A task list is a bulleted one whose items are all tasks.
+				if (!block.ordered && block.items.length && block.items.every((_, index) => isTask(index)))
+					return [
+						{
+							type: 'taskList',
+							content: block.items.map((item, index) => ({
+								type: 'taskItem',
+								attrs: { checked: checked[index] === true },
+								content: startsWithParagraph(blockContent(item, isEmbed, depth + 1))
+							}))
+						}
+					];
 				return [
 					{
 						type: block.ordered ? 'orderedList' : 'bulletList',
 						...(block.ordered ? { attrs: { start: block.start ?? 1 } } : {}),
-						content: block.items.map((item) => {
-							const content = blockContent(item, isEmbed, depth + 1);
-							// A list item starts with a paragraph.
+						content: block.items.map((item, index) => {
+							const content = startsWithParagraph(blockContent(item, isEmbed, depth + 1));
+							// A task among other items, or in a numbered list, keeps its box on the item.
 							return {
 								type: 'listItem',
-								content:
-									content[0]?.type === 'paragraph' ? content : [{ type: 'paragraph' }, ...content]
+								...(isTask(index) ? { attrs: { checked: checked[index] } } : {}),
+								content
 							};
 						})
 					}
 				];
+			}
 			case 'codeBlock':
 				return [
 					{
@@ -154,10 +212,43 @@ function blockContent(
 				];
 			case 'thematicBreak':
 				return [{ type: 'horizontalRule' }];
+			case 'image':
+				return [
+					{
+						type: IMAGE,
+						attrs: { url: block.url, alt: block.alt ?? '', title: block.title ?? '' }
+					}
+				];
+			case 'table':
+				return [
+					{
+						type: 'table',
+						content: block.rows.map((row, rowIndex) => ({
+							type: 'tableRow',
+							content: row.map((cell, index) => ({
+								type: rowIndex ? 'tableCell' : 'tableHeader',
+								attrs: { align: block.align[index] ?? null },
+								content: [
+									{
+										type: 'paragraph',
+										content: inlineContent(cell, []).map((node) =>
+											node.type === 'hardBreak' ? { type: 'text', text: ' ' } : node
+										)
+									}
+								]
+							}))
+						}))
+					}
+				];
 			default:
 				return [];
 		}
 	});
+}
+
+/** A list item starts with a paragraph. */
+function startsWithParagraph(content: JSONContent[]): JSONContent[] {
+	return content[0]?.type === 'paragraph' ? content : [{ type: 'paragraph' }, ...content];
 }
 
 function atLeastOne(content: JSONContent[]): JSONContent[] {
@@ -202,8 +293,13 @@ function inlineNodes(content: JSONContent[] | undefined): RichTextInline[] {
 			const actor = String(node.attrs?.id ?? '');
 			return [{ type: 'mention', actor, text: `@${node.attrs?.label ?? actor}` }];
 		}
+		if (node.type === FOOTNOTE_REFERENCE) {
+			const id = typeof node.attrs?.id === 'string' ? node.attrs.id : '';
+			return id ? [{ type: 'footnoteReference', id }] : [];
+		}
 		if (node.type !== 'text' || !node.text) return [];
 		const marks = node.marks ?? [];
+		if (marks.some((mark) => mark.type === MATH)) return [{ type: 'math', value: node.text }];
 		let inline: RichTextInline = marks.some((mark) => mark.type === 'code')
 			? { type: 'code', value: node.text }
 			: { type: 'text', value: node.text };
@@ -235,7 +331,13 @@ function blockNodes(content: JSONContent[] | undefined, depth = 0): RichTextBloc
 					}
 				];
 			case 'blockquote':
-				return [{ type: 'blockquote', children: blockNodes(node.content, depth + 1) }];
+				return [
+					{
+						type: 'blockquote',
+						children: blockNodes(node.content, depth + 1),
+						...(isCallout(node.attrs?.callout) ? { callout: node.attrs.callout } : {})
+					}
+				];
 			case 'bulletList':
 			case 'orderedList': {
 				const start = Number(node.attrs?.start);
@@ -246,12 +348,36 @@ function blockNodes(content: JSONContent[] | undefined, depth = 0): RichTextBloc
 						...(node.type === 'orderedList' && Number.isInteger(start) && start !== 1
 							? { start }
 							: {}),
-						items: (node.content ?? []).map((item) => blockNodes(item.content, depth + 1))
+						items: (node.content ?? []).map((item) => blockNodes(item.content, depth + 1)),
+						...((node.content ?? []).some((item) => typeof item.attrs?.checked === 'boolean')
+							? {
+									checked: (node.content ?? []).map((item) =>
+										typeof item.attrs?.checked === 'boolean' ? item.attrs.checked : null
+									)
+								}
+							: {})
 					}
 				];
 			}
+			case 'taskList':
+				return [
+					{
+						type: 'list',
+						ordered: false,
+						items: (node.content ?? []).map((item) => blockNodes(item.content, depth + 1)),
+						checked: (node.content ?? []).map((item) => item.attrs?.checked === true)
+					}
+				];
+			case FOOTNOTE_DEFINITION: {
+				const id = typeof node.attrs?.id === 'string' ? node.attrs.id : '';
+				return id
+					? [{ type: 'footnoteDefinition', id, children: blockNodes(node.content, depth + 1) }]
+					: [];
+			}
 			case 'codeBlock': {
 				const lang = typeof node.attrs?.language === 'string' ? node.attrs.language : '';
+				const value = (node.content ?? []).map((child) => child.text ?? '').join('');
+				if (lang === MATH) return [{ type: 'math', value }];
 				return [
 					{
 						type: 'codeBlock',
@@ -262,6 +388,37 @@ function blockNodes(content: JSONContent[] | undefined, depth = 0): RichTextBloc
 			}
 			case 'horizontalRule':
 				return [{ type: 'thematicBreak' }];
+			case IMAGE: {
+				const url = typeof node.attrs?.url === 'string' ? node.attrs.url : '';
+				const alt = typeof node.attrs?.alt === 'string' ? node.attrs.alt : '';
+				const title = typeof node.attrs?.title === 'string' ? node.attrs.title : '';
+				return url
+					? [{ type: 'image', url, ...(alt ? { alt } : {}), ...(title ? { title } : {}) }]
+					: [];
+			}
+			case 'table': {
+				const rows = (node.content ?? []).map((row) =>
+					(row.content ?? []).map((cell) =>
+						(cell.content ?? []).flatMap((child, index) => [
+							...(index ? [{ type: 'text' as const, value: ' ' }] : []),
+							...inlineNodes(child.content)
+						])
+					)
+				);
+				if (!rows.length) return [];
+				const width = Math.max(1, ...rows.map((row) => row.length));
+				const first = node.content?.[0]?.content ?? [];
+				return [
+					{
+						type: 'table',
+						align: Array.from({ length: width }, (_, index) => {
+							const align = first[index]?.attrs?.align;
+							return align === 'left' || align === 'center' || align === 'right' ? align : null;
+						}),
+						rows: rows.map((row) => Array.from({ length: width }, (_, index) => row[index] ?? []))
+					}
+				];
+			}
 			default:
 				return [];
 		}

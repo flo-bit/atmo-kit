@@ -4,7 +4,7 @@ export type CatalogComponent = { name: string; description: string; source: stri
 export type CatalogGroup = {
 	id: string;
 	title: string;
-	entry: '@atmo-dev/kit' | '@atmo-dev/kit/events';
+	entry: '@atmo-dev/kit' | '@atmo-dev/kit/events' | '@atmo-dev/kit/articles';
 	guide?: string;
 	example?: { href: '/' | '/examples' | '/navigation' | '/login' | '/legal'; label: string };
 	components: CatalogComponent[];
@@ -15,6 +15,10 @@ function component(name: string, description: string, path = `components/${name}
 }
 function event(name: string, description: string, path = `${name}.svelte`) {
 	return component(name, description, `events/${path}`);
+}
+
+function article(name: string, description: string) {
+	return component(name, description, `articles/${name}.svelte`);
 }
 
 export const catalog: CatalogGroup[] = [
@@ -34,6 +38,9 @@ export const catalog: CatalogGroup[] = [
 			component('Avatar', 'Profile images with generated fallbacks.'),
 			component('InsetImage', 'Framed images with shared corner styling.'),
 			component('Modal', 'Portaled dialogs with focus management.'),
+			component('IconMaker', 'A dialog that makes a square icon from a color and a drawing.'),
+			component('PalettePicker', 'Choosing an accent and a base color.'),
+			component('PaletteApply', 'Gives the document a chosen palette while mounted.'),
 			component('Tabs', 'Keyboard-accessible tabs and panels.')
 		]
 	},
@@ -139,6 +146,7 @@ export const catalog: CatalogGroup[] = [
 			component('RichText', 'Plain text, facets, or pre-parsed Markdown.'),
 			component('PostContent', 'Post text, media, quoted posts, and record cards.'),
 			component('NestedComments', 'Threaded replies with foldable branches.'),
+			component('PostComments', 'The replies to a post, loaded and shown as comments.'),
 			component('LinkCard', 'External link previews.'),
 			component('ExternalEmbed', 'Provider-based media with playback and privacy controls.'),
 			component('LinkEmbed', 'A link shown as a post, profile, player, or app-defined embed.'),
@@ -219,6 +227,19 @@ export const catalog: CatalogGroup[] = [
 			),
 			event('VodPlayer', 'Event recording playback.'),
 			event('VodTranscript', 'Recording transcript with playback navigation.')
+		]
+	},
+	{
+		id: 'articles',
+		title: 'Articles',
+		entry: '@atmo-dev/kit/articles',
+		guide: 'articles.md',
+		components: [
+			article('ArticleCard', 'An article as a row with its cover.'),
+			article('ArticleView', 'An article as it is read: cover, title, byline and text.'),
+			article('ArticleEditor', 'The writing surface: cover, title, description and text.'),
+			article('ArticleCodeBlock', 'A code block with a copy button and app-owned highlighting.'),
+			article('PublicationIcon', 'A publication icon, or its initial.')
 		]
 	}
 ];

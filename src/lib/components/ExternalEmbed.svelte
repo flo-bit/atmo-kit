@@ -19,6 +19,7 @@
 		embed,
 		providers,
 		embeds = false,
+		providerPoster = false,
 		socialClient
 	}: {
 		embed: ExternalPostEmbed;
@@ -28,11 +29,23 @@
 		 * `setLinkEmbeds`), or a list. Off by default, so links stay cards.
 		 */
 		embeds?: boolean | readonly LinkEmbedDefinition[];
+		/**
+		 * Without `embed.image`, show the preview image the provider names for a player that waits
+		 * for its play button (a YouTube thumbnail). That image comes from the provider's host, so
+		 * it is off unless asked for.
+		 */
+		providerPoster?: boolean;
 		socialClient?: PreferredSocialClient | null;
 	} = $props();
 	const context = linkEmbedOptions();
 	let linkEmbeds = $derived(selectLinkEmbeds(embeds, context()));
 	let match = $derived(resolveExternalEmbed(embed, providers));
+	let poster = $derived(
+		safeWebUrl(embed.image) ??
+			(providerPoster && match?.player.type === 'iframe'
+				? safeWebUrl(match.player.poster)
+				: undefined)
+	);
 	// Consent belongs to this resolved player, not to its position in the feed.
 	// A changed URL/provider/source never inherits an earlier click, even for one render.
 	let activated = $state.raw<typeof match>(null);
@@ -140,10 +153,11 @@
 				class={`group/play relative flex max-h-[32rem] w-full cursor-pointer items-center justify-center overflow-hidden bg-black ${focus}`}
 				style:aspect-ratio={match.player.aspectRatio ?? 16 / 9}
 			>
-				{#if safeWebUrl(embed.image)}<img
-						src={safeWebUrl(embed.image)}
+				{#if poster}<img
+						src={poster}
 						alt=""
 						loading="lazy"
+						referrerpolicy="no-referrer"
 						class="absolute inset-0 size-full object-cover"
 					/>{/if}
 				<span

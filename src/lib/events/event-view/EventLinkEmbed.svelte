@@ -3,19 +3,19 @@
 	import type { LinkEmbedProps } from '../../embeds/types.js';
 	import EventCard from '../EventCard.svelte';
 	import type { FlatEventRecord } from '../contrail.js';
-	import type { EventLinkEmbedRef } from '../event-link-embed.js';
+	import { loadLinkedEvent, type EventLinkEmbedRef } from '../event-link-embed.js';
 
-	let { url, ref, fallback }: LinkEmbedProps<EventLinkEmbedRef> = $props();
+	let { url, ref, data, fallback }: LinkEmbedProps<EventLinkEmbedRef, FlatEventRecord> = $props();
 
-	let event = $state<FlatEventRecord | null>(null);
+	let found = $state<{ url: string; event: FlatEventRecord | null }>();
+	let event = $derived(data !== undefined ? data : found?.url === url ? found.event : null);
 	$effect(() => {
-		const { actor, rkey, loadEvent } = ref;
+		if (data !== undefined) return;
+		const link = url;
 		let current = true;
-		event = null;
-		void Promise.resolve()
-			.then(() => loadEvent(actor, rkey))
+		void loadLinkedEvent(ref)
 			.then((result) => {
-				if (current && result?.rkey === rkey && result.startsAt) event = result;
+				if (current) found = { url: link, event: result };
 			})
 			.catch(() => {});
 		return () => {

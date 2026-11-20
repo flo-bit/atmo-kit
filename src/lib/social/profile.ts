@@ -1,4 +1,5 @@
 import { detectTokens } from '../richtext/detect.js';
+import { hasModerationLabel } from './posts.js';
 import { safeHttpUrl as safeWebUrl } from '../urls.js';
 import { socialHashtagUrl, socialProfileUrl } from './urls.js';
 import type { PreferredSocialClient } from './preferred-client.js';
@@ -81,8 +82,7 @@ export function blueskyProfileToProfileData(value: unknown): ProfileData | undef
 	for (const item of Array.isArray(p.links) ? p.links : []) {
 		if (!item || typeof item !== 'object' || typeof item.url !== 'string') continue;
 		// Without viewer-specific moderation preferences, omit labeled links conservatively.
-		if (Array.isArray(item.labels) && item.labels.some((label: { neg?: boolean }) => !label?.neg))
-			continue;
+		if (hasModerationLabel({ labels: item.labels })) continue;
 		links.push({
 			url: item.url,
 			title: typeof item.title === 'string' ? item.title : undefined,

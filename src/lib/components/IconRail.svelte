@@ -7,6 +7,8 @@
 		active?: boolean;
 		primary?: boolean;
 		badge?: boolean | number;
+		/** For this item alone, e.g. `max-sm:hidden` to leave it out of the mobile bar. */
+		class?: string;
 	};
 </script>
 
@@ -91,7 +93,8 @@
 							item.primary && 'mt-3',
 							item.primary &&
 								(!item.variant || item.variant === 'ghost') &&
-								'text-accent-700 dark:text-accent-300'
+								'text-accent-700 dark:text-accent-300',
+							item.class
 						)}
 					>
 						<Icon img={item.icon} size={22} />
@@ -122,9 +125,8 @@
 				className
 			)}
 		>
-			<div
-				class="flex flex-col items-center gap-3 max-sm:min-w-0 max-sm:flex-1 max-sm:flex-row max-sm:justify-around max-sm:gap-0"
-			>
+			<!-- In the mobile bar the items and the footer are spaced as one row. -->
+			<div class="flex flex-col items-center gap-3 max-sm:contents">
 				{#each items as item (item.label)}
 					<Tooltip.Root disabled={item.disabled ?? false}
 						><Tooltip.Trigger onclick={item.onclick}
@@ -148,7 +150,8 @@
 											'text-accent-700 hover:text-accent-700 dark:text-accent-300 dark:hover:text-accent-300',
 										backed &&
 											(!item.variant || item.variant === 'ghost') &&
-											'bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/45 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/75 dark:bg-base-950/45 dark:hover:bg-base-950/75'
+											'bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/45 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))]/75 dark:bg-base-950/45 dark:hover:bg-base-950/75',
+										item.class
 									)}
 								>
 									<Icon img={item.icon} size={22} />{#if item.badge}<span
@@ -168,7 +171,7 @@
 					>
 				{/each}
 			</div>
-			{#if footer}<div class="mt-auto max-sm:mt-0 max-sm:ml-1">
+			{#if footer}<div class="mt-auto max-sm:mt-0">
 					{@render footer({ expanded: false, close })}
 				</div>{/if}
 		</nav>
