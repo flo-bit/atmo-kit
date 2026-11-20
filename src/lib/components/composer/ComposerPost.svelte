@@ -84,19 +84,25 @@
 		}
 		const uri = firstLink;
 		const preview = linkPreview;
-		if (!preview || hasMedia || !uri || uri === dismissed) {
-			if (post.link && (!preview || hasMedia || post.link.uri !== uri)) post.link = undefined;
+		if (!preview || hasMedia) {
+			if (post.link) post.link = undefined;
 			loadingLink = false;
 			return;
 		}
-		if (untrack(() => post.link?.uri) === uri) return;
+		// The card outlives its link: deleting the URL, at once or a character at a time,
+		// leaves it attached. Only its own button, or another link, takes it away.
+		const shown = untrack(() => post.link?.uri);
+		if (!uri || uri === dismissed || uri === shown || shown?.startsWith(uri)) {
+			loadingLink = false;
+			return;
+		}
 		const controller = new AbortController();
 		const timer = setTimeout(async () => {
 			loadingLink = true;
 			const card = await preview(uri, controller.signal).catch(() => undefined);
 			if (controller.signal.aborted) return;
 			loadingLink = false;
-			post.link = card;
+			if (card) post.link = card;
 		}, 500);
 		return () => {
 			clearTimeout(timer);

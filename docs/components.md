@@ -56,11 +56,11 @@ Local examples: `/` for native fields, `/examples` for editors and popovers.
 
 [Guide](navigation.md) · Local example: `/navigation`.
 
-| Component          | Purpose                                      |
-| ------------------ | -------------------------------------------- |
-| `IconRail`         | Desktop icon rail, mobile bar or drawer      |
-| `WorkspaceSidebar` | Desktop sidebar, mobile drawer               |
-| `AccountMenu`      | Current-account profile and sign-out actions |
+| Component          | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| `IconRail`         | Desktop icon rail, mobile bar or drawer         |
+| `WorkspaceSidebar` | Desktop sidebar, mobile drawer                  |
+| `AccountMenu`      | Profile, account switching and sign-out actions |
 
 ## Login
 

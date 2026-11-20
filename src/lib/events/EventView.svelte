@@ -2,7 +2,7 @@
 	import { isEventOngoing, type AttendeeListLoader, type FlatEventRecord } from './contrail.js';
 	import type { EventViewData } from './view-data.js';
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
-	import { getEventThumbnail, getEventExternalImage } from './event-media.js';
+	import { getEventThumbnail, getEventExternalImage, type EventMediaUrl } from './event-media.js';
 	import { Button, ToggleGroup, ToggleGroupItem } from '../index.js';
 	import ShareModal from './ShareModal.svelte';
 	import EventComments from './EventComments.svelte';
@@ -49,7 +49,8 @@
 		extraActions,
 		attendeeActions,
 		loadAttendees,
-		embedData
+		embedData,
+		mediaUrl = getCDNImageBlobUrl
 	}: {
 		data: EventViewData;
 		adapter: EditorAdapter;
@@ -74,6 +75,8 @@
 		/** What `loadLinkEmbedData` loaded for the description's embeds, so that they are shown
 		 *  with the page instead of appearing after it. */
 		embedData?: Record<string, unknown>;
+		/** Where the page loads the event's own images from; the public CDN by default. */
+		mediaUrl?: EventMediaUrl;
 	} = $props();
 
 	let eventData: FlatEventRecord = $derived(data.eventData);
@@ -202,7 +205,7 @@
 		if (!eventData.media || eventData.media.length === 0) return null;
 		const media = getEventThumbnail(eventData.media);
 		if (!media?.content) return null;
-		const url = getCDNImageBlobUrl({ did, blob: media.content });
+		const url = mediaUrl({ did, blob: media.content });
 		if (!url) return null;
 		return { url, alt: media.alt || eventData.name, aspectRatio: media.aspect_ratio };
 	});
@@ -211,7 +214,7 @@
 		if (!eventData.media || eventData.media.length === 0) return null;
 		const media = eventData.media.find((m) => m.role === 'header');
 		if (!media?.content) return null;
-		const url = getCDNImageBlobUrl({ did, blob: media.content });
+		const url = mediaUrl({ did, blob: media.content });
 		if (!url) return null;
 		return { url, alt: media.alt || eventData.name, aspectRatio: media.aspect_ratio };
 	});

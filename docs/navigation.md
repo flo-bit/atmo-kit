@@ -7,9 +7,9 @@ existing `primary` flag alone retains its subtle accent/spacing behavior.
 
 ### Sidebar account menu
 
-Use `AccountMenu` in a signed-in sidebar footer. Its avatar button opens just
-**Go to profile** and **Sign out**; there is no account switching. `expanded`
-adds the name and optional handle for wider sidebars and mobile drawers.
+Use `AccountMenu` in a signed-in sidebar footer. Its avatar button opens
+**Go to profile** and **Sign out**. `expanded` adds the name and optional handle
+for wider sidebars and mobile drawers.
 
 ```svelte
 <IconRail label="Navigation" {items}>
@@ -31,6 +31,23 @@ adds the name and optional handle for wider sidebars and mobile drawers.
 	{/snippet}
 </IconRail>
 ```
+
+For apps that keep several accounts signed in, pass the other accounts and the
+callbacks. They appear between the profile link and **Sign out**:
+
+```svelte
+<AccountMenu
+	{...current}
+	accounts={others}
+	onswitch={(did) => switchAccount(did)}
+	onadd={() => (loginOpen = true)}
+	onsignout={signOut}
+/>
+```
+
+`accounts` is `{ did, name?, handle?, avatar? }[]` without the current account;
+only `did` is required. `onadd` alone shows **Add account**. The app owns the
+sessions, the switch itself and the account details.
 
 Both components are exported from `@atmo-dev/kit`. Use `profileHref` for a native
 link, or omit it and supply `onprofile` for app-owned navigation. Apps own the

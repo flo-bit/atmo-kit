@@ -90,7 +90,8 @@ export async function buildThumbnailMedia(args: {
 	thumbnailChanged: boolean;
 	thumbnailFile: File | null;
 	existingMedia: Array<Record<string, unknown>>;
-	uploadBlob: (blob: Blob) => Promise<Record<string, unknown>>;
+	/** Null leaves the new image out and keeps the media as it was. */
+	uploadBlob: (blob: Blob) => Promise<Record<string, unknown> | null>;
 }): Promise<Array<Record<string, unknown>> | undefined> {
 	const { isNew, thumbnailChanged, thumbnailFile, existingMedia, uploadBlob } = args;
 
@@ -228,13 +229,14 @@ export async function buildEventRecord(args: {
 		);
 	}
 
-	// With no Public / Unlisted choice offered, the record keeps whatever preference it had.
+	// With no visibility choice offered, the record keeps whatever preference it had. Only a public
+	// event appears in discovery.
 	if (visibility !== null) {
 		const existingPrefs = ((record.preferences as Record<string, unknown> | undefined) ??
 			{}) as Record<string, unknown>;
 		record.preferences = {
 			...existingPrefs,
-			showInDiscovery: visibility !== 'unlisted'
+			showInDiscovery: visibility === 'public'
 		};
 	}
 

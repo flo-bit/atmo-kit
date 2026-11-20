@@ -51,6 +51,8 @@ Event components read Bluesky's public AppView and CDN by default. Apps using ot
 
 Event cards and covers prefer native `media` images, then an HTTPS `poster.url`, then a URI named `Event Image` (laugh.town compatibility). `getEventExternalImage(event)` from `events-data` returns `{ url, alt, aspectRatio? }` or `null`, validating URLs and optional poster dimensions. It performs no IO; apps must apply their own allowlist/redirect policy before fetching an external image server-side.
 
+When a new event is created with the default cover the editor gives it, and the host hasn't chosen a cover, a failed upload of that cover saves the event without it. Any other cover that fails to upload, an image or a preset the host picked, fails the save, so it is never left out silently.
+
 Apps implement `EditorAdapter` for authentication prompts, repository IO, uploads, save/delete navigation, and optional linked-record transport/indexing notifications. Keep sessions, Cloudflare bindings, app routes, server endpoints, caching and moderation in the app. The editor/view never imports a consumer's app state. See `EventViewData` and `EditorAdapter` in the public types for the data and callback contracts.
 
 Full event UI requires optional peers (ordinary Kit consumers do not):
@@ -80,6 +82,10 @@ const adapter: EditorAdapter = {
 Other host defaults remain: `/api/geocoding`, Bluesky's public comments API, the `?created` share flow and RSVP's `createdWith` identifier. Hosts need compatible endpoints for those; `shareUrlOverride` changes outbound share links.
 
 A page can also show and edit an event that is not public, such as a record in a permissioned space. `EventCard` takes `href` for a card whose page is not `/p/:actor/e/:rkey` (a card has no adapter, so it does not read `urls`). `EventView` takes `share={false}`, so no share dialog opens after `?created` or an RSVP of Going. In `EditorAdapter.features`, `images: false` removes the cover image section and uploads no image, and `visibility: false` hides the Public / Unlisted switch and leaves the record's `preferences` unchanged.
+
+The switch offers Public and Unlisted. A page that can keep an event private passes `visibilityOptions={['public', 'unlisted', 'private']}` and binds `visibility` to follow the choice, then saves a private event its own way, for example with another adapter while it is `'private'`. `confirmVisibility` is called with the new choice before it changes, so the page can ask the host first; returning `false`, or a promise of `false`, keeps the current choice. Only a public event is saved with `showInDiscovery: true`. `EventVisibility` from `events-data` is its type.
+
+`EventView`, `EventCard` and `EventEditor` load the images in an event's `media` from the CDN set with `configureAtproto`, by `getCDNImageBlobUrl`. A page whose event's pictures must not reach a public CDN passes `mediaUrl`, a function of `{ did, blob }` that returns the image's address (or `null` to leave that image out), such as a route of its own that serves the picture only to people who can see the event. `EventMediaUrl` from `events-data` is its type. External images (`poster`, `Event Image`) are not affected; leave them out of `eventData` if they shouldn't load.
 
 `eventData.uri` is the address of the event record the page shows, and the kit names the event by it: an RSVP answers it, the calendar file uses it as the event's UID, the schedule shows the talks whose parent it is, and the editor reports it after a delete. A record in its creator's repo has the address `at://<did>/community.lexicon.calendar.event/<rkey>`, and the kit builds that itself when `uri` is empty. A page showing a record stored anywhere else, such as in a space, must set `uri` to that record's own address, or its RSVPs answer a record that doesn't exist.
 

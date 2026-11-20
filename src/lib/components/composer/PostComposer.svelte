@@ -178,11 +178,9 @@
 	let current = $derived(posts[Math.min(active, posts.length - 1)]);
 	const lengthOf = (post: Post) => graphemeLength(post.text.trim());
 	const hasMedia = (post: Post) => post.images.length > 0 || !!post.video || !!post.gif;
-	// A card given by the app can be posted on its own, as a quote can.
+	// A card can be posted on its own, as a quote can.
 	const isEmpty = (post: Post, index: number) =>
-		!lengthOf(post) &&
-		!hasMedia(post) &&
-		!(index === 0 && (quote || (link && post.link?.uri === link.uri)));
+		!lengthOf(post) && !hasMedia(post) && !post.link && !(index === 0 && quote);
 	/** Still what the composer opened with: nothing of the author's would be lost. */
 	let untouched = $derived(
 		posts.length === 1 &&
@@ -190,9 +188,7 @@
 			posts[0].text.trim() === startingText.trim() &&
 			(!posts[0].link || posts[0].link.uri === link?.uri)
 	);
-	let dirty = $derived(
-		!untouched && posts.some((post, index) => !isEmpty(post, index) || !!post.link)
-	);
+	let dirty = $derived(!untouched && posts.some((post, index) => !isEmpty(post, index)));
 	let missingAlt = $derived(
 		requireAlt && posts.some((p) => p.images.some((image) => !image.alt.trim()))
 	);

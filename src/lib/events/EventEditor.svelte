@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getCDNImageBlobUrl } from './atproto-helpers.js';
-	import { getEventThumbnail } from './event-media.js';
+	import { getEventThumbnail, type EventMediaUrl } from './event-media.js';
 	import { Avatar, Button, ToggleGroup, ToggleGroupItem } from '../index.js';
 	import { onMount, untrack } from 'svelte';
 	import { InlineEditor, RichTextEditor, type Editor } from '../index.js';
@@ -39,7 +39,11 @@
 		adapter,
 		viewer,
 		initialTheme,
-		prefill = null
+		prefill = null,
+		mediaUrl = getCDNImageBlobUrl,
+		visibility = $bindable('public'),
+		visibilityOptions = ['public', 'unlisted'],
+		confirmVisibility
 	}: {
 		eventData: FlatEventRecord | null;
 		actorDid: string;
@@ -50,6 +54,14 @@
 		initialTheme?: Partial<EventTheme>;
 		/** Autofill payload for new events (e.g. imported from Luma/Meetup). */
 		prefill?: EventEditorPrefill | null;
+		/** Where the editor loads the event's current image from; the public CDN by default. */
+		mediaUrl?: EventMediaUrl;
+		/** Who can see the event. Bind it to follow the host's choice; an existing event's record sets it. */
+		visibility?: Visibility;
+		/** The choices the switch offers, in order. Public and Unlisted by default. */
+		visibilityOptions?: readonly Visibility[];
+		/** Asked before the choice changes; returning false keeps the current one. */
+		confirmVisibility?: (next: Visibility) => boolean | Promise<boolean>;
 	} = $props();
 
 	let isNew = $derived(eventData === null);
@@ -76,7 +88,6 @@
 	);
 	let timezone = $state(initialTimezone);
 	let mode: EventMode = $state(initialPrefill?.mode ?? 'inperson');
-	let visibility: Visibility = $state('public');
 	// svelte-ignore state_referenced_locally
 	let eventTheme: EventTheme = $state(
 		eventData === null
@@ -96,6 +107,10 @@
 	let selectedPreset: string | null = $state(
 		initialThumbnailFile ? null : eventData === null ? DEFAULT_PRESET : null
 	);
+	/** The cover drawn from the selected preset, once it is drawn for a save. */
+	let generatedThumbnail: File | null = null;
+	/** The host chose a cover, or took it away, rather than leaving a new event's default. */
+	let coverChosen = false;
 	let images = $derived(adapter.features.images !== false);
 	const embedOptions = linkEmbedOptions();
 	/** As on the event page: the app's embeds, plus cards for links to other events. */
@@ -117,6 +132,16 @@
 		];
 	});
 	let showVisibility = $derived(adapter.features.visibility !== false);
+	const VISIBILITY_LABELS: Record<Visibility, string> = {
+		public: 'Public',
+		unlisted: 'Unlisted',
+		private: 'Private'
+	};
+	async function chooseVisibility(next: Visibility) {
+		if (next === visibility) return;
+		if (confirmVisibility && !(await confirmVisibility(next))) return;
+		visibility = next;
+	}
 	let submitting = $state(false);
 	let error: string | null = $state(null);
 	let titleEditor = $state<Editor | null>(null);
@@ -159,7 +184,7 @@
 		if (eventData.media && eventData.media.length > 0) {
 			const media = getEventThumbnail(eventData.media);
 			if (media?.content) {
-				const url = getCDNImageBlobUrl({ did: actorDid, blob: media.content });
+				const url = mediaUrl({ did: actorDid, blob: media.content });
 				if (url) {
 					thumbnailPreview = url;
 					thumbnailChanged = false;
@@ -245,9 +270,19 @@
 				});
 				if (rendered) {
 					thumbnailFile = rendered;
+					generatedThumbnail = rendered;
 					thumbnailChanged = true;
 				}
 			}
+			// The default cover a new event gets without asking isn't worth losing the event over, so
+			// if it doesn't upload the event is saved without it. A cover the host chose, a preset as
+			// much as an image, fails the save instead, so it is never left out without their knowing.
+			const defaultCover =
+				isNew &&
+				!coverChosen &&
+				selectedPreset === DEFAULT_PRESET &&
+				thumbnailFile !== null &&
+				thumbnailFile === generatedThumbnail;
 
 			const existingMedia = (eventData?.media ?? []) as Array<Record<string, unknown>>;
 			const media = images
@@ -256,8 +291,15 @@
 						thumbnailChanged,
 						thumbnailFile,
 						existingMedia,
-						uploadBlob: (blob) =>
-							adapter.uploadBlob(blob) as unknown as Promise<Record<string, unknown>>
+						uploadBlob: async (blob) => {
+							try {
+								return (await adapter.uploadBlob(blob)) as unknown as Record<string, unknown>;
+							} catch (e) {
+								if (!defaultCover) throw e;
+								console.warn('Generated cover not uploaded; saving the event without it:', e);
+								return null;
+							}
+						}
 					})
 				: existingMedia.length > 0
 					? existingMedia
@@ -363,7 +405,13 @@
 							bind:thumbnailFile
 							bind:thumbnailPreview
 							bind:thumbnailChanged
-							bind:selectedPreset
+							bind:selectedPreset={
+								() => selectedPreset,
+								(preset) => {
+									selectedPreset = preset;
+									coverChosen = true;
+								}
+							}
 						/>
 					{/if}
 
@@ -408,20 +456,23 @@
 									bind:value={
 										() => visibility,
 										(val) => {
-											if (val) visibility = val as Visibility;
+											if (val) void chooseVisibility(val as Visibility);
 										}
 									}
 									class="w-fit"
 									size="xs"
 								>
-									<ToggleGroupItem value="public">Public</ToggleGroupItem>
-									<ToggleGroupItem value="unlisted">Unlisted</ToggleGroupItem>
+									{#each visibilityOptions as option (option)}
+										<ToggleGroupItem value={option}>{VISIBILITY_LABELS[option]}</ToggleGroupItem>
+									{/each}
 								</ToggleGroup>
 								<div class="mt-1.5 text-xs text-base-600 dark:text-base-400">
 									{#if visibility === 'public'}
 										Anyone can view and it appears in discovery.
-									{:else}
+									{:else if visibility === 'unlisted'}
 										Public to anyone with the link, but hidden from discovery.
+									{:else}
+										Only people you invite can see it.
 									{/if}
 								</div>
 							</div>
