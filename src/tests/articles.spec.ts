@@ -238,6 +238,31 @@ describe('articleRecord', () => {
 		expect(() => articleRecord({ ...input, blobs: [large, pdf] })).not.toThrow();
 	});
 
+	it('keeps the record within what an account server accepts in one write', () => {
+		const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
+		const words = (count: number, word = 'word ') => word.repeat(count).trim();
+		// Short enough: the plain copy is whole.
+		const small = articleRecord({ ...input, text: words(10_000) });
+		expect(small.textContent).toBe(words(10_000));
+		// The text fits, twice it does not: the copy is cut at a word, the text is whole.
+		const text = words(20_000);
+		const record = articleRecord({ ...input, text });
+		expect(bytes(record)).toBeLessThanOrEqual(140_000);
+		expect((record.content as { text: string }).text).toBe(text);
+		const copy = record.textContent as string;
+		expect(copy.length).toBeGreaterThan(20_000);
+		expect(copy.length).toBeLessThan(text.length);
+		expect(text.startsWith(copy)).toBe(true);
+		expect(copy.endsWith('word')).toBe(true);
+		// Characters that take more bytes count as what they take.
+		const wide = articleRecord({ ...input, text: words(12_000, '日本語 ') });
+		expect(bytes(wide)).toBeLessThanOrEqual(140_000);
+		expect(wide.textContent).not.toMatch(/[\ud800-\udbff]$/);
+		// Too long by itself, though within the character limit.
+		expect(() => articleRecord({ ...input, text: words(39_000) })).toThrow(/too long/);
+		expect(() => articleRecord({ ...input, text: words(16_000, '日本語 ') })).toThrow(/too long/);
+	});
+
 	it('keeps the images of footnotes, quotes and lists when publishing and editing', () => {
 		const other = 'bafkreibme22gw2h7y2h7tg2fhqotaqjucnbc24deqo72b6mkl2egezxhvy';
 		const second = { ...image, ref: { $link: other } };

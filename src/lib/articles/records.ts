@@ -27,6 +27,11 @@ export const ARTICLE_LIMITS = {
 	text: 200_000,
 	images: 200,
 	imageBytes: 2_000_000,
+	/**
+	 * The most a document record may take as JSON. Account servers refuse larger writes (the
+	 * reference server at 150 KB for the whole request), whatever the lexicons allow.
+	 */
+	recordBytes: 140_000,
 	/** standard.site's limit for cover images and publication icons. */
 	coverBytes: 1_000_000
 } as const;
@@ -354,6 +359,10 @@ export function publicationRecord(input: {
  * Every uploaded image the text shows (`cid:` destinations) must be among `blobs` or the
  * images of `existing`: the record keeps them alive. Each must be of one of
  * `ARTICLE_IMAGE_TYPES` and at most `ARTICLE_LIMITS.imageBytes`.
+ *
+ * The record stays within `ARTICLE_LIMITS.recordBytes`: its plain-text copy (`textContent`) is
+ * cut short when the text leaves no room for all of it, and a text too long by itself is
+ * refused.
  */
 export function articleRecord(input: {
 	did: string;
@@ -416,7 +425,7 @@ export function articleRecord(input: {
 	const description = written || autoDescription(document, ARTICLE_LIMITS.description);
 	const cover = input.cover === undefined ? coverImage : input.cover;
 	const edited = input.existing !== undefined && input.existing !== null;
-	return {
+	const record = (textContent: string): Record<string, unknown> => ({
 		...rest,
 		$type: DOCUMENT_COLLECTION,
 		site: publicationUri(input.did, input.publication),
@@ -426,11 +435,40 @@ export function articleRecord(input: {
 		...(cover ? { coverImage: cover } : {}),
 		publishedAt: date(existing.publishedAt) ?? now,
 		...(edited ? { updatedAt: now } : {}),
-		...(plain ? { textContent: plain } : {}),
+		...(textContent ? { textContent } : {}),
 		content: {
 			$type: MARKDOWN_CONTENT,
 			text: body,
 			...(images.size ? { images: [...images.values()] } : {})
 		}
-	};
+	});
+	// The plain text is a copy for search and previews. When both do not fit, the copy is cut:
+	// the text itself is never shortened.
+	const full = record(plain);
+	const over = jsonBytes(full) - ARTICLE_LIMITS.recordBytes;
+	if (over <= 0) return full;
+	const without = record('');
+	const room = ARTICLE_LIMITS.recordBytes - jsonBytes(without);
+	if (room < 0) throw new ArticleError('This post is too long to publish.');
+	return record(fitBytes(plain, room - 20));
+}
+
+const jsonBytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
+
+/** The start of `text` that takes at most `bytes` as a JSON string, cut at a word. */
+function fitBytes(text: string, bytes: number): string {
+	if (bytes <= 0) return '';
+	let low = 0;
+	let high = text.length;
+	while (low < high) {
+		const middle = Math.ceil((low + high) / 2);
+		if (jsonBytes(text.slice(0, middle)) <= bytes) low = middle;
+		else high = middle - 1;
+	}
+	if (low === text.length) return text;
+	// Not in the middle of a character made of two code units.
+	const code = text.charCodeAt(low - 1);
+	const cut = text.slice(0, code >= 0xd800 && code <= 0xdbff ? low - 1 : low);
+	const space = cut.lastIndexOf(' ');
+	return (space > cut.length / 2 ? cut.slice(0, space) : cut).trimEnd();
 }

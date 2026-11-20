@@ -60,6 +60,10 @@ await client.post('com.atproto.repo.putRecord', {
 });
 ```
 
+A document stays within `ARTICLE_LIMITS.recordBytes` (140 KB as JSON), which is what account
+servers accept in one write: `textContent`, the plain copy of the text, is cut short when there
+is no room for all of it, and a text too long by itself is refused.
+
 Every `cid:` image in the text must be in `blobs` or already in `existing`; the record lists
 them so that the blobs stay alive. `ARTICLE_LIMITS` and `ARTICLE_IMAGE_TYPES` are the limits
 the builders enforce; `prepareArticleImage(file, maxBytes?)` re-encodes an image in the

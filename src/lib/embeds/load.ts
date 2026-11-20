@@ -59,8 +59,10 @@ export async function loadProfileEmbed(
 		if (response.status === 400 || response.status === 404) return null;
 		throw new Error('Could not load the profile.');
 	}
-	const view = (await response.json()) as { labels?: { neg?: boolean }[] } | null;
-	if (Array.isArray(view?.labels) && view.labels.some((label) => !label?.neg)) return null;
+	const view = (await response.json()) as { labels?: unknown } | null;
+	// The same rule as for posts: a label an account gives itself that is not about moderation,
+	// such as `bot`, hides nothing.
+	if (hasModerationLabel({ labels: view?.labels })) return null;
 	return blueskyProfileToProfileData(view) ?? null;
 }
 
@@ -121,7 +123,7 @@ export async function loadLinkEmbedData(
 	options: {
 		/** The request's `fetch`. */
 		fetch?: typeof fetch;
-		/** How long to wait for all of them, in milliseconds. Defaults to 2500. */
+		/** How long to wait for all of them, in milliseconds. Defaults to 1500. */
 		timeout?: number;
 		/** Embeds beyond this many load in the browser. Defaults to 20. */
 		limit?: number;
@@ -142,7 +144,7 @@ export async function loadLinkEmbedData(
 	});
 	if (!wanted.length) return data;
 	const controller = new AbortController();
-	const timer = setTimeout(() => controller.abort(), options.timeout ?? 2500);
+	const timer = setTimeout(() => controller.abort(), options.timeout ?? 1500);
 	const expired = new Promise<void>((resolve) =>
 		controller.signal.addEventListener('abort', () => resolve())
 	);

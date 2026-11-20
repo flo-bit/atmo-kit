@@ -125,7 +125,7 @@ await preloadLinkEmbeds(data.content, linkEmbeds);
 
 `EventView` and `ArticleView` take the same `embedData`. For an event page, load with the list `EventView` uses: `[eventLinkEmbed({ loadEvent }), ...yourEmbeds]`.
 
-`loadLinkEmbedData` waits at most `timeout` (2.5 s) for at most `limit` (20) embeds; whatever is missing loads in the browser as before. It reads plain-text documents (`parsePlainText`) as well as Markdown. Nothing is loaded for an embed that waits for a click: one with `requests: 'click'`, or any behind a load button, for which pass the same `clickToLoad` as to `setLinkEmbeds`. Posts, profiles, articles and events can be loaded ahead; players need nothing loaded.
+`loadLinkEmbedData` waits at most `timeout` (1.5 s) for at most `limit` (20) embeds; whatever is missing loads in the browser as before. It reads plain-text documents (`parsePlainText`) as well as Markdown. Nothing is loaded for an embed that waits for a click: one with `requests: 'click'`, or any behind a load button, for which pass the same `clickToLoad` as to `setLinkEmbeds`. Posts, profiles, articles and events can be loaded ahead; players need nothing loaded.
 
 An embed is a URL matcher and a lazily loaded component. Matching uses the URL alone and does no network IO; the component receives `{ url, ref, data, fallback, socialClient }` and renders `fallback` (the ordinary link) until it has something to show and whenever it can't. An optional `data(ref, { fetch, signal })` returns what the component shows as plain data (`null` for nothing to show); the component then gets it as `data` and renders it right away.
 
