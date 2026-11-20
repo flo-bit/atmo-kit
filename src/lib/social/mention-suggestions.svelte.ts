@@ -24,6 +24,8 @@ export function mentionSuggestions(search: ActorSearch, host: () => HTMLElement)
 		}
 	});
 	const close = () => {
+		removeEventListener('scroll', draw, true);
+		removeEventListener('resize', draw);
 		if (options) void unmount(options);
 		options = undefined;
 		menu?.remove();
@@ -35,14 +37,18 @@ export function mentionSuggestions(search: ActorSearch, host: () => HTMLElement)
 	function draw() {
 		if (!menu) return;
 		state.items = current.items;
-		const rect = current.clientRect?.();
-		const bounds = host().getBoundingClientRect();
-		if (rect) {
-			menu.style.top = `${rect.bottom - bounds.top + host().scrollTop + 6}px`;
-			menu.style.left = `${Math.max(0, Math.min(rect.left - bounds.left, bounds.width - 288))}px`;
-		}
 		// Nothing to choose from: stay out of the way instead of saying so.
 		menu.hidden = !current.items.length;
+		const rect = current.clientRect?.();
+		if (rect && !menu.hidden) {
+			// In the top layer, so a dialog's clipping cannot cut it off. Below the text, or above
+			// it when there is more room there than the tallest list needs below.
+			const room = innerHeight - rect.bottom;
+			const up = room < 360 && rect.top > room;
+			menu.style.top = up ? 'auto' : `${rect.bottom + 6}px`;
+			menu.style.bottom = up ? `${innerHeight - rect.top + 6}px` : 'auto';
+			menu.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - Math.min(288, innerWidth - 16) - 8))}px`;
+		}
 		if (!current.items.length) {
 			current.editor.view.dom.removeAttribute('aria-controls');
 			current.editor.view.dom.removeAttribute('aria-activedescendant');
@@ -76,10 +82,15 @@ export function mentionSuggestions(search: ActorSearch, host: () => HTMLElement)
 				menu.role = 'listbox';
 				menu.setAttribute('aria-label', 'Mention suggestions');
 				menu.className =
-					'absolute z-60 w-72 max-w-full overflow-hidden rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-1.5 font-sans text-base-950 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-975 dark:text-base-50';
+					'fixed inset-auto z-60 m-0 w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-ui border border-base-300 bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] p-1.5 font-sans text-base-950 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:bg-base-975 dark:text-base-50';
 				state.id = menu.id;
+				// Kept inside the editor, so a dialog around it still counts clicks on it as its own.
+				menu.popover = 'manual';
 				host().append(menu);
+				menu.showPopover();
 				options = mount(MentionOptions, { target: menu, props: { state } });
+				addEventListener('scroll', draw, true);
+				addEventListener('resize', draw);
 				draw();
 			},
 			onUpdate: (props: typeof current) => {

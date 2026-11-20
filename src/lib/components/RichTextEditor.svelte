@@ -386,6 +386,8 @@
 	});
 </script>
 
+<!-- Pointer-only: the editor inside is what keyboards reach. -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	bind:this={host}
 	class={cn(
@@ -393,6 +395,13 @@
 		className
 	)}
 	data-slot="rich-text-editor"
+	onmousedown={(event) => {
+		// Room the class gives beyond the text still places the cursor, at the end.
+		if (event.button !== 0 || (event.target !== host && event.target !== element)) return;
+		if (!editor?.isEditable) return;
+		event.preventDefault();
+		editor.commands.focus('end');
+	}}
 >
 	<div bind:this={element}></div>
 	{#if menuTools && editor && host}
