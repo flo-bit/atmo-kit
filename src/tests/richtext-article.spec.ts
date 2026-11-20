@@ -82,6 +82,35 @@ describe('article Markdown', () => {
 		expect(parseMarkdown(source).children[0].type).toBe('paragraph');
 	});
 
+	it('shows tables beyond the cell budget as their source', () => {
+		// A few bytes per row under a wide header: far more cells than characters.
+		const wide = (columns: number, rows: number) =>
+			`${'|'.repeat(columns + 1)}\n${'|-'.repeat(columns)}|\n${'|\n'.repeat(rows)}`;
+		const cells = (doc: RichTextDocument) =>
+			doc.children.reduce(
+				(sum, block) =>
+					sum +
+					(block.type === 'table' ? block.rows.reduce((count, row) => count + row.length, 0) : 0),
+				0
+			);
+		const huge = wide(300, 300);
+		expect(huge.length).toBeLessThan(2000);
+		const doc = parseMarkdown(huge, article);
+		expect(doc.markdown).toBe(true);
+		expect(cells(doc)).toBe(0);
+		expect(doc.children[0].type).toBe('paragraph');
+		expect(richTextToPlainText(doc)).toContain('|-|-');
+		// The budget is the document's: many tables share it, and those within it stay tables.
+		const many = parseMarkdown(
+			Array.from({ length: 30 }, () => wide(50, 30)).join('\n\n'),
+			article
+		);
+		expect(cells(many)).toBeGreaterThan(0);
+		expect(cells(many)).toBeLessThanOrEqual(20_000);
+		expect(many.children.some((block) => block.type === 'paragraph')).toBe(true);
+		expect(parseMarkdown(wide(100, 100), article).children[0].type).toBe('table');
+	});
+
 	it('keeps pipes and backslashes in table cells', () => {
 		const table = (cell: RichTextInline[]): RichTextDocument => ({
 			version: 1,

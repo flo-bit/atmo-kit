@@ -6,9 +6,15 @@ import {
 	type PostData
 } from '../social/posts.js';
 import { blueskyProfileToProfileData, type ProfileData } from '../social/profile.js';
-import { paragraphParts, MAX_RENDER_DEPTH, type RichTextDocument } from '../richtext/document.js';
-import { resolveLinkEmbed } from './resolve.js';
-import type { LinkEmbed, LinkEmbedLoadOptions, LinkEmbedProps } from './types.js';
+import {
+	paragraphParts,
+	plainTextParts,
+	MAX_RENDER_DEPTH,
+	type ParagraphPart,
+	type RichTextDocument
+} from '../richtext/document.js';
+import { isClickToLoad, resolveLinkEmbed } from './resolve.js';
+import type { LinkEmbed, LinkEmbedLoadOptions, LinkEmbedOptions, LinkEmbedProps } from './types.js';
 import type { Component } from 'svelte';
 
 /** Without the viewer's moderation preferences, labeled posts stay plain links. */
@@ -85,19 +91,19 @@ export function linkEmbedUrls(
 ): string[] {
 	const urls = new Set<string>();
 	const isEmbed = (url: string) => !!resolveLinkEmbed(url, embeds);
+	const add = (parts: readonly ParagraphPart[]) => {
+		for (const part of parts) if (part.embed) urls.add(part.embed);
+	};
 	const walk = (value: unknown, depth: number) => {
 		if (depth > MAX_RENDER_DEPTH || value === null || typeof value !== 'object') return;
 		if (Array.isArray(value)) return value.forEach((item) => walk(item, depth + 1));
 		const node = value as Record<string, unknown>;
-		if (node.type === 'paragraph') {
-			for (const part of paragraphParts(node.children, isEmbed))
-				if (part.embed) urls.add(part.embed);
-			return;
-		}
+		if (node.type === 'paragraph') return add(paragraphParts(node.children, isEmbed));
 		walk(node.children, depth + 1);
 		walk(node.items, depth + 1);
 	};
 	if (document?.markdown) walk(document.children, 0);
+	else add(plainTextParts(document, isEmbed));
 	return [...urls];
 }
 
@@ -105,6 +111,9 @@ export function linkEmbedUrls(
  * Load, on the server, what the embeds of a document show, to pass to `RichText` as
  * `embedData`: the embeds are then part of the page instead of appearing after it and moving
  * the text below. An embed that cannot say in time is left out, and loads in the browser.
+ *
+ * Nothing is loaded for an embed that waits for a click: one with `requests: 'click'`, or any
+ * the app puts behind a load button. Pass the same `clickToLoad` as to `setLinkEmbeds`.
  */
 export async function loadLinkEmbedData(
 	document: RichTextDocument | null | undefined,
@@ -116,9 +125,22 @@ export async function loadLinkEmbedData(
 		timeout?: number;
 		/** Embeds beyond this many load in the browser. Defaults to 20. */
 		limit?: number;
+		/** The app's setting: embeds behind a load button are loaded by that button. */
+		clickToLoad?: LinkEmbedOptions['clickToLoad'];
 	} = {}
 ): Promise<LinkEmbedData> {
 	const data: LinkEmbedData = {};
+	const wanted = linkEmbedUrls(document, embeds).flatMap((url) => {
+		const match = resolveLinkEmbed(url, embeds);
+		const load = match?.embed.data;
+		return match &&
+			load &&
+			match.embed.requests !== 'click' &&
+			!isClickToLoad(match.embed, options.clickToLoad)
+			? [{ url, load, ref: match.ref as unknown }]
+			: [];
+	});
+	if (!wanted.length) return data;
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), options.timeout ?? 2500);
 	const expired = new Promise<void>((resolve) =>
@@ -128,21 +150,14 @@ export async function loadLinkEmbedData(
 		await Promise.race([
 			expired,
 			Promise.all(
-				linkEmbedUrls(document, embeds)
-					.slice(0, options.limit ?? 20)
-					.map(async (url) => {
-						const match = resolveLinkEmbed(url, embeds);
-						if (!match?.embed.data) return;
-						try {
-							const loaded = await match.embed.data(match.ref, {
-								fetch: options.fetch,
-								signal: controller.signal
-							});
-							if (!controller.signal.aborted) data[url] = loaded ?? null;
-						} catch {
-							// Left to the browser.
-						}
-					})
+				wanted.slice(0, options.limit ?? 20).map(async ({ url, load, ref }) => {
+					try {
+						const loaded = await load(ref, { fetch: options.fetch, signal: controller.signal });
+						if (!controller.signal.aborted) data[url] = loaded ?? null;
+					} catch {
+						// Left to the browser.
+					}
+				})
 			)
 		]);
 	} finally {

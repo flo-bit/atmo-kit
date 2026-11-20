@@ -352,7 +352,8 @@ export function publicationRecord(input: {
  * kept (tags, the Bluesky announcement, …), as is its publication date.
  *
  * Every uploaded image the text shows (`cid:` destinations) must be among `blobs` or the
- * images of `existing`: the record keeps them alive.
+ * images of `existing`: the record keeps them alive. Each must be of one of
+ * `ARTICLE_IMAGE_TYPES` and at most `ARTICLE_LIMITS.imageBytes`.
  */
 export function articleRecord(input: {
 	did: string;
@@ -400,6 +401,9 @@ export function articleRecord(input: {
 		if (!cid) continue;
 		const image = known.get(cid);
 		if (!image) throw new ArticleError('An image is missing. Add it again and retry.');
+		if (!ARTICLE_IMAGE_TYPES.includes(image.mimeType))
+			throw new ArticleError('An image is of a type that cannot be used.');
+		if (image.size > ARTICLE_LIMITS.imageBytes) throw new ArticleError('An image is too large.');
 		images.set(cid, image);
 	}
 	if (images.size > ARTICLE_LIMITS.images) throw new ArticleError('Too many images.');

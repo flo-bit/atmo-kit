@@ -222,6 +222,34 @@ describe('articleRecord', () => {
 		fails({ cover: { ...image, mimeType: 'image/svg+xml' } }, /cover/);
 		fails({ cover: { ...image, size: 1_000_001 } }, /cover/);
 	});
+
+	it('refuses images in the text beyond the limits, new or already stored', () => {
+		const text = `![a](cid:${cid})`;
+		const large = { ...image, size: 2_000_001 };
+		const pdf = { ...image, mimeType: 'application/pdf' };
+		expect(() => articleRecord({ ...input, text, blobs: [large] })).toThrow(/too large/);
+		expect(() => articleRecord({ ...input, text, blobs: [pdf] })).toThrow(/type/);
+		const existing = { ...document, content: { ...document.content, images: [large] } };
+		expect(() => articleRecord({ ...input, text, existing })).toThrow(ArticleError);
+		// At the limit, and not shown by the text: fine.
+		expect(() =>
+			articleRecord({ ...input, text, blobs: [{ ...image, size: 2_000_000 }] })
+		).not.toThrow();
+		expect(() => articleRecord({ ...input, blobs: [large, pdf] })).not.toThrow();
+	});
+
+	it('keeps the images of footnotes, quotes and lists when publishing and editing', () => {
+		const other = 'bafkreibme22gw2h7y2h7tg2fhqotaqjucnbc24deqo72b6mkl2egezxhvy';
+		const second = { ...image, ref: { $link: other } };
+		const text = `A[^1]\n\n> ![q](cid:${other})\n\n[^1]: Note\n\n    ![n](cid:${cid})`;
+		const record = articleRecord({ ...input, text, blobs: [image, second] });
+		expect((record.content as { images: unknown[] }).images).toEqual([second, image]);
+		// Editing without uploading again keeps them.
+		const edited = articleRecord({ ...input, text: `${text}\n\nMore.`, existing: record });
+		expect((edited.content as { images: unknown[] }).images).toEqual([second, image]);
+		// A footnote image that was never uploaded is missed, not dropped silently.
+		expect(() => articleRecord({ ...input, text })).toThrow(/image is missing/);
+	});
 });
 
 describe('publicationRecord', () => {

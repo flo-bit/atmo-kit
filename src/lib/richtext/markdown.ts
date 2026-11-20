@@ -37,6 +37,10 @@ const MAX_LIST_INDENT = 32;
 // Articles are written by their author and are much longer than descriptions.
 const MAX_ARTICLE_LENGTH = 200_000;
 const MAX_ARTICLE_DELIMITERS = 20_000;
+// Every row of a table gets a cell per column, so a few short lines under a wide header stand
+// for far more cells than they have characters. Tables beyond this many cells in one document
+// are shown as their source.
+const MAX_TABLE_CELLS = 20_000;
 
 export type MarkdownOptions = PlainTextOptions & {
 	/**
@@ -86,6 +90,8 @@ type Context = {
 	definitions: Map<string, Definition>;
 	article: boolean;
 	allowImage?: (url: string) => boolean;
+	/** Table cells still to give out; see `MAX_TABLE_CELLS`. */
+	cells: number;
 };
 
 type ImageBlock = Extract<RichTextBlock, { type: 'image' }>;
@@ -405,6 +411,14 @@ function blocks(nodes: RootContent[], context: Context, depth: number): RichText
 				break;
 			case 'table': {
 				const width = Math.max(1, ...node.children.map((row) => row.children.length));
+				context.cells -= width * node.children.length;
+				if (context.cells < 0) {
+					result.push({
+						type: 'paragraph',
+						children: withBreaks([{ type: 'text', value: literal(node, context) }])
+					});
+					break;
+				}
 				result.push({
 					type: 'table',
 					align: Array.from(
@@ -497,7 +511,8 @@ export function parseMarkdown(text: string, options: MarkdownOptions = {}): Rich
 		detect: !hasFacets(options.facets) && !!options.detectLinks,
 		definitions,
 		article,
-		allowImage: options.allowImage
+		allowImage: options.allowImage,
+		cells: MAX_TABLE_CELLS
 	};
 	return { version: 1, markdown: true, children: blocks(tree.children, context, 0) };
 }

@@ -3,7 +3,7 @@ import { render } from 'svelte/server';
 import { chromium } from 'playwright';
 import RichText from '../lib/components/RichText.svelte';
 import { descriptionAttacks } from './richtext-security-fixtures.js';
-import { parseRichText, type RichTextDocument } from '../lib/richtext.js';
+import { parsePlainText, parseRichText, type RichTextDocument } from '../lib/richtext.js';
 import { linkEmbedUrls, loadLinkEmbedData, preloadLinkEmbeds } from '../lib/embeds/load.js';
 import type { LinkEmbed } from '../lib/embeds/types.js';
 
@@ -55,6 +55,38 @@ describe('rich text SSR', () => {
 		expect(await loadLinkEmbedData(content, [slow], { timeout: 50 })).toEqual({
 			'https://things.example/t/gone': null
 		});
+	});
+
+	it('loads nothing ahead for embeds that wait for a click', async () => {
+		const calls: string[] = [];
+		const counted = (requests?: 'click'): LinkEmbed<{ id: string }, { title: string }> => ({
+			...embed,
+			requests,
+			data: async (ref) => (calls.push(ref.id), { title: 'A thing' })
+		});
+		const content = parseRichText(post, { markdown: true, detectLinks: true });
+		expect(await loadLinkEmbedData(content, [counted('click')])).toEqual({});
+		expect(await loadLinkEmbedData(content, [counted()], { clickToLoad: true })).toEqual({});
+		expect(
+			await loadLinkEmbedData(content, [counted()], { clickToLoad: (item) => item.id === 'thing' })
+		).toEqual({});
+		expect(calls).toEqual([]);
+		expect(
+			await loadLinkEmbedData(content, [counted()], { clickToLoad: (item) => item.id === 'other' })
+		).toEqual({ [post]: { title: 'A thing' } });
+		expect(calls).toEqual(['abc']);
+	});
+
+	it('loads the embeds of plain text ahead, as it shows them', async () => {
+		const content = parsePlainText(`Before\n${post}\nAfter ${post}/inline`, { detectLinks: true });
+		expect(content.markdown).toBe(false);
+		expect(linkEmbedUrls(content, [embed])).toEqual([post]);
+		const embedData = await loadLinkEmbedData(content, [embed]);
+		expect(embedData).toEqual({ [post]: { title: 'A thing' } });
+		await preloadLinkEmbeds(content, [embed]);
+		const { body } = render(RichText, { props: { content, embeds: [embed], embedData } });
+		expect(body).toContain('abc: A thing');
+		expect(body).toContain('Before');
 	});
 
 	it('links footnotes and their references both ways', () => {

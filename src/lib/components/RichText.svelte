@@ -5,8 +5,8 @@
 		inlineHref,
 		isCallout,
 		inlineText,
-		lineBreaks,
 		paragraphParts,
+		plainTextParts,
 		trimBreaks,
 		MAX_RENDER_DEPTH,
 		type Footnotes,
@@ -107,11 +107,7 @@
 				: undefined
 	);
 	/** Plain text is one paragraph; with embeds it is split around the embedded lines. */
-	let plainParts = $derived(
-		isEmbed && !doc.markdown
-			? nodes(doc.children).flatMap((block) => paragraphParts(lineBreaks(block.children), isEmbed))
-			: []
-	);
+	let plainParts = $derived(isEmbed && !doc.markdown ? plainTextParts(doc, isEmbed) : []);
 
 	type Node = Record<string, unknown>;
 

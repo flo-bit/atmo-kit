@@ -11,13 +11,14 @@ export function parseArticleText(
 	return parseRichText(text, { markdown: true, article: true, detectLinks: true, allowImage });
 }
 
-/** Destinations of the images in a document, in order. */
+/** Destinations of the images in a document, in order, wherever a block can be. */
 export function imageUrls(document: RichTextDocument): string[] {
 	const urls: string[] = [];
 	const walk = (blocks: RichTextDocument['children']) => {
 		for (const block of blocks) {
 			if (block.type === 'image') urls.push(block.url);
-			else if (block.type === 'blockquote') walk(block.children);
+			else if (block.type === 'blockquote' || block.type === 'footnoteDefinition')
+				walk(block.children);
 			else if (block.type === 'list') block.items.forEach(walk);
 		}
 	};

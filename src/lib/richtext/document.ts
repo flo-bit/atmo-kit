@@ -184,6 +184,16 @@ export function paragraphParts(
 	return parts;
 }
 
+/** The parts of a plain-text document: its lines, with those shown as embeds on their own. */
+export function plainTextParts(
+	document: { children?: unknown } | null | undefined,
+	isEmbed?: (url: string) => boolean
+): ParagraphPart[] {
+	return nodes(document?.children).flatMap((block) =>
+		paragraphParts(lineBreaks(block.children), isEmbed)
+	);
+}
+
 /** Blank lines next to an embed are already expressed by the space around it. */
 export function trimBreaks(children: Record<string, unknown>[]): Record<string, unknown>[] {
 	let start = 0;
