@@ -1,5 +1,30 @@
 # @atmo-dev/kit
 
+## 0.19.0
+
+### Minor Changes
+
+- 8f37de6: Article Markdown for long-form writing: `parseRichText(text, { markdown: true, article: true })` wraps single newlines, keeps images, tables, footnotes, task lists and math and reads up to 200,000 characters; `RichText` renders them (`imageSrc` for app-owned image destinations, `codeBlock` and `math` snippets for app-owned highlighting and formulas); `RichTextEditor markdown="article"` edits them, with `images={{ upload, src }}` for pasted, dropped and picked files. Existing Markdown parsing and editing are unchanged.
+- 8f37de6: Article writing closer to a notes app. `RichTextEditor markdown="article" menus` (on in `ArticleEditor`) adds a slash menu of blocks and insertions, a formatting bar for selected text with a "turn into" list, a link field on `Mod-K` and for a link under the cursor, and on touch screens a toolbar above the keyboard. Article Markdown gains `==highlighted==` text and GitHub's five callouts (`> [!NOTE]`, …), parsed, written, edited and shown by `RichText`; `RichTextBlock`'s `blockquote` has an optional `callout` and `RichTextInline` a `highlight`. Code blocks in the article editor have a language field. In `ArticleEditor`, the arrow keys move between title, description and text.
+
+  Link embeds can be part of the page instead of appearing after it: an embed's optional `data` loads what it shows, `loadLinkEmbedData(document, embeds, { fetch })` runs those on the server, `preloadLinkEmbeds` loads the components before the page is drawn, and `RichText`/`ArticleView` take the result as `embedData`. `EventView` takes `embedData` too. Post, profile, article and event embeds support it. Footnotes get a link back to where they are referenced. `ArticleView` shows `content` when both it and `children` are given.
+
+  Profile embeds and profile links follow the label rule posts already have: labels an account gives itself that are not about moderation, such as `bot`, no longer hide them.
+
+  Publications can choose their colors: `publicationRecord` takes a `theme` of two palettes and writes it as `preferences.accentColor`/`baseColor` and as standard.site's `basicTheme`, `parsePublication` reads it back. New `PalettePicker` chooses an accent and a base color, `PaletteApply` gives the document a palette while mounted, and `baseColorRgb`/`accentColorRgb` have the palettes as RGB.
+
+- 8f37de6: New `@atmo-dev/kit/articles` (and `@atmo-dev/kit/articles-data` without UI) for long-form writing on standard.site records: `ArticleView`, `ArticleEditor`, `ArticleCard`, `ArticleCodeBlock`, `PublicationIcon`, `articleLinkEmbed` for article cards, parsers and builders for publication and document records, and the article typography.
+
+  `PostComments` loads the replies to a post and shows them as comments, with `oncomment` to write one in the app; `EventComments` now uses it. `PostComposer` takes `link`, a card for the first post that needs no lookup and can be posted without text, and `notice`, an optional line saying where the post goes; it no longer asks before discarding content it opened with. `IconMaker` makes a square icon from a color and a drawing.
+
+  Article images, covers and publication icons are PNG, JPEG, WebP or AVIF. GIFs are not accepted for now: `prepareArticleImage` says so, and the record builders refuse them.
+
+### Patch Changes
+
+- 8f37de6: `hasModerationLabel` no longer counts labels an account applies to itself that are not about moderation, such as `bot`. Post embeds and event comments by such accounts are shown again. Labels from moderation services, self-applied system labels (`!no-unauthenticated`, …) and content warnings still keep content out.
+
+  YouTube link embeds show the video's thumbnail behind the play button, unless the app set `clickToLoad`. `ExternalEmbed` takes `providerPoster` for the same in other places; posts keep using only their own thumbnail.
+
 ## 0.18.1
 
 ### Patch Changes
