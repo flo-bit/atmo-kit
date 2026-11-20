@@ -155,6 +155,32 @@ describe('PostComposer', () => {
 		await expect.poll(() => (drafts.delete as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
 	});
 
+	it('keeps a link card after its URL is deleted, until it is removed', async () => {
+		const onsubmit = vi.fn(async (content: ComposerContent) => void content);
+		const linkPreview = vi.fn(async (uri: string) => ({ uri, title: 'Example', description: '' }));
+		render(PostComposer, { onsubmit, linkPreview });
+		const remove = page.getByRole('button', { name: 'Remove link preview' });
+		await editor().fill('https://example.com');
+		await expect.element(remove).toBeVisible();
+		await editor().fill('https://example.c');
+		await editor().fill('');
+		await new Promise((resolve) => setTimeout(resolve, 700));
+		await expect.element(remove).toBeVisible();
+		expect(linkPreview).toHaveBeenCalledTimes(1);
+		await page.getByRole('button', { name: 'Post', exact: true }).click();
+		await expect.poll(() => onsubmit.mock.calls.length).toBe(1);
+		expect(onsubmit.mock.calls[0][0].posts[0]).toMatchObject({
+			text: '',
+			link: { uri: 'https://example.com' }
+		});
+
+		await editor().fill('https://example.com');
+		await expect.element(remove).toBeVisible();
+		await remove.click();
+		await expect.element(remove).not.toBeInTheDocument();
+		await expect.element(page.getByRole('button', { name: 'Post', exact: true })).toBeEnabled();
+	});
+
 	it('replies without reply rules or drafts', async () => {
 		render(PostComposer, {
 			onsubmit: async () => {},

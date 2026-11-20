@@ -164,8 +164,8 @@
 	const lengthOf = (post: Post) => graphemeLength(post.text.trim());
 	const hasMedia = (post: Post) => post.images.length > 0 || !!post.video || !!post.gif;
 	const isEmpty = (post: Post, index: number) =>
-		!lengthOf(post) && !hasMedia(post) && !(index === 0 && quote);
-	let dirty = $derived(posts.some((post, index) => !isEmpty(post, index) || !!post.link));
+		!lengthOf(post) && !hasMedia(post) && !post.link && !(index === 0 && quote);
+	let dirty = $derived(posts.some((post, index) => !isEmpty(post, index)));
 	let missingAlt = $derived(
 		requireAlt && posts.some((p) => p.images.some((image) => !image.alt.trim()))
 	);
