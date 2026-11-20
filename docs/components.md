@@ -13,20 +13,22 @@ Typed props live alongside each component in
 
 Local examples: `/`.
 
-| Component    | Purpose                                            |
-| ------------ | -------------------------------------------------- |
-| `Button`     | Actions and links, variants, sizes, loading states |
-| `IconButton` | Icon-only actions with accessible labels           |
-| `Icon`       | Sketchyicons rendering and sizing                  |
-| `Heading`    | Section and page headings                          |
-| `Subheading` | Compact section headings                           |
-| `Surface`    | Recessed containers                                |
-| `Badge`      | Labels and statuses                                |
-| `Avatar`     | Profile images with generated fallbacks            |
-| `InsetImage` | Framed images                                      |
-| `Modal`      | Portaled dialogs with focus management             |
-| `IconMaker`  | A dialog that makes a square icon                  |
-| `Tabs`       | Keyboard-accessible tabs and panels                |
+| Component       | Purpose                                            |
+| --------------- | -------------------------------------------------- |
+| `Button`        | Actions and links, variants, sizes, loading states |
+| `IconButton`    | Icon-only actions with accessible labels           |
+| `Icon`          | Sketchyicons rendering and sizing                  |
+| `Heading`       | Section and page headings                          |
+| `Subheading`    | Compact section headings                           |
+| `Surface`       | Recessed containers                                |
+| `Badge`         | Labels and statuses                                |
+| `Avatar`        | Profile images with generated fallbacks            |
+| `InsetImage`    | Framed images                                      |
+| `Modal`         | Portaled dialogs with focus management             |
+| `IconMaker`     | A dialog that makes a square icon                  |
+| `PalettePicker` | Choosing an accent and a base color                |
+| `PaletteApply`  | Gives the document a chosen palette                |
+| `Tabs`          | Keyboard-accessible tabs and panels                |
 
 ## Forms and editing
 

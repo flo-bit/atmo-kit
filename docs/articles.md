@@ -40,6 +40,17 @@ to `https://atmo.blog`: a publication is "made here" when its `url` is
 `publicationUrl`, `articleUrl`, `publicationPath`, `articlePath`, `publicationUri` and
 `documentUri` build those addresses, `parseArticleLink(url, origins?)` reads one.
 
+A publication can choose its colors: `publicationRecord({ …, theme: { accent, base } })` takes two
+of the kit's palettes (`accentColors`, `baseColors`), `parsePublication` returns them as `theme`.
+They are stored as `preferences.accentColor` and `preferences.baseColor`, and as standard.site's
+`basicTheme` (`basicTheme(palette)`: the same colors as RGB) for sites that do not know the
+palettes. `PalettePicker` chooses them and `PaletteApply` gives a page to them:
+
+```svelte
+<PalettePicker bind:accent bind:base />
+<PaletteApply accent={publication.theme?.accent} base={publication.theme?.base} />
+```
+
 The builders validate and throw an `ArticleError` whose message can be shown. Both keep the
 fields of `existing` they do not know, so editing does not drop what other apps wrote:
 

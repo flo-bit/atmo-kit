@@ -39,6 +39,8 @@ export const catalog: CatalogGroup[] = [
 			component('InsetImage', 'Framed images with shared corner styling.'),
 			component('Modal', 'Portaled dialogs with focus management.'),
 			component('IconMaker', 'A dialog that makes a square icon from a color and a drawing.'),
+			component('PalettePicker', 'Choosing an accent and a base color.'),
+			component('PaletteApply', 'Gives the document a chosen palette while mounted.'),
 			component('Tabs', 'Keyboard-accessible tabs and panels.')
 		]
 	},

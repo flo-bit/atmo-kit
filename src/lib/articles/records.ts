@@ -2,6 +2,13 @@
  * standard.site publications and documents, with Markdown as the document content. Pure
  * helpers: reading records defensively, and building the records an app writes.
  */
+import {
+	accentColorRgb,
+	baseColorRgb,
+	isAccentColor,
+	isBaseColor,
+	type Palette
+} from '../palettes.js';
 import { autoDescription, imageUrls, parseArticleText, plainText } from './markdown.js';
 
 export const PUBLICATION_COLLECTION = 'site.standard.publication';
@@ -51,6 +58,8 @@ export type Publication = {
 	icon?: string;
 	/** Its own site, when it was made elsewhere. Such a publication is shown but not edited. */
 	url?: string;
+	/** The colors it chose, as two of the kit's palettes. */
+	theme?: Palette;
 };
 
 export type ArticleSummary = {
@@ -179,11 +188,40 @@ export function parsePublication(
 	if (!record || !name || !RKEY.test(rkey) || record.url !== publicationUrl(did, rkey, origin))
 		return null;
 	const description = text(record.description);
+	const theme = paletteOf(record.preferences);
 	return {
 		rkey,
 		name,
 		...(description ? { description } : {}),
-		...(isImageBlob(record.icon) ? { icon: record.icon.ref.$link } : {})
+		...(isImageBlob(record.icon) ? { icon: record.icon.ref.$link } : {}),
+		...(theme ? { theme } : {})
+	};
+}
+
+/** The palettes a publication names in its preferences, when both are the kit's. */
+function paletteOf(preferences: unknown): Palette | undefined {
+	const { accentColor: accent, baseColor: base } = object(preferences) ?? {};
+	return isAccentColor(accent) && isBaseColor(base) ? { accent, base } : undefined;
+}
+
+const rgb = ([r, g, b]: readonly [number, number, number]) => ({
+	$type: 'site.standard.theme.color#rgb',
+	r,
+	g,
+	b
+});
+
+/**
+ * A palette as standard.site's basic theme, for sites and readers that do not know the kit's
+ * palettes: the page and text of the base, links and buttons in the accent, white on those.
+ */
+export function basicTheme(palette: Palette): Record<string, unknown> {
+	return {
+		$type: 'site.standard.theme.basic',
+		background: rgb(baseColorRgb[palette.base].background),
+		foreground: rgb(baseColorRgb[palette.base].foreground),
+		accent: rgb(accentColorRgb[palette.accent]),
+		accentForeground: rgb([255, 255, 255])
 	};
 }
 
@@ -321,6 +359,8 @@ const line = (value: string) => value.replace(/\s+/g, ' ').trim();
 /**
  * The publication record to write. Fields of `existing` this does not know are kept.
  * `icon`: a newly uploaded one, `null` to remove it; otherwise it stays.
+ * `theme`: the colors, written as their names in `preferences` (`accentColor`, `baseColor`) and
+ * as `basicTheme` for everyone else; `null` to remove them; otherwise they stay.
  */
 export function publicationRecord(input: {
 	did: string;
@@ -328,6 +368,7 @@ export function publicationRecord(input: {
 	name: string;
 	description?: string;
 	icon?: ArticleBlobRef | null;
+	theme?: Palette | null;
 	/** The record being edited. */
 	existing?: unknown;
 	origin?: string;
@@ -339,9 +380,23 @@ export function publicationRecord(input: {
 	if (description.length > ARTICLE_LIMITS.description)
 		throw new ArticleError('This description is too long.');
 	if (input.icon && !isImageBlob(input.icon)) throw new ArticleError('This icon cannot be used.');
+	const theme = input.theme;
+	if (theme && !(isAccentColor(theme.accent) && isBaseColor(theme.base)))
+		throw new ArticleError('These colors cannot be used.');
 	const { icon, ...rest } = object(input.existing) ?? {};
 	delete rest.description;
 	const nextIcon = input.icon === undefined ? icon : input.icon;
+	if (theme !== undefined) {
+		// Other preferences are the publication's, or another app's, to keep.
+		const preferences = { ...object(rest.preferences) };
+		delete preferences.accentColor;
+		delete preferences.baseColor;
+		if (theme) Object.assign(preferences, { accentColor: theme.accent, baseColor: theme.base });
+		if (Object.keys(preferences).length) rest.preferences = preferences;
+		else delete rest.preferences;
+		if (theme) rest.basicTheme = basicTheme(theme);
+		else delete rest.basicTheme;
+	}
 	return {
 		...rest,
 		...(nextIcon ? { icon: nextIcon } : {}),

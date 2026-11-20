@@ -218,4 +218,14 @@ export type { Facet, RichTextOptions, RichTextSegment } from './social/richtext.
 export type { Editor, JSONContent } from '@tiptap/core';
 export { launchConfetti } from './confetti.js';
 export { cn } from './utils.js';
-export { baseColors, accentColors } from './palettes.js';
+export {
+	baseColors,
+	accentColors,
+	baseColorRgb,
+	accentColorRgb,
+	isBaseColor,
+	isAccentColor
+} from './palettes.js';
+export type { BaseColor, AccentColor, Palette } from './palettes.js';
+export { default as PalettePicker } from './components/PalettePicker.svelte';
+export { default as PaletteApply } from './components/PaletteApply.svelte';

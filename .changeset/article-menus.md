@@ -7,3 +7,5 @@ Article writing closer to a notes app. `RichTextEditor markdown="article" menus`
 Link embeds can be part of the page instead of appearing after it: an embed's optional `data` loads what it shows, `loadLinkEmbedData(document, embeds, { fetch })` runs those on the server, `preloadLinkEmbeds` loads the components before the page is drawn, and `RichText`/`ArticleView` take the result as `embedData`. `EventView` takes `embedData` too. Post, profile, article and event embeds support it. Footnotes get a link back to where they are referenced. `ArticleView` shows `content` when both it and `children` are given.
 
 Profile embeds and profile links follow the label rule posts already have: labels an account gives itself that are not about moderation, such as `bot`, no longer hide them.
+
+Publications can choose their colors: `publicationRecord` takes a `theme` of two palettes and writes it as `preferences.accentColor`/`baseColor` and as standard.site's `basicTheme`, `parsePublication` reads it back. New `PalettePicker` chooses an accent and a base color, `PaletteApply` gives the document a palette while mounted, and `baseColorRgb`/`accentColorRgb` have the palettes as RGB.

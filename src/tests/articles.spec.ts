@@ -302,6 +302,59 @@ describe('publicationRecord', () => {
 		);
 		expect(() => publicationRecord({ did, rkey: '3kpub', name: ' ' })).toThrow(ArticleError);
 	});
+
+	it('writes chosen colors by name and as a basic theme, and reads them back', () => {
+		const base = { did, rkey: '3kpub', name: 'Notes' };
+		const made = publicationRecord({ ...base, theme: { accent: 'teal', base: 'stone' } });
+		expect(made.preferences).toEqual({ accentColor: 'teal', baseColor: 'stone' });
+		expect(made.basicTheme).toEqual({
+			$type: 'site.standard.theme.basic',
+			background: { $type: 'site.standard.theme.color#rgb', r: 250, g: 250, b: 249 },
+			foreground: { $type: 'site.standard.theme.color#rgb', r: 12, g: 10, b: 9 },
+			accent: { $type: 'site.standard.theme.color#rgb', r: 0, g: 120, b: 111 },
+			accentForeground: { $type: 'site.standard.theme.color#rgb', r: 255, g: 255, b: 255 }
+		});
+		expect(parsePublication(did, '3kpub', made)?.theme).toEqual({ accent: 'teal', base: 'stone' });
+		// Left out: they stay, with the other preferences.
+		const existing = {
+			...made,
+			preferences: { ...(made.preferences as object), showInDiscover: false }
+		};
+		const kept = publicationRecord({ ...base, existing });
+		expect(kept.preferences).toEqual({
+			accentColor: 'teal',
+			baseColor: 'stone',
+			showInDiscover: false
+		});
+		expect(kept.basicTheme).toEqual(made.basicTheme);
+		// Changed, and removed: other preferences stay.
+		const changed = publicationRecord({
+			...base,
+			existing,
+			theme: { accent: 'rose', base: 'zinc' }
+		});
+		expect(changed.preferences).toEqual({
+			accentColor: 'rose',
+			baseColor: 'zinc',
+			showInDiscover: false
+		});
+		const removed = publicationRecord({ ...base, existing, theme: null });
+		expect(removed.preferences).toEqual({ showInDiscover: false });
+		expect(removed).not.toHaveProperty('basicTheme');
+		expect(publicationRecord({ ...base, existing: made, theme: null })).not.toHaveProperty(
+			'preferences'
+		);
+		// Only the kit's palettes, from records as from input.
+		expect(() =>
+			publicationRecord({ ...base, theme: { accent: 'chartreuse', base: 'zinc' } as never })
+		).toThrow(ArticleError);
+		expect(
+			parsePublication(did, '3kpub', {
+				...publication,
+				preferences: { accentColor: '"><script>', baseColor: 'zinc' }
+			})
+		).not.toHaveProperty('theme');
+	});
 });
 
 describe('article links', () => {

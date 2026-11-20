@@ -14,3 +14,12 @@ export { readPastedArticle, type PastedArticle } from './articles/paste.js';
 export { prepareArticleImage } from './articles/images.js';
 export { formatArticleDate } from './articles/dates.js';
 export { articleClass, articleEditorClass } from './articles/styles.js';
+export {
+	accentColors,
+	baseColors,
+	isAccentColor,
+	isBaseColor,
+	type AccentColor,
+	type BaseColor,
+	type Palette
+} from './palettes.js';

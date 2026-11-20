@@ -18,6 +18,8 @@ export const demoGroups: DemoGroup[] = [
 			'InsetImage',
 			'Modal',
 			'IconMaker',
+			'PalettePicker',
+			'PaletteApply',
 			'Tabs'
 		],
 		load: () => import('./Foundation.svelte')
