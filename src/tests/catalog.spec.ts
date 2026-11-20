@@ -9,7 +9,8 @@ const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
 it('lists every public Svelte component exactly once with its real source and entry point', () => {
 	const entries = [
 		['@atmo-dev/kit', 'src/lib/index.ts'],
-		['@atmo-dev/kit/events', 'src/lib/events.ts']
+		['@atmo-dev/kit/events', 'src/lib/events.ts'],
+		['@atmo-dev/kit/articles', 'src/lib/articles.ts']
 	] as const;
 	const actual = catalog.flatMap((group) =>
 		group.components.map((item) => ({ ...item, entry: group.entry }))

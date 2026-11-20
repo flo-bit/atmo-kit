@@ -2,41 +2,36 @@
 	import type { Snippet } from 'svelte';
 	import Avatar from '../components/Avatar.svelte';
 	import Surface from '../components/Surface.svelte';
-	import { blueskyProfileToProfileData, type ProfileData } from '../social/profile.js';
+	import type { ProfileData } from '../social/profile.js';
 	import type { PreferredSocialClient } from '../social/preferred-client.js';
 	import { parseSocialProfileUrl, socialProfileUrl } from '../social/urls.js';
 	import { focus } from '../styles.js';
-	import { appviewUrl } from '../events/atproto-helpers.js';
+	import { loadProfileEmbed } from './load.js';
 
 	let {
 		url,
+		data,
 		fallback,
 		socialClient
 	}: {
 		url: string;
+		/** The profile, when it was loaded ahead; `null` when there is none to show. */
+		data?: ProfileData | null;
 		/** The ordinary link, shown until the profile loads and whenever it can't be shown. */
 		fallback: Snippet;
 		socialClient?: PreferredSocialClient | null;
 	} = $props();
 
-	let profile = $state<ProfileData | null>(null);
+	let found = $state<{ url: string; profile: ProfileData | null }>();
+	let profile = $derived(data !== undefined ? data : found?.url === url ? found.profile : null);
 	$effect(() => {
-		const ref = parseSocialProfileUrl(url);
-		profile = null;
+		const ref = data === undefined ? parseSocialProfileUrl(url) : null;
 		if (!ref) return;
+		const link = url;
 		const controller = new AbortController();
-		fetch(`${appviewUrl()}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(ref.actor)}`, {
-			signal: controller.signal
-		})
-			.then((response) => (response.ok ? response.json() : null))
-			.then((view: { labels?: { neg?: boolean }[] } | null) => {
-				// Profiles with a moderation label, or hidden from logged-out viewers, stay plain links.
-				if (
-					controller.signal.aborted ||
-					(Array.isArray(view?.labels) && view.labels.some((label) => !label?.neg))
-				)
-					return;
-				profile = blueskyProfileToProfileData(view) ?? null;
+		loadProfileEmbed(ref, { signal: controller.signal })
+			.then((loaded) => {
+				if (!controller.signal.aborted) found = { url: link, profile: loaded };
 			})
 			.catch(() => {});
 		return () => controller.abort();

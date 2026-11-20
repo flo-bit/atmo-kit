@@ -3,6 +3,7 @@
 	import {
 		collectFootnotes,
 		inlineHref,
+		isCallout,
 		inlineText,
 		lineBreaks,
 		paragraphParts,
@@ -12,10 +13,19 @@
 		type RichTextDocument,
 		type RichTextLinkOptions
 	} from '../richtext/document.js';
+	import {
+		CALLOUT_ICONS,
+		CALLOUT_LABELS,
+		calloutClass,
+		calloutLabelClass,
+		highlightClass
+	} from '../richtext/article-styles.js';
 	import { parsePlainText } from '../richtext/plain.js';
 	import { linkEmbedOptions, selectLinkEmbeds } from '../embeds/context.js';
 	import { resolveLinkEmbed } from '../embeds/resolve.js';
 	import type { LinkEmbed as LinkEmbedDefinition } from '../embeds/types.js';
+	import { CornerDownLeft } from '@sketchyicons/svelte';
+	import Icon from './Icon.svelte';
 	import LinkEmbed from './LinkEmbed.svelte';
 	import { cn } from '../utils.js';
 	import { safeHttpUrl } from '../urls.js';
@@ -38,6 +48,11 @@
 		embeds?: boolean | readonly LinkEmbedDefinition[];
 		/** Custom matching instead of `embeds`; requires `linkEmbed`. */
 		embedLink?: (url: string) => boolean;
+		/**
+		 * What `loadLinkEmbedData` loaded for the embeds, usually on the server, so that they are
+		 * shown with the text instead of appearing after it.
+		 */
+		embedData?: Record<string, unknown>;
 		/** Renders such a link. The second argument renders the ordinary link, e.g. while loading. */
 		linkEmbed?: Snippet<[url: string, fallback: Snippet]>;
 		/**
@@ -65,6 +80,7 @@
 		headingOffset = 0,
 		embeds,
 		embedLink,
+		embedData,
 		linkEmbed,
 		imageSrc,
 		codeBlock,
@@ -75,7 +91,9 @@
 	const uid = $props.id();
 	let doc = $derived(content ?? parsePlainText(text, { facets, detectLinks }));
 	let footnotes = $derived<Footnotes>(
-		doc.markdown ? collectFootnotes(doc) : { order: [], definitions: new Map() }
+		doc.markdown
+			? collectFootnotes(doc)
+			: { order: [], definitions: new Map(), references: new Map() }
 	);
 	const noteNumber = (id: unknown) => footnotes.order.indexOf(string(id)) + 1;
 
@@ -154,6 +172,9 @@
 			>
 		{:else if node.type === 'emphasis'}<em>{@render inlines(node.children, inLink, depth + 1)}</em>
 		{:else if node.type === 'delete'}<del>{@render inlines(node.children, inLink, depth + 1)}</del>
+		{:else if node.type === 'highlight'}<mark class={highlightClass}
+				>{@render inlines(node.children, inLink, depth + 1)}</mark
+			>
 		{:else if node.type === 'code'}<code class={codeClass}>{string(node.value)}</code>
 		{:else if node.type === 'math'}{#if math}{@render math(string(node.value), false)}{:else}<code
 					class={codeClass}>{string(node.value)}</code
@@ -161,6 +182,10 @@
 		{:else if node.type === 'footnoteReference'}
 			{@const number = noteNumber(node.id)}
 			{#if number}<sup
+					id={footnotes.references.get(string(node.id)) === node
+						? `${uid}-ref-${number}`
+						: undefined}
+					class="scroll-mt-24"
 					><a href="#{uid}-note-{number}" aria-label="Footnote {number}" class={linkClass}
 						>{number}</a
 					></sup
@@ -190,7 +215,13 @@
 		<!-- Marked like the editor's embeds, so that text styles can leave embeds alone. -->
 		<div data-link-embed>
 			{#if linkEmbed && embedLink}{@render linkEmbed(url, paragraph)}
-			{:else}<LinkEmbed {url} embeds={embedList} fallback={paragraph} {socialClient} />{/if}
+			{:else}<LinkEmbed
+					{url}
+					data={embedData && Object.hasOwn(embedData, url) ? embedData[url] : undefined}
+					embeds={embedList}
+					fallback={paragraph}
+					{socialClient}
+				/>{/if}
 		</div>
 	{/if}
 {/snippet}
@@ -212,6 +243,13 @@
 						: 'text-base'} leading-snug font-semibold"
 				>{@render inlines(node.children, false, depth + 1)}</svelte:element
 			>
+		{:else if node.type === 'blockquote' && isCallout(node.callout)}
+			<div role="note" data-callout={node.callout} class={calloutClass(node.callout)}>
+				<p class={calloutLabelClass(node.callout)}>
+					<Icon img={CALLOUT_ICONS[node.callout]} size={16} />{CALLOUT_LABELS[node.callout]}
+				</p>
+				{@render blocks(node.children, depth + 1)}
+			</div>
 		{:else if node.type === 'blockquote'}<blockquote
 				class="space-y-3 border-l-2 border-base-300 pl-4 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))]"
 			>
@@ -317,8 +355,28 @@
 				class="list-decimal space-y-2 border-t border-base-300 pt-4 pl-6 text-[0.9em] text-base-700 dark:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] dark:text-base-300"
 			>
 				{#each footnotes.order as id, index (id)}
+					{@const note = nodes(footnotes.definitions.get(id)?.children)}
+					{@const last = note.at(-1)}
+					<!-- The way back sits at the end of the note's last line of text. -->
+					{@const inline =
+						last?.type === 'paragraph' &&
+						paragraphParts(last.children, isEmbed).every((part) => !part.embed)}
 					<li id="{uid}-note-{index + 1}" class="scroll-mt-6 space-y-3">
-						{@render blocks(footnotes.definitions.get(id)?.children, 1)}
+						{@render blocks(inline ? note.slice(0, -1) : note, 1)}
+						{#if footnotes.references.has(id)}
+							<p>
+								{#if inline}{@render inlines(last?.children, false, 2)}{/if}
+								<a
+									href="#{uid}-ref-{index + 1}"
+									aria-label="Back to the text"
+									title="Back to the text"
+									class="ml-0.5 inline-flex size-6 items-center justify-center rounded-md align-middle text-base-500 hover:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] hover:text-accent-700 dark:hover:bg-base-950 dark:hover:text-accent-300"
+									><Icon img={CornerDownLeft} size={14} /></a
+								>
+							</p>
+						{:else if inline}
+							<p>{@render inlines(last?.children, false, 2)}</p>
+						{/if}
 					</li>
 				{/each}
 			</ol>

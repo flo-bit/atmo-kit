@@ -9,17 +9,18 @@ import { gfmTaskListItem } from 'micromark-extension-gfm-task-list-item';
 import { gfmTaskListItemFromMarkdown } from 'mdast-util-gfm-task-list-item';
 import { math } from 'micromark-extension-math';
 import { mathFromMarkdown } from 'mdast-util-math';
+import { highlight, highlightFromMarkdown } from './markdown-highlight.js';
 
 /**
- * CommonMark plus ~~strikethrough~~ and, with `article`, tables, footnotes, task lists and
- * math, as an mdast tree with source positions.
+ * CommonMark plus ~~strikethrough~~ and, with `article`, tables, footnotes, task lists, math
+ * and ==highlights==, as an mdast tree with source positions.
  */
 export function markdownTree(text, options) {
 	const article = !!options?.article;
 	return fromMarkdown(text, {
 		extensions: [
 			gfmStrikethrough({ singleTilde: false }),
-			...(article ? [gfmTable(), gfmFootnote(), gfmTaskListItem(), math()] : [])
+			...(article ? [gfmTable(), gfmFootnote(), gfmTaskListItem(), math(), highlight()] : [])
 		],
 		mdastExtensions: [
 			gfmStrikethroughFromMarkdown(),
@@ -28,7 +29,8 @@ export function markdownTree(text, options) {
 						gfmTableFromMarkdown(),
 						gfmFootnoteFromMarkdown(),
 						gfmTaskListItemFromMarkdown(),
-						mathFromMarkdown()
+						mathFromMarkdown(),
+						highlightFromMarkdown()
 					]
 				: [])
 		]

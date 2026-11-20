@@ -1,4 +1,5 @@
 import type {
+	Blockquote,
 	Definition,
 	Image,
 	ImageReference,
@@ -12,9 +13,11 @@ import type {
 // every app (they import CommonJS), and this is the same production build everywhere.
 import { markdownTree } from './vendor/markdown-tree.js';
 import {
+	isCallout,
 	safeWebUrl,
 	type RichTextAlign,
 	type RichTextBlock,
+	type RichTextCallout,
 	type RichTextDocument,
 	type RichTextInline
 } from './document.js';
@@ -213,6 +216,18 @@ function phrases(
 			continue;
 		}
 		const extra = node as { type: string; value?: string; identifier?: string };
+		if (extra.type === 'highlight') {
+			result.push({
+				type: 'highlight',
+				children: inline(
+					(node as unknown as { children: PhrasingContent[] }).children,
+					context,
+					depth + 1,
+					inLink
+				)
+			});
+			continue;
+		}
 		if (extra.type === 'inlineMath') {
 			const raw = literal(node, context);
 			result.push(
@@ -318,6 +333,50 @@ function paragraph(nodes: PhrasingContent[], context: Context, depth: number): R
 	return result.length ? result : [{ type: 'paragraph', children: [] }];
 }
 
+const CALLOUT_MARK = /^\[!([A-Za-z]+)\][ \t]*(\n|$)/;
+
+/**
+ * A quote whose first line is `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`
+ * alone is a callout, as on GitHub. Returns its kind and the content without that line.
+ */
+function calloutOf(
+	node: Blockquote,
+	context: Context
+): { kind: RichTextCallout; children: RootContent[] } | undefined {
+	const [first, ...rest] = node.children;
+	if (first?.type !== 'paragraph') return undefined;
+	const [text, ...others] = first.children;
+	const start = text?.position?.start.offset;
+	if (text?.type !== 'text' || start === undefined) return undefined;
+	const match = CALLOUT_MARK.exec(text.value);
+	const kind = match?.[1].toLowerCase();
+	// An escaped `\[!NOTE]` has the same value, and is no callout.
+	if (!match || !isCallout(kind) || !context.source.startsWith('[!', start)) return undefined;
+	const value = text.value.slice(match[0].length);
+	const line = context.source.indexOf('\n', start);
+	// The marker alone, then a hard break: the break goes with it.
+	if (!value && !match[2] && others.length && others[0].type !== 'break') return undefined;
+	const remaining: PhrasingContent[] = value
+		? [
+				{
+					...text,
+					value,
+					position: {
+						...text.position!,
+						start: { ...text.position!.start, offset: line < 0 ? start : line + 1 }
+					}
+				},
+				...others
+			]
+		: others[0]?.type === 'break'
+			? others.slice(1)
+			: others;
+	return {
+		kind,
+		children: remaining.length ? [{ ...first, children: remaining }, ...rest] : rest
+	};
+}
+
 function blocks(nodes: RootContent[], context: Context, depth: number): RichTextBlock[] {
 	const result: RichTextBlock[] = [];
 	for (const node of nodes) {
@@ -367,9 +426,15 @@ function blocks(nodes: RootContent[], context: Context, depth: number): RichText
 					children: inline(node.children, context, depth)
 				});
 				break;
-			case 'blockquote':
-				result.push({ type: 'blockquote', children: blocks(node.children, context, depth + 1) });
+			case 'blockquote': {
+				const callout = context.article ? calloutOf(node, context) : undefined;
+				result.push({
+					type: 'blockquote',
+					children: blocks(callout?.children ?? node.children, context, depth + 1),
+					...(callout ? { callout: callout.kind } : {})
+				});
 				break;
+			}
 			case 'list':
 				result.push({
 					type: 'list',
@@ -416,9 +481,9 @@ function collectDefinitions(node: Nodes, definitions: Map<string, Definition>, d
 /**
  * CommonMark plus ~~strikethrough~~, with facets applied to the parsed text. Raw HTML is shown
  * literally, images become links and only HTTP(S) destinations are kept. With `article`,
- * images, tables, footnotes, task lists and `$math$` are kept and newlines inside a paragraph
- * wrap. Text that exceeds
- * the parser's limits is returned as a plain-text document.
+ * images, tables, footnotes, task lists, `$math$`, `==highlights==` and callouts (`> [!NOTE]`)
+ * are kept and newlines inside a paragraph wrap. Text that exceeds the parser's limits is
+ * returned as a plain-text document.
  */
 export function parseMarkdown(text: string, options: MarkdownOptions = {}): RichTextDocument {
 	const article = !!options.article;

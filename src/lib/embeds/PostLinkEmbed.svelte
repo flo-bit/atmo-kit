@@ -2,53 +2,36 @@
 	import type { Snippet } from 'svelte';
 	import NestedComments from '../components/NestedComments.svelte';
 	import Surface from '../components/Surface.svelte';
-	import {
-		blueskyPostToPostData,
-		hasModerationLabel,
-		type BlueskyPostView,
-		type PostData
-	} from '../social/posts.js';
+	import type { PostData } from '../social/posts.js';
 	import type { PreferredSocialClient } from '../social/preferred-client.js';
 	import { parseSocialPostUrl, socialPostUrl } from '../social/urls.js';
 	import { safeHttpUrl } from '../urls.js';
-	import { appviewUrl } from '../events/atproto-helpers.js';
+	import { loadPostEmbed } from './load.js';
 
 	let {
 		url,
+		data,
 		fallback,
 		socialClient
 	}: {
 		url: string;
+		/** The post, when it was loaded ahead; `null` when there is none to show. */
+		data?: PostData | null;
 		/** The ordinary link, shown until the post loads and whenever it can't be shown. */
 		fallback: Snippet;
 		socialClient?: PreferredSocialClient | null;
 	} = $props();
 
-	/** Without the viewer's moderation preferences, labeled posts stay plain links. */
-	type ThreadPost = BlueskyPostView & { author: { did?: string } };
-
-	let post = $state<PostData | null>(null);
+	let found = $state<{ url: string; post: PostData | null }>();
+	let post = $derived(data !== undefined ? data : found?.url === url ? found.post : null);
 	$effect(() => {
-		const ref = parseSocialPostUrl(url);
-		post = null;
+		const ref = data === undefined ? parseSocialPostUrl(url) : null;
 		if (!ref) return;
+		const link = url;
 		const controller = new AbortController();
-		fetch(
-			`${appviewUrl()}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(ref.uri)}&depth=0&parentHeight=0`,
-			{ signal: controller.signal }
-		)
-			.then((response) => (response.ok ? response.json() : null))
-			.then((data: { thread?: { $type?: string; post?: ThreadPost } } | null) => {
-				const view = data?.thread?.post;
-				if (
-					controller.signal.aborted ||
-					data?.thread?.$type !== 'app.bsky.feed.defs#threadViewPost' ||
-					!view?.uri ||
-					!view.author?.did ||
-					hasModerationLabel(view)
-				)
-					return;
-				post = blueskyPostToPostData(view);
+		loadPostEmbed(ref, { signal: controller.signal })
+			.then((loaded) => {
+				if (!controller.signal.aborted) found = { url: link, post: loaded };
 			})
 			.catch(() => {});
 		return () => controller.abort();

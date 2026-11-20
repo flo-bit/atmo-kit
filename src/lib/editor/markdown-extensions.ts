@@ -62,8 +62,11 @@ export function markdownExtensions(article = false): AnyExtension[] {
 	return [
 		StarterKit.configure({
 			underline: false,
-			// Article Markdown brings a list item that can carry a task's box.
-			...(article ? { listItem: false as const } : {}),
+			// Article Markdown brings a list item that can carry a task's box, and its own quote
+			// and code block.
+			...(article
+				? { listItem: false as const, blockquote: false as const, codeBlock: false as const }
+				: {}),
 			link: {
 				openOnClick: false,
 				autolink: false,

@@ -20,7 +20,8 @@ export type RichTextDocument = {
 export type RichTextBlock =
 	| { type: 'paragraph'; children: RichTextInline[] }
 	| { type: 'heading'; depth: 1 | 2 | 3 | 4 | 5 | 6; children: RichTextInline[] }
-	| { type: 'blockquote'; children: RichTextBlock[] }
+	/** Article Markdown only: with `callout`, a quote that began with `[!NOTE]` or the like. */
+	| { type: 'blockquote'; children: RichTextBlock[]; callout?: RichTextCallout }
 	| {
 			type: 'list';
 			ordered: boolean;
@@ -42,10 +43,20 @@ export type RichTextBlock =
 
 export type RichTextAlign = 'left' | 'center' | 'right' | null;
 
+/** The kinds of callout, as GitHub has them: `> [!NOTE]` and so on. */
+export const CALLOUTS = ['note', 'tip', 'important', 'warning', 'caution'] as const;
+export type RichTextCallout = (typeof CALLOUTS)[number];
+
+export function isCallout(value: unknown): value is RichTextCallout {
+	return CALLOUTS.includes(value as RichTextCallout);
+}
+
 export type RichTextInline =
 	| { type: 'text'; value: string }
 	| { type: 'break' }
 	| { type: 'strong' | 'emphasis' | 'delete'; children: RichTextInline[] }
+	/** Article Markdown only: `==marked==` text. */
+	| { type: 'highlight'; children: RichTextInline[] }
 	| { type: 'code'; value: string }
 	/** Article Markdown only. TeX source of a formula in the line. */
 	| { type: 'math'; value: string }
@@ -249,19 +260,25 @@ export type Footnotes = {
 	/** Ids in the order their notes are shown: by first reference, then the unreferenced. */
 	order: string[];
 	definitions: Map<string, Record<string, unknown>>;
+	/** The first reference to each note, where its way back leads. */
+	references: Map<string, Record<string, unknown>>;
 };
 
 /** The footnotes of a document, for renderers: definitions are shown together at the end. */
 export function collectFootnotes(content: unknown): Footnotes {
 	const definitions = new Map<string, Record<string, unknown>>();
 	const referenced: string[] = [];
+	const references = new Map<string, Record<string, unknown>>();
 	const walk = (value: unknown, depth: number) => {
 		if (depth > MAX_RENDER_DEPTH + 4 || value === null || typeof value !== 'object') return;
 		if (Array.isArray(value)) return value.forEach((item) => walk(item, depth + 1));
 		const node = value as Record<string, unknown>;
 		const id = string(node.id);
 		if (node.type === 'footnoteDefinition' && id && !definitions.has(id)) definitions.set(id, node);
-		if (node.type === 'footnoteReference' && id && !referenced.includes(id)) referenced.push(id);
+		if (node.type === 'footnoteReference' && id && !referenced.includes(id)) {
+			referenced.push(id);
+			references.set(id, node);
+		}
 		walk(node.children, depth + 1);
 		walk(node.items, depth + 1);
 		walk(node.rows, depth + 1);
@@ -269,7 +286,8 @@ export function collectFootnotes(content: unknown): Footnotes {
 	walk((content as { children?: unknown } | null)?.children, 0);
 	const order = referenced.filter((id) => definitions.has(id));
 	for (const id of definitions.keys()) if (!order.includes(id)) order.push(id);
-	return { order, definitions };
+	for (const id of references.keys()) if (!definitions.has(id)) references.delete(id);
+	return { order, definitions, references };
 }
 
 /** Readable text without Markdown syntax, for meta descriptions, previews and search. */

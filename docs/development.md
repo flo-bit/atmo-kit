@@ -82,7 +82,8 @@ viewport/theme combination.
 ## The bundled Markdown parser
 
 `src/lib/richtext/vendor/markdown-tree.js` is a generated bundle of the Markdown parser
-(`mdast-util-from-markdown` with strikethrough). The kit ships it instead of depending on those
+(`mdast-util-from-markdown` with strikethrough and, for articles, tables, footnotes, task
+lists, math and the kit's own `==highlight==` extension in `scripts/markdown-highlight.js`). The kit ships it instead of depending on those
 packages: their development builds import CommonJS, which every app would otherwise have to
 configure its bundler for. The packages are dev dependencies; after updating them or
 `scripts/markdown-tree-entry.js`, run `pnpm vendor:markdown` and commit the result.

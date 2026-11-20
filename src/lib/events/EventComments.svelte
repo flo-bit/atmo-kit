@@ -1,14 +1,8 @@
 <script lang="ts">
-	import {
-		NestedComments,
-		blueskyPostToPostData,
-		hasModerationLabel,
-		type PostData
-	} from '../index.js';
-	import { appviewUrl } from './atproto-helpers.js';
+	import PostComments from '../components/PostComments.svelte';
+	import type { PreferredSocialClient } from '../social.js';
 
-	import { socialClientInfo, socialPostUrl, type PreferredSocialClient } from '../social.js';
-
+	// An event's comments are the replies to the post announcing it.
 	let {
 		postUri,
 		socialClient
@@ -16,97 +10,6 @@
 		postUri: string;
 		socialClient?: PreferredSocialClient | null;
 	} = $props();
-
-	let comments = $state<PostData[]>([]);
-	let loading = $state(true);
-	let errorMessage = $state<string | null>(null);
-
-	/**
-	 * Comments are shown to everyone without their moderation preferences, so a reply that carries
-	 * a moderation label (itself, its author, or a post it quotes) is left out, with the replies
-	 * beneath it.
-	 */
-	const DEPTH = 6;
-	function threadToComments(replies: unknown[], level = 1): PostData[] {
-		return (replies as Array<{ $type?: string; post?: unknown; replies?: unknown[] }>)
-			.filter(
-				(r) =>
-					r.$type === 'app.bsky.feed.defs#threadViewPost' && r.post && !hasModerationLabel(r.post)
-			)
-			.map((r) => {
-				const postData = blueskyPostToPostData(
-					r.post as Parameters<typeof blueskyPostToPostData>[0]
-				);
-				// Below the requested depth nothing was loaded; the comment links to the rest instead.
-				if (level < DEPTH) postData.replies = threadToComments(r.replies ?? [], level + 1);
-				return postData;
-			});
-	}
-
-	async function loadThread(uri: string, signal: AbortSignal) {
-		loading = true;
-		errorMessage = null;
-		try {
-			const res = await fetch(
-				`${appviewUrl()}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=${DEPTH}`,
-				{ signal }
-			);
-			if (!res.ok) throw new Error(`Failed to load thread (${res.status})`);
-			const data = (await res.json()) as { thread?: { replies?: unknown[] } };
-			const thread = data.thread;
-			if (!signal.aborted)
-				comments = thread?.replies?.length ? threadToComments(thread.replies) : [];
-		} catch (err) {
-			if (signal.aborted) return;
-			console.error('EventComments: load failed', err);
-			errorMessage = err instanceof Error ? err.message : 'Failed to load comments';
-			comments = [];
-		} finally {
-			if (!signal.aborted) loading = false;
-		}
-	}
-
-	// Only a new thread URI should refetch; changing the viewer's client just changes links.
-	let threadUri = $derived(postUri);
-	$effect(() => {
-		const controller = new AbortController();
-		if (threadUri) loadThread(threadUri, controller.signal);
-		return () => controller.abort();
-	});
-
-	let replyUrl = $derived(socialPostUrl(postUri, socialClient));
-	let clientLabel = $derived(socialClientInfo(socialClient).label);
 </script>
 
-<div>
-	{#if replyUrl}
-		<div class="mb-4 text-sm">
-			<a
-				href={replyUrl}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
-			>
-				Add a comment on {clientLabel} &rarr;
-			</a>
-		</div>
-	{/if}
-
-	{#if loading}
-		<p class="text-sm text-base-600 dark:text-base-400">Loading comments…</p>
-	{:else if errorMessage}
-		<p class="text-sm text-base-600 dark:text-base-400">{errorMessage}</p>
-	{:else if comments.length === 0}
-		<p class="text-sm text-base-600 dark:text-base-400">No comments yet.</p>
-	{:else}
-		<div class="not-prose comments-no-divider">
-			<NestedComments {comments} {socialClient} />
-		</div>
-	{/if}
-</div>
-
-<style>
-	.comments-no-divider :global(> div) {
-		border-top-width: 0;
-	}
-</style>
+<PostComments {postUri} {socialClient} />

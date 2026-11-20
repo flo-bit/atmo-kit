@@ -1,5 +1,6 @@
 import { detectTokens } from './detect.js';
 import {
+	isCallout,
 	safeWebUrl,
 	type RichTextBlock,
 	type RichTextDocument,
@@ -18,6 +19,7 @@ type Run = {
 	strong?: boolean;
 	emphasis?: boolean;
 	delete?: boolean;
+	highlight?: boolean;
 	code?: boolean;
 	/** TeX source, written between dollars. */
 	math?: boolean;
@@ -28,7 +30,7 @@ type Run = {
 };
 
 const MAX_DEPTH = 32;
-const STYLES = ['strong', 'emphasis', 'delete'] as const;
+const STYLES = ['strong', 'emphasis', 'delete', 'highlight'] as const;
 
 function sameMarks(a: Run, b: Run): boolean {
 	return (
@@ -36,6 +38,7 @@ function sameMarks(a: Run, b: Run): boolean {
 		!a.strong === !b.strong &&
 		!a.emphasis === !b.emphasis &&
 		!a.delete === !b.delete &&
+		!a.highlight === !b.highlight &&
 		!a.code === !b.code &&
 		!a.math === !b.math &&
 		a.ref === b.ref &&
@@ -111,6 +114,7 @@ function flatten(nodes: readonly RichTextInline[], marks: Omit<Run, 'text'>, dep
 			case 'strong':
 			case 'emphasis':
 			case 'delete':
+			case 'highlight':
 				return flatten(node.children, { ...marks, [node.type]: true }, depth + 1);
 			default:
 				return [];
@@ -217,7 +221,7 @@ function shapeOf(blocks: readonly RichTextBlock[], depth = 0): Shape[] {
 				return [{ h: block.depth, runs: headingRuns(lines) }];
 			}
 			case 'blockquote':
-				return [{ q: shapeOf(block.children, depth + 1) }];
+				return [{ q: shapeOf(block.children, depth + 1), co: block.callout ?? false }];
 			case 'list':
 				return [
 					{
@@ -270,7 +274,7 @@ const ALNUM = /[\p{L}\p{N}]/u;
 const ENTITY = /^&(?:[A-Za-z][A-Za-z0-9]{0,31}|#[0-9]{1,7}|#[xX][0-9A-Fa-f]{1,6});/;
 
 /** Backslash-escape only what Markdown would otherwise read as syntax. */
-function escapeText(text: string, inLink: boolean): string {
+function escapeText(text: string, inLink: boolean, article = false): string {
 	let out = '';
 	for (let index = 0; index < text.length; index++) {
 		const char = text[index];
@@ -300,6 +304,15 @@ function escapeText(text: string, inLink: boolean): string {
 			case '~':
 				escape = before === '~' || after === '~';
 				break;
+			case '=':
+				// Exactly two could open or close a highlight, unless spaces surround them.
+				escape =
+					article &&
+					after === '=' &&
+					before !== '=' &&
+					text[index + 2] !== '=' &&
+					!(before !== undefined && /\s/.test(before) && /\s/.test(text[index + 2] ?? 'x'));
+				break;
 			case '`':
 			case '[':
 				escape = true;
@@ -324,9 +337,14 @@ function escapeAll(text: string): string {
 }
 
 /** URLs keep their own characters so that they are still found as links afterwards. */
-function textMarkdown(text: string, inLink: boolean, aggressive: boolean): string {
+function textMarkdown(
+	text: string,
+	inLink: boolean,
+	aggressive: boolean,
+	article: boolean
+): string {
 	if (aggressive) return escapeAll(text);
-	if (inLink) return escapeText(text, true);
+	if (inLink) return escapeText(text, true, article);
 	// Text next to a URL is escaped on its own, without the URL as a neighbor.
 	let out = '';
 	let chunk = '';
@@ -335,7 +353,7 @@ function textMarkdown(text: string, inLink: boolean, aggressive: boolean): strin
 			chunk += token.raw;
 			continue;
 		}
-		out += escapeText(chunk, false);
+		out += escapeText(chunk, false, article);
 		chunk = '';
 		out +=
 			escapeText(token.raw, false) === token.raw
@@ -344,7 +362,7 @@ function textMarkdown(text: string, inLink: boolean, aggressive: boolean): strin
 					? escapeText(token.raw, false)
 					: `<${token.raw}>`;
 	}
-	return out + escapeText(chunk, false);
+	return out + escapeText(chunk, false, article);
 }
 
 function codeSpan(value: string): string {
@@ -390,7 +408,7 @@ function reference(char: string): string {
 	return `&#x${char.codePointAt(0)!.toString(16)};`;
 }
 
-function lineMarkdown(runs: Run[], aggressive: boolean): string {
+function lineMarkdown(runs: Run[], aggressive: boolean, article = false): string {
 	let out = '';
 	const stack: Open[] = [];
 	// Set when formatting has just closed in a way that needs a non-word character after it.
@@ -425,7 +443,7 @@ function lineMarkdown(runs: Run[], aggressive: boolean): string {
 				? mathSpan(run.text)
 				: run.code
 					? codeSpan(run.text)
-					: textMarkdown(run.text, !!run.link, aggressive);
+					: textMarkdown(run.text, !!run.link, aggressive, article);
 		const first = Array.from(piece)[0] ?? '';
 		for (const open of wanted) {
 			if (stack.some((item) => item.mark === open.mark)) continue;
@@ -438,7 +456,14 @@ function lineMarkdown(runs: Run[], aggressive: boolean): string {
 				if (WORD.test(before) && PUNCTUATION.test(first))
 					out = out.slice(0, -before.length) + reference(before);
 				// Next to an asterisk, underscores keep the two delimiter runs apart.
-				const char = open.mark === 'delete' ? '~' : out.endsWith('*') ? '_' : '*';
+				const char =
+					open.mark === 'delete'
+						? '~'
+						: open.mark === 'highlight'
+							? '='
+							: out.endsWith('*')
+								? '_'
+								: '*';
 				open.close = char.repeat(open.mark === 'emphasis' ? 1 : 2);
 				out += open.close;
 			}
@@ -501,7 +526,8 @@ function cellSafe(runs: Run[]): Run[] {
 
 function tableMarkdown(
 	block: Extract<RichTextBlock, { type: 'table' }>,
-	aggressive: boolean
+	aggressive: boolean,
+	article: boolean
 ): string {
 	const width = Math.max(1, block.align.length, ...block.rows.map((row) => row.length));
 	const line = (cells: string[]) => `| ${cells.join(' | ')} |`;
@@ -509,7 +535,7 @@ function tableMarkdown(
 		line(
 			Array.from({ length: width }, (_, index) =>
 				// Escape each pipe that is not escaped yet: one after an even number of backslashes.
-				lineMarkdown(cellSafe(cellRuns(cells[index] ?? [])), aggressive).replace(
+				lineMarkdown(cellSafe(cellRuns(cells[index] ?? [])), aggressive, article).replace(
 					/(\\*)\|/g,
 					(match, slashes: string) => (slashes.length % 2 ? match : `${slashes}\\|`)
 				)
@@ -547,11 +573,17 @@ function blocksMarkdown(
 			case 'paragraph':
 				for (const lines of paragraphs(block.children))
 					result.push(
-						lines.map((line) => lineMarkdown(line, aggressive)).join(article ? '\\\n' : '\n')
+						lines
+							.map((line) => lineMarkdown(line, aggressive, article))
+							.join(article ? '\\\n' : '\n')
 					);
 				break;
 			case 'heading': {
-				const text = lineMarkdown(headingRuns(paragraphs(block.children).flat()), aggressive);
+				const text = lineMarkdown(
+					headingRuns(paragraphs(block.children).flat()),
+					aggressive,
+					article
+				);
 				const depthMark = '#'.repeat(Math.min(6, Math.max(1, Math.trunc(block.depth) || 1)));
 				// A trailing run of # would be read as the optional closing sequence.
 				result.push(text ? `${depthMark} ${text.replace(/(^|\s)(#+)$/, '$1\\$2')}` : depthMark);
@@ -561,7 +593,11 @@ function blocksMarkdown(
 				const inner = blocksMarkdown(block.children, aggressive, depth + 1, false, article).join(
 					'\n\n'
 				);
-				result.push(indent(inner, '> ', '> '));
+				// A callout opens with its marker; other blocks than text follow after an empty line.
+				const mark =
+					article && isCallout(block.callout) ? `[!${block.callout.toUpperCase()}]` : undefined;
+				const gap = block.children[0]?.type === 'paragraph' ? '\n' : '\n\n';
+				result.push(indent(mark ? (inner ? mark + gap + inner : mark) : inner, '> ', '> '));
 				break;
 			}
 			case 'list': {
@@ -613,7 +649,7 @@ function blocksMarkdown(
 				break;
 			}
 			case 'table':
-				result.push(tableMarkdown(block, aggressive));
+				result.push(tableMarkdown(block, aggressive, article));
 				break;
 		}
 		previousList = list;

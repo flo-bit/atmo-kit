@@ -1,4 +1,5 @@
 import type { LinkEmbed } from '../embeds/types.js';
+import type { FlatEventRecord } from './contrail.js';
 import { parseEventLink, type LinkedRecordsClient } from './linked-records.js';
 
 export type EventLinkEmbedRef = {
@@ -9,6 +10,15 @@ export type EventLinkEmbedRef = {
 	loadEvent: NonNullable<LinkedRecordsClient['getEvent']>;
 };
 
+/** The event a link points to; null when there is none to show. */
+export async function loadLinkedEvent(ref: EventLinkEmbedRef): Promise<FlatEventRecord | null> {
+	const result = await ref.loadEvent(ref.actor, ref.rkey);
+	return result?.rkey === ref.rkey && result.startsAt ? result : null;
+}
+
+// One function for every such embed, so that its component is loaded once.
+const load = () => import('./event-view/EventLinkEmbed.svelte');
+
 /** Links to event pages on the given origins, shown as event cards. */
 export function eventLinkEmbed(options: {
 	loadEvent: NonNullable<LinkedRecordsClient['getEvent']>;
@@ -18,7 +28,7 @@ export function eventLinkEmbed(options: {
 	local?: boolean;
 	/** Leave some event links as ordinary links, e.g. the event being shown. */
 	skip?: (link: { actor: string; rkey: string }) => boolean;
-}): LinkEmbed<EventLinkEmbedRef> {
+}): LinkEmbed<EventLinkEmbedRef, FlatEventRecord> {
 	return {
 		id: 'event',
 		label: 'event',
@@ -28,6 +38,7 @@ export function eventLinkEmbed(options: {
 				? { ...link, local: !!options.local, loadEvent: options.loadEvent }
 				: null;
 		},
-		load: () => import('./event-view/EventLinkEmbed.svelte')
+		load,
+		data: loadLinkedEvent
 	};
 }

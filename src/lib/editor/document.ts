@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import { detectTokens } from '../richtext/detect.js';
 import {
+	isCallout,
 	paragraphParts,
 	safeWebUrl,
 	type RichTextBlock,
@@ -19,8 +20,19 @@ type Marks = NonNullable<JSONContent['marks']>;
 type EmbedTest = ((url: string) => boolean) | undefined;
 
 const MAX_DEPTH = 32;
-const MARKS = { strong: 'bold', emphasis: 'italic', delete: 'strike' } as const;
-const STYLES = { bold: 'strong', italic: 'emphasis', strike: 'delete' } as const;
+export const HIGHLIGHT = 'highlight';
+const MARKS = {
+	strong: 'bold',
+	emphasis: 'italic',
+	delete: 'strike',
+	highlight: HIGHLIGHT
+} as const;
+const STYLES = {
+	bold: 'strong',
+	italic: 'emphasis',
+	strike: 'delete',
+	highlight: 'highlight'
+} as const;
 
 function labelOf(nodes: readonly RichTextInline[], depth = 0): string {
 	if (depth > MAX_DEPTH) return '';
@@ -92,6 +104,7 @@ function inlineContent(nodes: readonly RichTextInline[], marks: Marks, depth = 0
 			case 'strong':
 			case 'emphasis':
 			case 'delete':
+			case 'highlight':
 				return inlineContent(
 					node.children,
 					marks.some((mark) => mark.type === MARKS[node.type])
@@ -137,6 +150,7 @@ function blockContent(
 				return [
 					{
 						type: 'blockquote',
+						...(isCallout(block.callout) ? { attrs: { callout: block.callout } } : {}),
 						content: atLeastOne(blockContent(block.children, isEmbed, depth + 1))
 					}
 				];
@@ -317,7 +331,13 @@ function blockNodes(content: JSONContent[] | undefined, depth = 0): RichTextBloc
 					}
 				];
 			case 'blockquote':
-				return [{ type: 'blockquote', children: blockNodes(node.content, depth + 1) }];
+				return [
+					{
+						type: 'blockquote',
+						children: blockNodes(node.content, depth + 1),
+						...(isCallout(node.attrs?.callout) ? { callout: node.attrs.callout } : {})
+					}
+				];
 			case 'bulletList':
 			case 'orderedList': {
 				const start = Number(node.attrs?.start);

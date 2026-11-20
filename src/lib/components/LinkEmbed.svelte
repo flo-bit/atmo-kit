@@ -1,47 +1,50 @@
-<script lang="ts" module>
-	import type { Component } from 'svelte';
-	// Not imported as `LinkEmbed`: the generated types would give that name to the import
-	// instead of this component, leaving consumers with a type-only export.
-	import type { LinkEmbed as Definition, LinkEmbedProps } from '../embeds/types.js';
-
-	// Loaded components are kept, so later embeds of the same kind render without a flash.
-	const loaded = new WeakMap<Definition, Component<LinkEmbedProps>>();
-</script>
-
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import type { Component, Snippet } from 'svelte';
 	import { linkEmbedOptions, selectLinkEmbeds } from '../embeds/context.js';
 	import { isClickToLoad, resolveLinkEmbed } from '../embeds/resolve.js';
-	import type { LinkEmbedOptions } from '../embeds/types.js';
+	import { loadLinkEmbed, loadedLinkEmbed } from '../embeds/load.js';
+	// Not imported as `LinkEmbed`: the generated types would give that name to the import
+	// instead of this component, leaving consumers with a type-only export.
+	import type {
+		LinkEmbed as Definition,
+		LinkEmbedOptions,
+		LinkEmbedProps
+	} from '../embeds/types.js';
 	import type { PreferredSocialClient } from '../social/preferred-client.js';
 	import { safeHttpUrl } from '../urls.js';
 	import Button from './Button.svelte';
 
 	export type LinkEmbedComponentProps = LinkEmbedOptions & {
 		url: string;
+		/** What the embed's `data` loaded ahead; see `loadLinkEmbedData`. */
+		data?: unknown;
 		/** Shown until the content has loaded and whenever it can't be shown. Defaults to a link. */
 		fallback?: Snippet;
 		socialClient?: PreferredSocialClient | null;
 	};
 
-	let { url, embeds, clickToLoad, fallback, socialClient }: LinkEmbedComponentProps = $props();
+	let { url, data, embeds, clickToLoad, fallback, socialClient }: LinkEmbedComponentProps =
+		$props();
 
 	const context = linkEmbedOptions();
 	let match = $derived(resolveLinkEmbed(url, embeds ?? selectLinkEmbeds(true, context())));
 	let gated = $derived(!!match && isClickToLoad(match.embed, clickToLoad ?? context().clickToLoad));
 	// Consent belongs to this link, not to its position on the page.
 	let accepted = $state<string>();
-	let component = $state.raw<Component<LinkEmbedProps>>();
+	let arrived = $state.raw<{ embed: Definition; component: Component<LinkEmbedProps> }>();
+	// Known without waiting when it was loaded before, also on the server.
+	let component = $derived(
+		match &&
+			(loadedLinkEmbed(match.embed) ??
+				(arrived?.embed === match.embed ? arrived.component : undefined))
+	);
 	$effect(() => {
 		const embed = match?.embed;
-		component = embed && loaded.get(embed);
 		if (!embed || component || (gated && accepted !== match?.url)) return;
 		let current = true;
-		embed
-			.load()
-			.then((module) => {
-				loaded.set(embed, module.default);
-				if (current) component = module.default;
+		loadLinkEmbed(embed)
+			.then((loaded) => {
+				if (current) arrived = { embed, component: loaded };
 			})
 			.catch(() => {});
 		return () => {
@@ -71,5 +74,5 @@
 	>
 {:else if match && component}
 	{@const Embed = component}
-	<Embed url={match.url} ref={match.ref} fallback={link} {socialClient} />
+	<Embed url={match.url} ref={match.ref} {data} fallback={link} {socialClient} />
 {:else}{@render link()}{/if}

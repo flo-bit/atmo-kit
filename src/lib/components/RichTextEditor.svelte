@@ -72,6 +72,11 @@
 		/** With `markdown="article"`: how images are stored and loaded. */
 		images?: RichTextEditorImages;
 		/**
+		 * With `markdown="article"`: a menu of blocks on typing `/`, formatting and links for
+		 * selected text (Cmd/Ctrl+K edits a link), and on touch screens a toolbar above the keyboard.
+		 */
+		menus?: boolean;
+		/**
 		 * Show an embeddable link alone on its line as its embed, as `RichText` does: `true` for
 		 * the app's embeds (see `setLinkEmbeds`) or an explicit list.
 		 */
@@ -93,6 +98,7 @@
 		placeholder = '',
 		markdown = false,
 		images,
+		menus = false,
 		embeds = false,
 		singleLine = false,
 		disabled = false,
@@ -107,7 +113,7 @@
 	let embedList = $derived(singleLine ? [] : selectLinkEmbeds(embeds, embedContext()));
 	const isEmbed = (url: string) => !!resolveLinkEmbed(url, embedList);
 
-	let host: HTMLDivElement;
+	let host = $state<HTMLDivElement>();
 	let element: HTMLDivElement;
 	/** The text the editor's content stands for; `value` differing from it is an outside change. */
 	let current = untrack(() => value);
@@ -115,8 +121,18 @@
 	let currentFacets = untrack(() => JSON.stringify(facets ?? null));
 	/** Loaded with the Markdown blocks, so plain-text editors never download them. */
 	let markdownTools: typeof import('../editor/markdown.js') | undefined;
+	/** Loaded with the menus, for the editors that have them. */
+	let menuTools = $state.raw<typeof import('../editor/article-menus.js')>();
+	let picker = $state<HTMLInputElement>();
 
 	const article = untrack(() => markdown === 'article');
+	const withMenus = untrack(() => article && menus);
+	/** What the menus' commands can use; read when a command runs. */
+	const commandContext = {
+		get pickImages() {
+			return images?.upload && !disabled ? () => picker?.click() : undefined;
+		}
+	};
 	const imageSrc = (url: string) => safeHttpUrl(url) ?? images?.src?.(url);
 
 	function load(text: string, textFacets?: unknown): JSONContent {
@@ -209,7 +225,11 @@
 		'space-y-3 leading-relaxed whitespace-pre-wrap [&_strong:not([data-link-embed]_*)]:font-semibold [&_h1:not([data-link-embed]_*)]:text-xl [&_h2:not([data-link-embed]_*)]:text-lg [&_:is(h1,h2,h3,h4,h5,h6):not([data-link-embed]_*)]:leading-snug [&_:is(h1,h2,h3,h4,h5,h6):not([data-link-embed]_*)]:font-semibold [&_blockquote:not([data-link-embed]_*)]:space-y-3 [&_blockquote:not([data-link-embed]_*)]:border-l-2 [&_blockquote:not([data-link-embed]_*)]:border-base-300 [&_blockquote:not([data-link-embed]_*)]:pl-4 dark:[&_blockquote:not([data-link-embed]_*)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_:is(ul,ol):not([data-link-embed]_*)]:space-y-1 [&_:is(ul,ol):not([data-link-embed]_*)]:pl-6 [&_ul:not([data-link-embed]_*)]:list-disc [&_ol:not([data-link-embed]_*)]:list-decimal [&_li:not([data-link-embed]_*)]:space-y-3 [&_:not(pre)>code:not([data-link-embed]_*)]:rounded [&_:not(pre)>code:not([data-link-embed]_*)]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] [&_:not(pre)>code:not([data-link-embed]_*)]:px-1 [&_:not(pre)>code:not([data-link-embed]_*)]:py-0.5 [&_:not(pre)>code:not([data-link-embed]_*)]:font-mono [&_:not(pre)>code:not([data-link-embed]_*)]:text-[0.875em] dark:[&_:not(pre)>code:not([data-link-embed]_*)]:bg-base-950 [&_pre:not([data-link-embed]_*)]:overflow-x-auto [&_pre:not([data-link-embed]_*)]:rounded-md [&_pre:not([data-link-embed]_*)]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] [&_pre:not([data-link-embed]_*)]:p-3 [&_pre:not([data-link-embed]_*)]:font-mono [&_pre:not([data-link-embed]_*)]:text-[0.875em] dark:[&_pre:not([data-link-embed]_*)]:bg-base-950 [&_hr:not([data-link-embed]_*)]:border-base-300 dark:[&_hr:not([data-link-embed]_*)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_a:not([data-link-embed]_*)]:text-accent-700 [&_a:not([data-link-embed]_*)]:underline [&_a:not([data-link-embed]_*)]:decoration-accent-700/40 [&_a:not([data-link-embed]_*)]:underline-offset-2 dark:[&_a:not([data-link-embed]_*)]:text-accent-300 dark:[&_a:not([data-link-embed]_*)]:decoration-accent-300/40 [&_[data-image]]:whitespace-normal [&_[data-image]>img]:max-w-full [&_[data-image]>img]:rounded-md [&_[data-image]>input]:mt-1 [&_[data-image]>input]:block [&_[data-image]>input]:w-full [&_[data-image]>input]:border-0 [&_[data-image]>input]:bg-transparent [&_[data-image]>input]:p-0 [&_[data-image]>input]:text-sm [&_[data-image]>input]:text-base-600 [&_[data-image]>input]:outline-none [&_[data-image]>input]:placeholder:text-base-500 [&_[data-image]>input]:focus:ring-0 dark:[&_[data-image]>input]:text-base-400 [&_.tableWrapper]:overflow-x-auto [&_table]:border-collapse [&_table]:text-left [&_table]:whitespace-normal [&_:is(th,td)]:border [&_:is(th,td)]:border-base-300 [&_:is(th,td)]:px-3 [&_:is(th,td)]:py-1.5 [&_:is(th,td)]:align-top [&_:is(th,td)]:min-w-16 dark:[&_:is(th,td)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_th]:font-semibold [&_.selectedCell]:bg-accent-500/10';
 	// Task lists, math and footnotes of article Markdown.
 	const articleClass =
-		"[&_li[data-task]]:relative [&_li[data-task]]:list-none [&_li[data-task]]:before:absolute [&_li[data-task]]:before:-left-5 [&_li[data-task=false]]:before:content-['☐'] [&_li[data-task=true]]:before:content-['☑'] [&_ul[data-type=taskList]]:list-none! [&_ul[data-type=taskList]]:pl-0! [&_ul[data-type=taskList]>li]:flex [&_ul[data-type=taskList]>li]:gap-2 [&_ul[data-type=taskList]>li>label]:mt-0.5 [&_ul[data-type=taskList]>li>div]:min-w-0 [&_ul[data-type=taskList]>li>div]:flex-1 [&_ul[data-type=taskList]>li>div]:space-y-3 [&_ul[data-type=taskList]_input]:accent-accent-600 [&_[data-math]]:font-mono [&_[data-math]]:text-[0.875em] [&_[data-math]]:text-accent-700 [&_[data-math]]:before:content-['$'] [&_[data-math]]:after:content-['$'] [&_[data-math]]:before:opacity-50 [&_[data-math]]:after:opacity-50 dark:[&_[data-math]]:text-accent-300 [&_pre:has(.language-math)]:before:mb-1 [&_pre:has(.language-math)]:before:block [&_pre:has(.language-math)]:before:font-sans [&_pre:has(.language-math)]:before:text-xs [&_pre:has(.language-math)]:before:text-base-500 [&_pre:has(.language-math)]:before:content-['Math'] [&_[data-footnote-ref]]:text-accent-700 dark:[&_[data-footnote-ref]]:text-accent-300 [&_[data-footnote]]:relative [&_[data-footnote]]:space-y-3 [&_[data-footnote]]:pl-10 [&_[data-footnote]]:text-[0.9em] [&_[data-footnote]]:before:absolute [&_[data-footnote]]:before:left-0 [&_[data-footnote]]:before:text-base-500 [&_[data-footnote]]:before:content-['['_attr(data-footnote)_']']";
+		"[&_li[data-task]]:relative [&_li[data-task]]:list-none [&_li[data-task]]:before:absolute [&_li[data-task]]:before:-left-5 [&_li[data-task=false]]:before:content-['☐'] [&_li[data-task=true]]:before:content-['☑'] [&_ul[data-type=taskList]]:list-none! [&_ul[data-type=taskList]]:pl-0! [&_ul[data-type=taskList]>li]:flex [&_ul[data-type=taskList]>li]:gap-2 [&_ul[data-type=taskList]>li>label]:mt-0.5 [&_ul[data-type=taskList]>li>div]:min-w-0 [&_ul[data-type=taskList]>li>div]:flex-1 [&_ul[data-type=taskList]>li>div]:space-y-3 [&_ul[data-type=taskList]_input]:accent-accent-600 [&_[data-math]]:font-mono [&_[data-math]]:text-[0.875em] [&_[data-math]]:text-accent-700 [&_[data-math]]:before:content-['$'] [&_[data-math]]:after:content-['$'] [&_[data-math]]:before:opacity-50 [&_[data-math]]:after:opacity-50 dark:[&_[data-math]]:text-accent-300 [&_[data-footnote-ref]]:text-accent-700 dark:[&_[data-footnote-ref]]:text-accent-300 [&_[data-footnote]]:relative [&_[data-footnote]]:space-y-3 [&_[data-footnote]]:pl-10 [&_[data-footnote]]:text-[0.9em] [&_[data-footnote]]:before:absolute [&_[data-footnote]]:before:left-0 [&_[data-footnote]]:before:text-base-500 [&_[data-footnote]]:before:content-['['_attr(data-footnote)_']']";
+
+	// An empty line says how to get the menu, while it is the one being written.
+	const hintClass =
+		'[&.ProseMirror-focused>p.is-empty:not(.is-editor-empty)]:before:pointer-events-none [&.ProseMirror-focused>p.is-empty:not(.is-editor-empty)]:before:float-left [&.ProseMirror-focused>p.is-empty:not(.is-editor-empty)]:before:h-0 [&.ProseMirror-focused>p.is-empty:not(.is-editor-empty)]:before:text-base-400 [&.ProseMirror-focused>p.is-empty:not(.is-editor-empty)]:before:content-[attr(data-placeholder)] dark:[&.ProseMirror-focused>p.is-empty:not(.is-editor-empty)]:before:text-base-600';
 
 	onMount(() => {
 		let instance: Editor | undefined;
@@ -232,7 +252,17 @@
 									: [])
 							]
 						: ([Document, Paragraph, Text, HardBreak, History] as AnyExtension[])),
-					Placeholder.configure({ placeholder }),
+					Placeholder.configure({
+						placeholder: menuTools
+							? ({ editor: current, node }) =>
+									current.isEmpty
+										? placeholder
+										: node.type.name === 'paragraph'
+											? 'Type / for commands'
+											: ''
+							: placeholder
+					}),
+					...(menuTools ? [menuTools.slashMenu({ layer: host!, context: commandContext })] : []),
 					DetectedTokens.configure({ class: linkClass }),
 					...(embeds && !singleLine
 						? [
@@ -250,7 +280,7 @@
 					Mention.configure({
 						HTMLAttributes: { class: linkClass },
 						suggestion: searchActors
-							? mentionSuggestions(searchActors, () => host)
+							? mentionSuggestions(searchActors, () => host!)
 							: { allow: () => false }
 					})
 				],
@@ -260,6 +290,13 @@
 				),
 				editable: !disabled,
 				editorProps: {
+					// The line being written stays clear of the toolbar along the bottom of a touch screen.
+					...(menuTools
+						? {
+								scrollMargin: { top: 8, right: 8, bottom: 72, left: 8 },
+								scrollThreshold: { top: 0, right: 0, bottom: 64, left: 0 }
+							}
+						: {}),
 					attributes: {
 						id,
 						role: searchActors ? 'combobox' : 'textbox',
@@ -274,7 +311,8 @@
 						class: cn(
 							editorClass,
 							markdownTools ? markdownClass : 'whitespace-pre-wrap [&_[data-link-embed]]:my-3',
-							article && articleClass
+							article && articleClass,
+							menuTools && hintClass
 						)
 					},
 					handleKeyDown: (view, event) =>
@@ -319,8 +357,12 @@
 			editor = created;
 		};
 		if (markdown)
-			void import('../editor/markdown.js').then((module) => {
+			void Promise.all([
+				import('../editor/markdown.js'),
+				withMenus ? import('../editor/article-menus.js') : undefined
+			]).then(([module, menuModule]) => {
 				markdownTools = module;
+				menuTools = menuModule;
 				create();
 			});
 		else create();
@@ -353,4 +395,20 @@
 	data-slot="rich-text-editor"
 >
 	<div bind:this={element}></div>
+	{#if menuTools && editor && host}
+		<menuTools.EditorMenus {editor} context={commandContext} />
+		{#if images?.upload}
+			<input
+				bind:this={picker}
+				type="file"
+				accept="image/*"
+				multiple
+				hidden
+				onchange={() => {
+					if (picker?.files?.length) void insertImages(Array.from(picker.files));
+					if (picker) picker.value = '';
+				}}
+			/>
+		{/if}
+	{/if}
 </div>

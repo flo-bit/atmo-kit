@@ -6,6 +6,7 @@
 		Heading,
 		Icon,
 		IconButton,
+		IconMaker,
 		InsetImage,
 		Modal,
 		Subheading,
@@ -17,6 +18,7 @@
 	let { name, compact = false }: { name: string; compact?: boolean } = $props();
 	let liked = $state(false),
 		open = $state(false),
+		made = $state<string>(),
 		tab = $state('photos');
 </script>
 
@@ -90,6 +92,12 @@
 			>
 		</div></Modal
 	>
+{:else if name === 'IconMaker'}
+	<div class="flex items-center gap-3">
+		<Button onclick={() => (open = true)}>Make an icon</Button>
+		{#if made}<img src={made} alt="The icon that was made" class="size-10 rounded-[22%]" />{/if}
+	</div>
+	<IconMaker bind:open onmade={(icon) => (made = URL.createObjectURL(icon))} />
 {:else if name === 'Tabs'}
 	<Tabs
 		label="Collection"
