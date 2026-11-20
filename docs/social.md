@@ -208,6 +208,7 @@ What can be changed:
 | `notice`                             | A line above the toolbar saying where the post goes, e.g. "This will be posted on Bluesky."; none by default                |
 | `actions`                            | A snippet with more toolbar buttons; it gets `{ post, insert, disabled }`                                                   |
 | `searchActors`                       | Mention suggestions                                                                                                         |
+| `layout`                             | `inline` sits in the page, e.g. a reply under a post: no header or dividers, Cancel and submit at the end of the toolbar    |
 
 `languages`, `replyRules` and `allowQuotes` are bindable, so the app can keep them between posts. `addFiles(files)` on the component attaches files from elsewhere, such as a page-wide drop.
 

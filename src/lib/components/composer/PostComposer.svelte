@@ -70,6 +70,11 @@
 		notice?: string;
 		/** More toolbar buttons, after the built-in ones. */
 		actions?: Snippet<[{ post: Post; insert: (text: string) => void; disabled: boolean }]>;
+		/**
+		 * `inline` sits in the page, e.g. a reply field under a post: no header or dividers,
+		 * with Cancel and the submit button at the end of the toolbar.
+		 */
+		layout?: 'default' | 'inline';
 		class?: string;
 	};
 </script>
@@ -134,8 +139,10 @@
 		notice,
 		drafts: draftStore,
 		actions,
+		layout = 'default',
 		class: className
 	}: PostComposerProps = $props();
+	const inline = untrack(() => layout === 'inline');
 
 	let limits = $derived({ ...defaultComposerLimits, ...limitOverrides });
 	const on = (feature: keyof ComposerFeatures) => features[feature] !== false;
@@ -395,6 +402,26 @@
 	}
 </script>
 
+{#snippet controls()}
+	{#if oncancel}
+		<Button variant="ghost" size="sm" onclick={cancel} disabled={busy}>
+			{labels.cancel ?? 'Cancel'}
+		</Button>
+	{/if}
+	<span class="min-w-0 flex-1 truncate text-right text-xs {muted}" aria-live="polite">{status}</span
+	>
+	{#if canDraft}
+		<Button variant="ghost" size="sm" onclick={() => (draftsOpen = true)} disabled={busy}>
+			Drafts
+		</Button>
+	{/if}
+	<Button size="sm" class="min-w-16" onclick={submit} disabled={!canPost} loading={busy}>
+		{posts.length > 1
+			? (labels.submitAll ?? 'Post all')
+			: (labels.submit ?? (reply ? 'Reply' : 'Post'))}
+	</Button>
+{/snippet}
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class={cn('relative flex min-h-0 flex-1 flex-col', className)}
@@ -406,28 +433,13 @@
 	ondragover={(e) => hasFiles(e) && e.preventDefault()}
 	ondrop={drop}
 >
-	<div class="flex shrink-0 items-center gap-2 px-3 py-2.5">
-		{#if oncancel}
-			<Button variant="ghost" size="sm" onclick={cancel} disabled={busy}>
-				{labels.cancel ?? 'Cancel'}
-			</Button>
-		{/if}
-		<span class="min-w-0 flex-1 truncate text-right text-xs {muted}" aria-live="polite"
-			>{status}</span
-		>
-		{#if canDraft}
-			<Button variant="ghost" size="sm" onclick={() => (draftsOpen = true)} disabled={busy}>
-				Drafts
-			</Button>
-		{/if}
-		<Button size="sm" class="min-w-16" onclick={submit} disabled={!canPost} loading={busy}>
-			{posts.length > 1
-				? (labels.submitAll ?? 'Post all')
-				: (labels.submit ?? (reply ? 'Reply' : 'Post'))}
-		</Button>
-	</div>
+	{#if !inline}
+		<div class="flex shrink-0 items-center gap-2 px-3 py-2.5">
+			{@render controls()}
+		</div>
+	{/if}
 
-	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-2">
+	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain {inline ? 'pt-1' : 'px-4 pt-2'}">
 		{#if replyTo}
 			<div class="mb-3 flex gap-3 border-b pb-3 {line}">
 				{#if author}<span class="w-10 shrink-0"></span>{/if}
@@ -466,10 +478,10 @@
 		{/if}
 	</div>
 
-	{#if notice}<p class="shrink-0 px-4 pb-2 text-xs {muted}">{notice}</p>{/if}
+	{#if notice}<p class="shrink-0 pb-2 text-xs {inline ? '' : 'px-4'} {muted}">{notice}</p>{/if}
 
 	{#if on('interactions') || (on('contentWarnings') && contentWarnings.length && hasMedia(current))}
-		<div class="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-1.5">
+		<div class="flex shrink-0 flex-wrap items-center gap-2 pb-1.5 {inline ? '' : 'px-4'}">
 			{#if on('interactions')}
 				<Button
 					variant="secondary"
@@ -498,7 +510,11 @@
 		</div>
 	{/if}
 
-	<div class="flex shrink-0 items-center gap-0.5 border-t px-2 py-1.5 {line}">
+	<div
+		class="flex shrink-0 items-center gap-0.5 {inline
+			? '-ml-2 pb-1'
+			: `border-t px-2 py-1.5 ${line}`}"
+	>
 		{#if on('images')}
 			<input
 				bind:this={imageInput}
@@ -592,6 +608,7 @@
 				onclick={addPost}><Icon img={Plus} /></IconButton
 			>
 		{/if}
+		{#if inline}<span class="ml-1.5 flex items-center gap-2">{@render controls()}</span>{/if}
 	</div>
 
 	{#if dragging}
