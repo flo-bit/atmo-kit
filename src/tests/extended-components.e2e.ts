@@ -295,11 +295,18 @@ test('examples pass WCAG, responsive, reduced-motion, and inset-only checks in b
 	const errors: string[] = [],
 		external: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
+	// The editor's YouTube link shows the video's thumbnail behind its play button. That one
+	// address is expected, and answered here so that the test does not depend on YouTube.
+	const thumbnails = 'https://i.ytimg.com';
+	await page.route(`${thumbnails}/**`, (route) =>
+		route.fulfill({
+			contentType: 'image/gif',
+			body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
+		})
+	);
 	page.on('request', (request) => {
-		if (
-			/^https?:/.test(request.url()) &&
-			new URL(request.url()).origin !== new URL(baseURL!).origin
-		)
+		const origin = /^https?:/.test(request.url()) ? new URL(request.url()).origin : undefined;
+		if (origin && origin !== new URL(baseURL!).origin && origin !== thumbnails)
 			external.push(request.url());
 	});
 	for (const mode of ['dark', 'light']) {
