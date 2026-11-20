@@ -1,5 +1,11 @@
 # @atmo-dev/kit
 
+## 0.19.2
+
+### Patch Changes
+
+- 95a4a9c: `PostComposer` takes `layout="inline"` for a composer that sits in the page, such as a reply field under a post: no header or dividers, with Cancel and the submit button at the end of the toolbar.
+
 ## 0.19.1
 
 ### Patch Changes
