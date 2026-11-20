@@ -90,6 +90,15 @@ describe('event video player', () => {
 		expect(video.muted).toBe(false);
 	});
 
+	it('uses CORS mode only when there is a captions file to fetch', async () => {
+		const plain = await render(Player, { title: 'Recording', poster: '/poster.jpg' });
+		// Otherwise a poster from a host without CORS headers would be blocked.
+		expect(plain.container.querySelector('video')!.crossOrigin).toBeNull();
+		plain.unmount();
+		const captioned = await render(Player, { title: 'Recording', captionsUrl: captions });
+		expect(captioned.container.querySelector('video')!.crossOrigin).toBe('anonymous');
+	});
+
 	it('leaves out the timeline for a live stream', async () => {
 		const { container } = await render(Player, { title: 'Live stream', live: true });
 		await expect.element(page.getByText('Live', { exact: true })).toBeInTheDocument();

@@ -267,12 +267,14 @@
 	onpointerleave={() => playing && (active = false)}
 	onkeydown={shortcuts === 'page' ? undefined : key}
 >
+	<!-- A captions file from another origin needs CORS mode. Without one it stays off: in CORS
+	     mode the poster is fetched that way too, and image hosts without CORS headers are blocked. -->
 	<video
 		bind:this={video}
 		{poster}
 		{autoplay}
 		playsinline
-		crossorigin="anonymous"
+		crossorigin={captionsUrl ? 'anonymous' : undefined}
 		class="size-full object-contain"
 		onclick={toggle}
 		ondblclick={toggleFullscreen}
