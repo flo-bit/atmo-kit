@@ -229,6 +229,10 @@ describe('articleRecord', () => {
 		const pdf = { ...image, mimeType: 'application/pdf' };
 		expect(() => articleRecord({ ...input, text, blobs: [large] })).toThrow(/too large/);
 		expect(() => articleRecord({ ...input, text, blobs: [pdf] })).toThrow(/type/);
+		// No GIFs for now, in the text or as a cover.
+		const gif = { ...image, mimeType: 'image/gif' };
+		expect(() => articleRecord({ ...input, text, blobs: [gif] })).toThrow(/type/);
+		expect(() => articleRecord({ ...input, cover: gif })).toThrow(/cover/);
 		const existing = { ...document, content: { ...document.content, images: [large] } };
 		expect(() => articleRecord({ ...input, text, existing })).toThrow(ArticleError);
 		// At the limit, and not shown by the text: fine.

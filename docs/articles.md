@@ -76,9 +76,10 @@ servers accept in one write: `textContent`, the plain copy of the text, is cut s
 is no room for all of it, and a text too long by itself is refused.
 
 Every `cid:` image in the text must be in `blobs` or already in `existing`; the record lists
-them so that the blobs stay alive. `ARTICLE_LIMITS` and `ARTICLE_IMAGE_TYPES` are the limits
-the builders enforce; `prepareArticleImage(file, maxBytes?)` re-encodes an image in the
-browser, only when needed, to fit them.
+them so that the blobs stay alive. `ARTICLE_LIMITS` and `ARTICLE_IMAGE_TYPES` (PNG, JPEG, WebP
+and AVIF; no GIFs for now, which image CDNs serve as a still) are the limits the builders
+enforce; `prepareArticleImage(file, maxBytes?)` re-encodes an image in the browser, only when
+needed, to fit them.
 
 ## Reading
 

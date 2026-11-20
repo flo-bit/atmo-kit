@@ -18,11 +18,14 @@ export const MARKDOWN_CONTENT = 'blog.atmo.content.markdown';
 /** Where publications written with these helpers are registered, unless an app says otherwise. */
 export const ATMO_BLOG_ORIGIN = 'https://atmo.blog';
 
+/**
+ * No GIFs for now: image CDNs, Bluesky's among them, serve an animated one as its first frame,
+ * so it could not be shown as it was uploaded.
+ */
 export const ARTICLE_IMAGE_TYPES: readonly string[] = [
 	'image/png',
 	'image/jpeg',
 	'image/webp',
-	'image/gif',
 	'image/avif'
 ];
 export const ARTICLE_LIMITS = {

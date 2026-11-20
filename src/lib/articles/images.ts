@@ -14,8 +14,9 @@ export async function prepareArticleImage(
 	file: Blob,
 	maxBytes: number = ARTICLE_LIMITS.imageBytes
 ): Promise<Blob> {
+	// Said rather than made a still of: the author expects it to move.
+	if (file.type === 'image/gif') throw new Error('GIFs are not supported yet.');
 	if (ARTICLE_IMAGE_TYPES.includes(file.type) && file.size <= maxBytes) return file;
-	if (file.type === 'image/gif') throw new Error('This GIF is too large.');
 	let bitmap: ImageBitmap;
 	try {
 		bitmap = await createImageBitmap(file);
