@@ -11,20 +11,25 @@
 		title,
 		description,
 		dismissible = true,
+		ref = $bindable(null),
+		overlayRef = $bindable(null),
 		class: className,
 		style,
 		children,
 		onOpenAutoFocus,
 		...rest
-	}: Omit<Primitive.ContentProps, 'children' | 'child' | 'title'> & {
+	}: Omit<Primitive.ContentProps, 'children' | 'child' | 'title' | 'ref'> & {
 		open?: boolean;
 		title: string;
 		description?: string;
 		dismissible?: boolean;
+		/** The dialog element, while open. */
+		ref?: HTMLElement | null;
+		/** The backdrop element, while open. */
+		overlayRef?: HTMLElement | null;
 		children?: Snippet;
 	} = $props();
 	let origin = $state<HTMLSpanElement>();
-	let content = $state<HTMLElement | null>(null);
 	let inherited = $state('');
 	$effect(() => {
 		if (!open || !origin) {
@@ -41,10 +46,10 @@
 <span hidden bind:this={origin} class={cn('atmo-theme', className)} {style}></span>
 <Primitive.Root bind:open>
 	{#if inherited}<Primitive.Portal>
-			<Primitive.Overlay class="fixed inset-0 z-50 bg-black/55" />
+			<Primitive.Overlay bind:ref={overlayRef} class="fixed inset-0 z-50 bg-black/55" />
 			<Primitive.Content
 				{...rest}
-				bind:ref={content}
+				bind:ref
 				interactOutsideBehavior={dismissible ? 'close' : 'ignore'}
 				escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
 				style={[inherited, style].filter(Boolean).join(';')}
@@ -55,7 +60,7 @@
 				onOpenAutoFocus={(event) => {
 					onOpenAutoFocus?.(event);
 					if (!event.defaultPrevented) {
-						const target = content?.querySelector<HTMLElement>('[data-autofocus]');
+						const target = ref?.querySelector<HTMLElement>('[data-autofocus]');
 						if (target) {
 							event.preventDefault();
 							target.focus();

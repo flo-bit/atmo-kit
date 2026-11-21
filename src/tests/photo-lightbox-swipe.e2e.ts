@@ -55,7 +55,8 @@ test.describe('native touch lightbox', () => {
 		await swipe(60, 315);
 		await expect(dialog).toHaveAccessibleName('An afternoon outdoors · 2 / 2');
 		await expect.poll(() => track.evaluate((n) => n.scrollLeft)).toBe(780);
-		await swipe(195, 195, 300, 550);
+		// Upwards neither navigates nor closes; downwards closes (see touch-gestures).
+		await swipe(195, 195, 550, 300);
 		await expect(dialog).toHaveAccessibleName('An afternoon outdoors · 2 / 2');
 		await page.getByRole('button', { name: 'Next photo' }).tap();
 		await expect(dialog).toHaveAccessibleName('An afternoon outdoors · 1 / 2');

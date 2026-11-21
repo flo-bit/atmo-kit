@@ -9,7 +9,8 @@
 		IconRail,
 		Label,
 		Select,
-		WorkspaceSidebar
+		WorkspaceSidebar,
+		swipeBack
 	} from '#lib';
 	import { Home, Menu, Moon, Sun, UserRound } from '@sketchyicons/svelte';
 	let dark = $state(true);
@@ -17,6 +18,15 @@
 	let open = $state(false);
 	let signedIn = $state(true);
 	let profile = $state(false);
+	let main = $state<HTMLElement>();
+	// On the profile, a swipe to the right goes back to Home; it opens the drawer elsewhere.
+	$effect(() => {
+		if (profile)
+			return swipeBack(
+				() => main,
+				() => (profile = false)
+			);
+	});
 	const items = $derived([
 		{ label: 'Home', icon: Home, active: !profile, onclick: () => (profile = false) },
 		{ label: 'Profile', icon: UserRound, active: profile, onclick: () => (profile = true) }
@@ -52,12 +62,18 @@
 			<Button variant="ghost" onclick={() => (signedIn = true)}>Sign in</Button>
 		{/if}
 	{/snippet}
-	{#if layout === 'rail'}
-		<IconRail label="Example navigation" {items}>
+	{#if layout === 'rail' || layout === 'drawer'}
+		<IconRail
+			label="Example navigation"
+			{items}
+			mobile={layout === 'drawer' ? 'drawer' : 'bar'}
+			swipe={!profile}
+			bind:open
+		>
 			{#snippet footer({ expanded, close })}{@render account(expanded, close)}{/snippet}
 		</IconRail>
 	{:else}
-		<WorkspaceSidebar label="Example navigation" bind:open>
+		<WorkspaceSidebar label="Example navigation" swipe={!profile} bind:open>
 			<div class="flex min-h-full flex-col gap-2">
 				{#each items as item (item.label)}
 					<Button
@@ -74,7 +90,10 @@
 			</div>
 		</WorkspaceSidebar>
 	{/if}
-	<main class={['min-h-dvh px-5 pt-6 pb-24 sm:px-8', layout === 'rail' ? 'sm:ml-18' : 'md:ml-64']}>
+	<main
+		bind:this={main}
+		class={['min-h-dvh px-5 pt-6 pb-24 sm:px-8', layout === 'sidebar' ? 'md:ml-64' : 'sm:ml-18']}
+	>
 		<div class="flex flex-wrap items-center justify-between gap-4">
 			<Button href={resolve('/components')} variant="link" size="sm">Components</Button>
 			<IconButton
@@ -90,11 +109,14 @@
 			onchange={() => (open = false)}
 			wrapperClass="max-w-xs"
 		>
-			<option value="rail">Icon rail</option><option value="sidebar">Workspace sidebar</option>
+			<option value="rail">Icon rail</option><option value="drawer">Icon rail with drawer</option
+			><option value="sidebar">Workspace sidebar</option>
 		</Select>
-		{#if layout === 'sidebar'}
-			<Button variant="secondary" class="mt-4 flex md:hidden" onclick={() => (open = true)}
-				><Icon img={Menu} />Open navigation</Button
+		{#if layout !== 'rail'}
+			<Button
+				variant="secondary"
+				class={['mt-4 flex', layout === 'drawer' ? 'sm:hidden' : 'md:hidden']}
+				onclick={() => (open = true)}><Icon img={Menu} />Open navigation</Button
 			>
 		{/if}
 		<section aria-label={profile ? 'Your profile' : 'Home'} class="mt-10">

@@ -21,12 +21,14 @@
 	import Icon from './Icon.svelte';
 	import Modal from './Modal.svelte';
 	import { cn } from '../utils.js';
+	import { drawerMotion } from '../drawer.svelte.js';
 	let {
 		label,
 		items,
 		backed = false,
 		mobile = 'bar',
 		open = $bindable(false),
+		swipe = true,
 		footer,
 		class: className,
 		ref = $bindable(null),
@@ -37,11 +39,22 @@
 		backed?: boolean;
 		mobile?: 'bar' | 'drawer';
 		open?: boolean;
+		/** On touch screens, swipe right on the page to open the drawer and left to close it. */
+		swipe?: boolean;
 		footer?: Snippet<[{ expanded: boolean; close: () => void }]>;
 		ref?: HTMLElement | null;
 	} = $props();
 	const small = new MediaQuery('(width < 40rem)', false);
 	const close = () => (open = false);
+	let panel = $state<HTMLElement | null>(null);
+	let overlay = $state<HTMLElement | null>(null);
+	const drawer = drawerMotion({
+		swipe: () => swipe && mobile === 'drawer' && small.current,
+		open: () => open,
+		setOpen: (value) => (open = value),
+		panel: () => panel,
+		overlay: () => overlay
+	});
 	let drawerWasOpen = false;
 	$effect(() => {
 		if (mobile !== 'drawer') return;
@@ -59,7 +72,9 @@
 
 {#if mobile === 'drawer' && small.current}
 	<Modal
-		bind:open
+		bind:open={() => open, (value) => (value ? (open = true) : drawer.dismiss())}
+		bind:ref={panel}
+		bind:overlayRef={overlay}
 		title={label}
 		onCloseAutoFocus={(event) => {
 			if (!small.current) event.preventDefault();
@@ -177,22 +192,3 @@
 		</nav>
 	</Tooltip.Provider>
 {/if}
-
-<style>
-	@keyframes drawer-enter {
-		from {
-			transform: translateX(-100%);
-		}
-		to {
-			transform: translateX(0);
-		}
-	}
-	:global([data-slot='icon-rail-drawer'][data-state='open']) {
-		animation: drawer-enter 130ms cubic-bezier(0.2, 0.8, 0.2, 1);
-	}
-	@media (prefers-reduced-motion: reduce) {
-		:global([data-slot='icon-rail-drawer']) {
-			animation: none;
-		}
-	}
-</style>

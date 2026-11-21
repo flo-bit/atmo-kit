@@ -90,6 +90,7 @@ export const catalog: CatalogGroup[] = [
 		components: [
 			component('IconRail', 'Desktop icon rail with a mobile bar or drawer.'),
 			component('WorkspaceSidebar', 'Desktop sidebar with a mobile drawer.'),
+			component('PullToRefresh', 'Refresh the page by pulling it down on touch screens.'),
 			component('AccountMenu', 'Profile, account switching and sign-out menu.')
 		]
 	},
