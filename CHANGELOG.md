@@ -1,5 +1,11 @@
 # @atmo-dev/kit
 
+## 0.21.0
+
+### Minor Changes
+
+- 69ebcca: `swipeBack` takes `{ follow: false }` to go back on release without moving the page.
+
 ## 0.20.0
 
 ### Minor Changes
