@@ -71,10 +71,17 @@ export const touchOf = (event: TouchEvent, id: number) =>
  * out of sight until what `onback` returns has settled, so return a promise for a navigation
  * that takes a moment. Returns a function that stops listening.
  *
+ * With `follow: false` nothing moves: `onback` is called on release, as a back button would.
+ *
  * Swipes are ignored where a drawer's are: at the left edge, in sideways scrollers, fields,
  * dialogs and `data-no-swipe`. A page that uses this should not also open a drawer by swipe.
  */
-export function swipeBack(target: () => HTMLElement | null | undefined, onback: () => unknown) {
+export function swipeBack(
+	target: () => HTMLElement | null | undefined,
+	onback: () => unknown,
+	{ follow = true }: { follow?: boolean } = {}
+) {
+	const still = () => !follow || reducedMotion();
 	let start: { id: number; x: number; y: number } | undefined;
 	let node: HTMLElement | undefined;
 	let moves: Move[] = [];
@@ -112,8 +119,7 @@ export function swipeBack(target: () => HTMLElement | null | undefined, onback: 
 		}
 		if (event.cancelable) event.preventDefault();
 		track(moves, touch, event);
-		if (!reducedMotion())
-			node.style.transform = `translateX(${Math.max(0, touch.clientX - start.x)}px)`;
+		if (!still()) node.style.transform = `translateX(${Math.max(0, touch.clientX - start.x)}px)`;
 	};
 	const onEnd = (event: TouchEvent) => {
 		if (!start || touchOf(event, start.id)) return;
@@ -125,7 +131,7 @@ export function swipeBack(target: () => HTMLElement | null | undefined, onback: 
 		const back =
 			event.type === 'touchend' &&
 			(fast > 0.4 || (fast > -0.3 && dx > Math.min(140, innerWidth * 0.35)));
-		if (reducedMotion()) {
+		if (still()) {
 			node = undefined;
 			return void (back && onback());
 		}

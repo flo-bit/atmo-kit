@@ -50,7 +50,8 @@ off on those pages.
 The element stays out of sight until what the callback returns has settled; return a promise
 that resolves once the previous page is shown. The same touches are ignored as for the
 drawer, including the left edge, which stays the browser's own back gesture. With reduced
-motion the element does not move and the callback runs on release.
+motion, or with `{ follow: false }` as a third argument, the element does not move and the
+callback runs on release, like a back button.
 
 ### Pull to refresh
 
