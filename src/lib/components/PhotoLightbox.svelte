@@ -4,6 +4,7 @@
 	import { ChevronLeft, ChevronRight, X } from '@sketchyicons/svelte';
 	import Icon from './Icon.svelte';
 	import { cn } from '../utils.js';
+	import { EASE, reducedMotion, speed, touchOf, track, undecided, type Move } from '../gestures.js';
 	import type { Photo } from '../media.js';
 	export type PhotoLightboxProps = {
 		photos: Photo[];
@@ -157,6 +158,96 @@
 		settleSoon();
 	}
 
+	// On touch screens a photo pulled down follows the finger, shrinking as the backdrop
+	// thins; let go far or fast enough and the viewer closes.
+	let overlay = $state<HTMLElement | null>(null);
+	$effect(() => {
+		const node = viewport;
+		if (!node) return;
+		let start: { id: number; x: number; y: number } | undefined;
+		let pulled: HTMLElement | undefined;
+		let moves: Move[] = [];
+		const restore = (animate: boolean) => {
+			const image = pulled;
+			pulled = undefined;
+			start = undefined;
+			if (!image) return;
+			const from = image.style.transform,
+				dark = overlay?.style.opacity;
+			image.style.removeProperty('transform');
+			overlay?.style.removeProperty('opacity');
+			if (!animate || reducedMotion()) return;
+			const timing = { duration: 200, easing: EASE };
+			image.animate([{ transform: from }, { transform: 'none' }], timing);
+			if (dark) overlay?.animate([{ opacity: dark }, { opacity: 1 }], timing);
+		};
+		const onStart = (event: TouchEvent) => {
+			if (pulled) return;
+			start = undefined;
+			// Two fingers zoom; a zoomed photo is panned, not pulled.
+			if (event.touches.length !== 1 || (visualViewport?.scale ?? 1) > 1.01) return;
+			const touch = event.touches[0];
+			start = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
+			moves = [];
+			track(moves, touch, event);
+		};
+		const onMove = (event: TouchEvent) => {
+			if (!start) return;
+			if (event.touches.length !== 1) return restore(true);
+			const touch = touchOf(event, start.id);
+			if (!touch) return;
+			const dx = touch.clientX - start.x,
+				dy = touch.clientY - start.y;
+			if (!pulled) {
+				const down = dy > Math.abs(dx);
+				if (undecided(event, dx, dy, down)) return;
+				const slide = node.children[Math.round(node.scrollLeft / (node.clientWidth || 1))];
+				const image = slide?.querySelector('img');
+				// Sideways is the track's own scrolling.
+				if (!down || !image) return void (start = undefined);
+				pulled = image;
+			}
+			if (event.cancelable) event.preventDefault();
+			track(moves, touch, event);
+			const far = Math.min(1, Math.max(0, dy) / innerHeight);
+			pulled.style.transform = `translate(${dx}px, ${Math.max(0, dy)}px) scale(${1 - far * 0.3})`;
+			if (overlay) overlay.style.opacity = String(1 - Math.min(1, far * 2.5) * 0.85);
+		};
+		const onEnd = (event: TouchEvent) => {
+			if (!start || touchOf(event, start.id)) return;
+			const image = pulled,
+				last = moves[moves.length - 1];
+			if (!image) return void (start = undefined);
+			// No click from the drag, which would close the viewer on its own.
+			if (event.cancelable) event.preventDefault();
+			const away = event.type === 'touchend' && (last.y - start.y > 100 || speed(moves, 'y') > 0.5);
+			if (!away) return restore(true);
+			if (reducedMotion()) return void (open = false);
+			const across = last.x - start.x;
+			start = undefined;
+			const timing = { duration: 160, easing: 'ease-in', fill: 'forwards' as const };
+			overlay?.animate([{ opacity: overlay.style.opacity }, { opacity: 0 }], timing);
+			image.animate(
+				[
+					{ transform: image.style.transform, opacity: 1 },
+					{ transform: `translate(${across}px, ${innerHeight * 0.6}px) scale(0.7)`, opacity: 0 }
+				],
+				timing
+			).onfinish = () => (open = false);
+		};
+		node.addEventListener('touchstart', onStart, { passive: true });
+		node.addEventListener('touchmove', onMove, { passive: false });
+		node.addEventListener('touchend', onEnd);
+		node.addEventListener('touchcancel', onEnd);
+		return () => {
+			node.removeEventListener('touchstart', onStart);
+			node.removeEventListener('touchmove', onMove);
+			node.removeEventListener('touchend', onEnd);
+			node.removeEventListener('touchcancel', onEnd);
+			restore(false);
+		};
+	});
+
 	$effect(() => {
 		if (!photos.length) open = false;
 		if (index < 0 || index >= photos.length) index = 0;
@@ -221,7 +312,7 @@
 <Dialog.Root bind:open>
 	{#if open && selected}
 		<Dialog.Portal>
-			<Dialog.Overlay class="fixed inset-0 z-50 bg-black/85" />
+			<Dialog.Overlay bind:ref={overlay} class="fixed inset-0 z-50 bg-black/85" />
 			<Dialog.Content
 				aria-describedby={undefined}
 				onclick={(event) => {

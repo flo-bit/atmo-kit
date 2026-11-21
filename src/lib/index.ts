@@ -83,6 +83,8 @@ export type { IconNode, SketchyIconProps } from '@sketchyicons/svelte';
 export { default as IconRail } from './components/IconRail.svelte';
 export type { IconRailItem } from './components/IconRail.svelte';
 export { default as WorkspaceSidebar } from './components/WorkspaceSidebar.svelte';
+export { swipeBack } from './gestures.js';
+export { default as PullToRefresh } from './components/PullToRefresh.svelte';
 export { default as AccountMenu } from './components/AccountMenu.svelte';
 export type { AccountMenuAccount } from './components/AccountMenu.svelte';
 export { default as LoginForm } from './components/login/LoginForm.svelte';

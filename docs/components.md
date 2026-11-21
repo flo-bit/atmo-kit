@@ -62,6 +62,7 @@ Local examples: `/` for native fields, `/examples` for editors and popovers.
 | ------------------ | ----------------------------------------------- |
 | `IconRail`         | Desktop icon rail, mobile bar or drawer         |
 | `WorkspaceSidebar` | Desktop sidebar, mobile drawer                  |
+| `PullToRefresh`    | Pull the page down to refresh, on touch screens |
 | `AccountMenu`      | Profile, account switching and sign-out actions |
 
 ## Login

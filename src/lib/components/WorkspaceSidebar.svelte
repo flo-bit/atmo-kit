@@ -5,9 +5,11 @@
 	import Surface from './Surface.svelte';
 	import Modal from './Modal.svelte';
 	import { cn } from '../utils.js';
+	import { drawerMotion } from '../drawer.svelte.js';
 	let {
 		label,
 		open = $bindable(false),
+		swipe = true,
 		children,
 		class: className,
 		style,
@@ -15,6 +17,8 @@
 	}: Omit<HTMLAttributes<HTMLElement>, 'children'> & {
 		label: string;
 		open?: boolean;
+		/** On touch screens, swipe right on the page to open the drawer and left to close it. */
+		swipe?: boolean;
 		children: Snippet;
 	} = $props();
 	// Native null means “remove the attribute”; Bits UI accepts undefined instead.
@@ -23,6 +27,15 @@
 	);
 	let desktop = $state<HTMLElement | null>(null);
 	const mobile = new MediaQuery('(width < 48rem)', false);
+	let panel = $state<HTMLElement | null>(null);
+	let overlay = $state<HTMLElement | null>(null);
+	const drawer = drawerMotion({
+		swipe: () => swipe && mobile.current,
+		open: () => open,
+		setOpen: (value) => (open = value),
+		panel: () => panel,
+		overlay: () => overlay
+	});
 	let drawerWasOpen = false;
 	$effect(() => {
 		const leavingDrawer = !mobile.current && drawerWasOpen;
@@ -61,7 +74,9 @@
 {:else}
 	<Modal
 		{...modalAttributes}
-		bind:open
+		bind:open={() => open, (value) => (value ? (open = true) : drawer.dismiss())}
+		bind:ref={panel}
+		bind:overlayRef={overlay}
 		title={label}
 		onCloseAutoFocus={(event) => {
 			if (!mobile.current) {

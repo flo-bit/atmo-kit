@@ -47,7 +47,7 @@ export const demoGroups: DemoGroup[] = [
 		load: () => import('./Controls.svelte')
 	},
 	{
-		names: ['IconRail', 'WorkspaceSidebar', 'AccountMenu'],
+		names: ['IconRail', 'WorkspaceSidebar', 'PullToRefresh', 'AccountMenu'],
 		load: () => import('./Navigation.svelte')
 	},
 	{
@@ -118,6 +118,7 @@ export const demos = Object.fromEntries(
 export const isolatedDemos = new Set([
 	'IconRail',
 	'WorkspaceSidebar',
+	'PullToRefresh',
 	'EventView',
 	'EventEditor',
 	'EventComments',

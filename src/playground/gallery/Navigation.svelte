@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AccountMenu, Button, Icon, IconRail, WorkspaceSidebar } from '#lib';
+	import { AccountMenu, Button, Icon, IconRail, PullToRefresh, WorkspaceSidebar } from '#lib';
 	import { Home, UserRound } from '@sketchyicons/svelte';
 	import { mika } from './fixtures.js';
 	let { name, compact = false }: { name: string; compact?: boolean } = $props();
@@ -7,6 +7,7 @@
 		open = $state(false),
 		selected = $state('Home'),
 		status = $state(''),
+		refreshes = $state(0),
 		current = $state({ did: 'did:example:mika', name: 'Mika Chen', handle: 'mika.example.com' }),
 		others = $state([{ did: 'did:example:noor', name: 'Noor Haddad', handle: 'noor.example.com' }]);
 	const items = $derived([
@@ -62,6 +63,19 @@
 			>
 				{status}
 			</p>{/if}
+	</div>
+{:else if name === 'PullToRefresh'}
+	<PullToRefresh
+		onrefresh={async () => {
+			await new Promise((resolve) => setTimeout(resolve, 800));
+			refreshes++;
+		}}
+	/>
+	<div class="min-h-dvh p-6">
+		<p class="text-sm text-base-600 dark:text-base-400">
+			On a touch screen, pull this page down from its top.
+		</p>
+		<p role="status" class="mt-3 text-sm">Refreshed {refreshes} times</p>
 	</div>
 {:else}
 	{#if name === 'IconRail'}
