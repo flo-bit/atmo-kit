@@ -23,7 +23,7 @@ const MAX_MESSAGES = 500;
 /** A stream counts as live while segments keep arriving. */
 const LIVE_WINDOW = 15_000;
 
-export type Teleport = { uri?: string; streamer: string; startsAt: string };
+export type Teleport = { uri?: string; cid?: string; streamer: string; startsAt: string };
 
 const timeOf = (message: ChatMessage) => {
 	const created = Date.parse(message.record.createdAt);
@@ -70,6 +70,8 @@ export class Channel {
 	#queue: Record<string, unknown>[] = [];
 	#flush?: ReturnType<typeof setTimeout>;
 	#index = new Map<string, ChatMessage>();
+	#pin: PinnedRecordView | null = null;
+	#pendingHides = new Map<string, number>();
 	#hidden = new Set<string>();
 	#blocked = new Set<string>();
 	#canceled = new Set<string>();
@@ -126,6 +128,10 @@ export class Channel {
 		const socket = new WebSocket(`${NODE_WS}/api/websocket/${encodeURIComponent(this.user)}`);
 		this.#socket = socket;
 		socket.onopen = () => {
+			if (this.#socket !== socket) return;
+			// The snapshot only includes an active pin or teleport. Absence means none.
+			this.#pin = this.pinned = null;
+			this.teleport = null;
 			this.#attempt = 0;
 			this.connected = true;
 			// Channels that never streamed send no segment at all.
@@ -215,12 +221,12 @@ export class Channel {
 					break;
 				}
 				case 'place.stream.chat.defs#pinnedRecordView': {
-					const pin = data as unknown as PinnedRecordView;
-					if (!this.#gone(pin.record.pinnedMessage, pin.message?.author.did)) this.pinned = pin;
+					this.#pin = data as unknown as PinnedRecordView;
+					this.#publishPin();
 					break;
 				}
 				case 'place.stream.chat.pinnedRecord':
-					if (data.deleted) this.pinned = null;
+					if (data.deleted) this.#pin = this.pinned = null;
 					break;
 				case 'place.stream.live.teleport': {
 					const version = `${data.uri}#${data.cid}`;
@@ -228,11 +234,18 @@ export class Channel {
 					this.teleport = data as unknown as Teleport;
 					break;
 				}
-				case 'place.stream.livestream#teleportCanceled':
-					this.#canceled.add(String(data.teleportUri));
-					if (data.cid) this.#canceled.add(`${data.teleportUri}#${data.cid}`);
-					if (!this.teleport?.uri || this.teleport.uri === data.teleportUri) this.teleport = null;
+				case 'place.stream.livestream#teleportCanceled': {
+					const uri = String(data.teleportUri);
+					this.#canceled.add(data.cid ? `${uri}#${data.cid}` : uri);
+					const active = this.teleport;
+					if (
+						active &&
+						(!active.uri || active.uri === uri) &&
+						(!data.cid || !active.cid || active.cid === data.cid)
+					)
+						this.teleport = null;
 					break;
+				}
 				case 'place.stream.livestream#teleportArrival': {
 					const source = data.source as ProfileBasic;
 					const uri = `system:${data.teleportUri}`;
@@ -280,7 +293,9 @@ export class Channel {
 	}
 
 	#publish() {
-		const all = [...this.#index.values()].sort((a, b) => timeOf(a) - timeOf(b));
+		const all = [...this.#index.values()]
+			.filter((message) => !this.#gone(message.uri, message.author.did))
+			.sort((a, b) => timeOf(a) - timeOf(b));
 		let list = all.filter((message) => !reactionTarget(message));
 		if (list.length > MAX_MESSAGES) {
 			const dropped = new Set(list.slice(0, list.length - MAX_MESSAGES).map((old) => old.uri));
@@ -302,13 +317,22 @@ export class Channel {
 			return replyTo === message.replyTo ? message : { ...message, replyTo };
 		});
 		this.reactions = groupReactions(all);
-		const pin = this.pinned;
-		if (pin && this.#gone(pin.record.pinnedMessage, pin.message?.author.did)) this.pinned = null;
+		this.#publishPin();
+	}
+
+	#publishPin() {
+		const pin = this.#pin;
+		this.pinned =
+			pin && !this.#gone(pin.record.pinnedMessage, pin.message?.author.did) ? pin : null;
 	}
 
 	/** Whether a message must not be shown anywhere: hidden, deleted, or from a blocked account. */
 	#gone(uri: string, author?: string) {
-		return this.#hidden.has(uri) || (!!author && this.#blocked.has(author));
+		return (
+			this.#pendingHides.has(uri) ||
+			this.#hidden.has(uri) ||
+			(!!author && this.#blocked.has(author))
+		);
 	}
 
 	/** Resolves a mentioned handle from chat first, then from the network. */
@@ -392,15 +416,19 @@ export class Channel {
 
 	/** Takes a message off screen for a write, and puts it back if the write fails. */
 	async #withoutMessage(uri: string, write: () => Promise<unknown>) {
-		const message = this.#index.get(uri);
-		this.hideLocally(uri);
+		// Keep the optimistic hide out of the node's state: a failed write only removes
+		// its own hide, never a gate, deletion or block received while it was pending.
+		this.#pendingHides.set(uri, (this.#pendingHides.get(uri) ?? 0) + 1);
+		this.#publish();
 		try {
 			await write();
-		} catch (cause) {
-			this.#hidden.delete(uri);
-			if (message) this.#index.set(uri, message);
+			this.#hidden.add(uri);
+			this.#index.delete(uri);
+		} finally {
+			const remaining = this.#pendingHides.get(uri)! - 1;
+			if (remaining) this.#pendingHides.set(uri, remaining);
+			else this.#pendingHides.delete(uri);
 			this.#publish();
-			throw cause;
 		}
 	}
 
@@ -428,9 +456,10 @@ export class Channel {
 
 	/** Streamer: removes the pinned message. */
 	async unpin() {
-		if (!this.pinned) return;
-		await this.#writer().delete(this.pinned.uri);
-		this.pinned = null;
+		const pin = this.pinned;
+		if (!pin) return;
+		await this.#writer().delete(pin.uri);
+		if (this.#pin?.uri === pin.uri && this.#pin.cid === pin.cid) this.#pin = this.pinned = null;
 	}
 
 	/**
@@ -448,7 +477,8 @@ export class Channel {
 	/** Removes a message from this tab right away; the network confirms later. */
 	hideLocally(uri: string) {
 		this.#hidden.add(uri);
-		if (this.#index.delete(uri)) this.#publish();
+		this.#index.delete(uri);
+		this.#publish();
 	}
 
 	banLocally(did: string) {

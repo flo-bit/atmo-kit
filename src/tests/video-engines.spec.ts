@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { startWebRTC } from '../lib/video/engines.js';
+import { startHls, startWebRTC } from '../lib/video/engines.js';
 
 class FakePeer {
 	static all: FakePeer[] = [];
@@ -98,6 +98,26 @@ describe('startWebRTC', () => {
 		engine.destroy();
 	});
 
+	it('gives up on peers that connect but never deliver media', async () => {
+		vi.stubGlobal('fetch', async () => new Response('answer'));
+		const onwaiting = vi.fn();
+		const onfail = vi.fn();
+		const engine = startWebRTC(video, '/whep', { onwaiting, onfail }, { attempts: 2 });
+		for (let i = 0; i < 2; i++) {
+			await gathered();
+			const peer = FakePeer.all[i];
+			peer.connectionState = 'connected';
+			peer.onconnectionstatechange?.();
+			await vi.advanceTimersByTimeAsync(8000);
+			if (!i) await vi.advanceTimersByTimeAsync(1200);
+		}
+		await vi.advanceTimersByTimeAsync(20_000);
+		expect(onwaiting).toHaveBeenCalledTimes(1);
+		expect(onfail).toHaveBeenCalledTimes(1);
+		expect(FakePeer.all).toHaveLength(2);
+		engine.destroy();
+	});
+
 	it('requests nothing when destroyed while gathering', async () => {
 		const { fetcher } = silentNode();
 		const engine = startWebRTC(video, 'https://node.example/whep', {});
@@ -118,5 +138,61 @@ describe('startWebRTC', () => {
 		expect(signals[0].aborted).toBe(true);
 		expect(onwaiting).not.toHaveBeenCalled();
 		expect(onfail).not.toHaveBeenCalled();
+	});
+});
+
+describe('native HLS', () => {
+	class NativeVideo extends EventTarget {
+		urls: string[] = [];
+		set src(url: string) {
+			this.urls.push(url);
+		}
+		canPlayType() {
+			return 'maybe';
+		}
+		removeAttribute() {}
+		load() {}
+	}
+
+	it('retries failed recordings, then offers a manual retry', async () => {
+		const element = new NativeVideo();
+		const onfail = vi.fn();
+		const onwaiting = vi.fn();
+		const engine = startHls(
+			element as unknown as HTMLVideoElement,
+			'/video',
+			{ onwaiting, onfail },
+			{ live: false }
+		);
+		await vi.waitFor(() => expect(element.urls).toEqual(['/video']));
+		for (let i = 0; i < 4; i++) {
+			element.dispatchEvent(new Event('error'));
+			await vi.advanceTimersByTimeAsync(8000);
+		}
+		expect(element.urls).toHaveLength(4);
+		expect(onwaiting).toHaveBeenCalledTimes(3);
+		expect(onfail).toHaveBeenCalledTimes(1);
+		engine.destroy();
+	});
+
+	it('discards native listeners and pending retries when the source is replaced', async () => {
+		const element = new NativeVideo();
+		const onready = vi.fn();
+		const onwaiting = vi.fn();
+		const engine = startHls(
+			element as unknown as HTMLVideoElement,
+			'/live',
+			{ onready, onwaiting },
+			{ live: true }
+		);
+		await vi.waitFor(() => expect(element.urls).toEqual(['/live']));
+		element.dispatchEvent(new Event('error'));
+		engine.destroy();
+		element.dispatchEvent(new Event('error'));
+		element.dispatchEvent(new Event('loadedmetadata'));
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(onready).not.toHaveBeenCalled();
+		expect(onwaiting).toHaveBeenCalledTimes(1);
+		expect(element.urls).toHaveLength(1);
 	});
 });

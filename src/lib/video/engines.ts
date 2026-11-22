@@ -78,7 +78,6 @@ export function startWebRTC(
 		};
 		connection.onconnectionstatechange = () => {
 			if (connection !== pc) return;
-			if (connection.connectionState === 'connected') failures = 0;
 			if (connection.connectionState === 'failed' || connection.connectionState === 'closed') {
 				failed('network');
 			}
@@ -124,15 +123,20 @@ export function startWebRTC(
 		}
 
 		// A connection can stay "connected" while no media arrives, e.g. when the stream ends.
+		if (connection !== pc) return;
 		lastBytes = 0;
 		lastBytesAt = Date.now();
 		watchdog = setInterval(async () => {
 			if (connection !== pc) return;
+			const reports = await connection.getStats().catch(() => undefined);
+			if (connection !== pc) return;
 			let bytes = 0;
-			(await connection.getStats()).forEach((report) => {
+			reports?.forEach((report) => {
 				if (report.type === 'inbound-rtp') bytes += report.bytesReceived ?? 0;
 			});
 			if (bytes > lastBytes) {
+				// A negotiated peer alone does not mean any media arrived.
+				failures = 0;
 				lastBytes = bytes;
 				lastBytesAt = Date.now();
 			} else if (Date.now() - lastBytesAt > 6000) {
@@ -188,11 +192,25 @@ export function startHls(
 	let retry: ReturnType<typeof setTimeout> | undefined;
 	let misses = 0;
 
+	const retryLoad = (reason: 'offline' | 'network', reload: () => void) => {
+		clearTimeout(retry);
+		misses += 1;
+		if (!options.live && misses > 3) return events.onfail?.();
+		events.onwaiting?.(reason);
+		retry = setTimeout(() => !destroyed && reload(), Math.min(8000, 1500 * misses));
+	};
+
+	const nativeListeners = new AbortController();
 	const native = () => {
-		video.src = url;
-		if (options.startAt) video.currentTime = options.startAt;
-		video.addEventListener('loadedmetadata', () => events.onready?.(), { once: true });
-		video.addEventListener('error', () => events.onwaiting?.('offline'), { once: true });
+		const reload = () => {
+			video.src = url;
+			if (options.startAt) video.currentTime = options.startAt;
+		};
+		const listener = { signal: nativeListeners.signal };
+		video.addEventListener('loadedmetadata', () => events.onready?.(), listener);
+		video.addEventListener('playing', () => (misses = 0), listener);
+		video.addEventListener('error', () => retryLoad('offline', reload), listener);
+		reload();
 	};
 
 	async function load() {
@@ -215,8 +233,8 @@ export function startHls(
 				: {})
 		});
 		hls = instance;
+		instance.on(HlsClass.Events.FRAG_BUFFERED, () => (misses = 0));
 		instance.on(HlsClass.Events.MANIFEST_PARSED, () => {
-			misses = 0;
 			events.onready?.();
 			const levels = instance.levels
 				.map((level, index) => ({
@@ -230,18 +248,10 @@ export function startHls(
 			if (!data.fatal || destroyed) return;
 			if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR) return instance.recoverMediaError();
 			// A missing playlist means the stream is not live on this node (yet).
-			misses += 1;
-			if (!options.live && misses > 3) return events.onfail?.();
-			events.onwaiting?.(data.response?.code && data.response.code < 500 ? 'offline' : 'network');
-			clearTimeout(retry);
-			retry = setTimeout(
-				() => {
-					if (destroyed) return;
-					instance.loadSource(url);
-					instance.startLoad();
-				},
-				Math.min(8000, 1500 * misses)
-			);
+			retryLoad(data.response?.code && data.response.code < 500 ? 'offline' : 'network', () => {
+				instance.loadSource(url);
+				instance.startLoad();
+			});
 		});
 		instance.loadSource(url);
 		instance.attachMedia(video);
@@ -253,6 +263,7 @@ export function startHls(
 		destroy() {
 			destroyed = true;
 			clearTimeout(retry);
+			nativeListeners.abort();
 			hls?.destroy();
 			video.removeAttribute('src');
 			video.load();

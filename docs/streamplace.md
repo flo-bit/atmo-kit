@@ -11,9 +11,9 @@ are written.
 
 The main entry still exports `parseStreamplaceLink` and `StreamplacePicker`.
 
-`@atmo-dev/kit/streamplace` used to hold only link parsing and worked in plain Node. It now
-contains Svelte components, so server code without a Svelte build step imports from
-`@atmo-dev/kit/streamplace-data`.
+In plain Node, `@atmo-dev/kit/streamplace` resolves to the data entry, so existing
+`parseStreamplaceLink` imports still work. Svelte builds get the components and `Channel`.
+Use `@atmo-dev/kit/streamplace-data` for data-only imports in either environment.
 
 ## Reading
 

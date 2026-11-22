@@ -46,6 +46,14 @@ function message(did: string, text: string, at: number, parent?: ChatMessage): C
 	} as ChatMessage;
 }
 
+const pin = (target: ChatMessage) => ({
+	$type: 'place.stream.chat.defs#pinnedRecordView',
+	uri: 'at://did:plc:streamer/place.stream.chat.pinnedRecord/1',
+	cid: 'p',
+	record: { pinnedMessage: target.uri, createdAt: new Date().toISOString() },
+	message: target
+});
+
 function open(write?: RecordWriter) {
 	const channel = new Channel(streamer, { write });
 	channel.connect();
@@ -119,13 +127,6 @@ describe('Channel', () => {
 		const { channel, emit } = open();
 		const bad = message('did:plc:bob', 'something awful', 1);
 		const reply = message('did:plc:alice', 'what?', 2, bad);
-		const pin = (target: ChatMessage) => ({
-			$type: 'place.stream.chat.defs#pinnedRecordView',
-			uri: 'at://did:plc:streamer/place.stream.chat.pinnedRecord/1',
-			cid: 'p',
-			record: { pinnedMessage: target.uri, createdAt: new Date().toISOString() },
-			message: target
-		});
 		emit(bad, reply, pin(bad));
 		expect(channel.messages[1].replyTo?.record.text).toBe('something awful');
 		expect(channel.pinned?.message?.record.text).toBe('something awful');
@@ -168,6 +169,43 @@ describe('Channel', () => {
 		expect(channel.messages[0].replyTo).toBeUndefined();
 		emit(first);
 		expect(channel.messages[1].replyTo?.record.text).toBe('the original');
+	});
+
+	it('starts with no pin on reconnect until the node sends its current one', () => {
+		const { channel, emit, socket } = open();
+		const pinned = pin(message('did:plc:alice', 'hello', 1));
+		emit(pinned);
+		expect(channel.pinned).toEqual(pinned);
+		socket.onclose?.();
+		vi.advanceTimersByTime(1000);
+		FakeSocket.last.onopen?.();
+		expect(channel.pinned).toBeNull();
+		FakeSocket.last.onmessage?.({ data: JSON.stringify(pinned) });
+		vi.advanceTimersByTime(100);
+		expect(channel.pinned).toEqual(pinned);
+	});
+
+	it('applies a versioned teleport cancellation only to the matching CID', () => {
+		const { channel, emit } = open();
+		const uri = `at://${streamer}/place.stream.live.teleport/1`;
+		const old = {
+			$type: 'place.stream.live.teleport',
+			uri,
+			cid: 'old',
+			streamer,
+			startsAt: new Date().toISOString()
+		};
+		const next = { ...old, cid: 'new' };
+		const cancel = { $type: 'place.stream.livestream#teleportCanceled', teleportUri: uri };
+		emit(next, { ...cancel, cid: 'old' }, old);
+		expect(channel.teleport).toEqual(next);
+		emit({ ...cancel, cid: 'new' }, next);
+		expect(channel.teleport).toBeNull();
+		const latest = { ...old, cid: 'latest' };
+		emit(latest);
+		expect(channel.teleport).toEqual(latest);
+		emit(cancel, latest);
+		expect(channel.teleport).toBeNull();
 	});
 
 	it('counts a stream as live only while segments keep arriving', () => {
@@ -315,6 +353,43 @@ describe('Channel', () => {
 		// Still there if the node repeats it, and new messages from the account still show.
 		emit(spam, message('did:plc:bob', 'later', 3));
 		expect(texts(channel)).toEqual(['spam', 'fine', 'later']);
+	});
+
+	it.each(['gate', 'deletion', 'block'] as const)(
+		'a failed optimistic hide does not undo a remote %s',
+		async (kind) => {
+			const { channel, emit } = open(writer('create'));
+			const original = message('did:plc:bob', 'original', 1);
+			const reply = { ...message('did:plc:alice', 'reply', 2, original), replyTo: original };
+			emit(original, reply, pin(original));
+			const hiding = channel.hide(original.uri);
+			expect(channel.pinned).toBeNull();
+			emit(
+				kind === 'gate'
+					? { $type: 'place.stream.chat.gate', hiddenMessage: original.uri }
+					: kind === 'deletion'
+						? { ...original, deleted: true }
+						: { $type: 'place.stream.defs#blockView', record: { subject: original.author.did } }
+			);
+			await expect(hiding).rejects.toThrow('offline');
+			emit(original, pin(original));
+			expect(texts(channel)).toEqual(['reply']);
+			expect(channel.messages[0].replyTo).toBeUndefined();
+			expect(channel.pinned).toBeNull();
+		}
+	);
+
+	it('restores quotes and a pin after a failed hide even without the original in history', async () => {
+		const { channel, emit } = open(writer('create'));
+		const original = message('did:plc:bob', 'original', 1);
+		const reply = { ...message('did:plc:alice', 'reply', 2, original), replyTo: original };
+		emit(reply, pin(original));
+		const hiding = channel.hide(original.uri);
+		expect(channel.messages[0].replyTo).toBeUndefined();
+		expect(channel.pinned).toBeNull();
+		await expect(hiding).rejects.toThrow('offline');
+		expect(channel.messages[0].replyTo).toEqual(original);
+		expect(channel.pinned?.message).toEqual(original);
 	});
 
 	it('puts a message and a reaction back when deleting them fails', async () => {
