@@ -118,6 +118,18 @@ describe('startWebRTC', () => {
 		engine.destroy();
 	});
 
+	it('falls back quickly when no media ever arrives, however many attempts are allowed', async () => {
+		vi.stubGlobal('fetch', async () => new Response('answer'));
+		const onfail = vi.fn();
+		const engine = startWebRTC(video, '/whep', { onfail });
+		await vi.advanceTimersByTimeAsync(25_000);
+		expect(onfail).toHaveBeenCalledTimes(1);
+		expect(FakePeer.all).toHaveLength(2);
+		await vi.advanceTimersByTimeAsync(30_000);
+		expect(FakePeer.all).toHaveLength(2);
+		engine.destroy();
+	});
+
 	it('requests nothing when destroyed while gathering', async () => {
 		const { fetcher } = silentNode();
 		const engine = startWebRTC(video, 'https://node.example/whep', {});

@@ -35,9 +35,11 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { ArrowDown, ExternalLink, Pin, Settings, X } from '@sketchyicons/svelte';
+	import Button from '../../components/Button.svelte';
 	import Checkbox from '../../components/Checkbox.svelte';
 	import Icon from '../../components/Icon.svelte';
 	import Label from '../../components/Label.svelte';
+	import Modal from '../../components/Modal.svelte';
 	import Popover from '../../components/Popover.svelte';
 	import EmojiPanel from '../../components/composer/EmojiPanel.svelte';
 	import { linkEmbedOptions, selectLinkEmbeds } from '../../embeds/context.js';
@@ -74,7 +76,8 @@
 	let draft = $state('');
 	let atBottom = $state(true);
 	let unread = $state(0);
-	let seen = 0;
+	/** The newest message that was on screen while following the chat. */
+	let seen: string | undefined;
 	let replyTo = $state.raw<ChatMessage | null>(null);
 	let notice = $state('');
 	let settingsOpen = $state(false);
@@ -84,6 +87,8 @@
 	let reacting = $state.raw<{ message: ChatMessage; anchor: HTMLElement } | null>(null);
 	let reactingOpen = $state(false);
 	let pinDismissed = $state<string>();
+	let banning = $state.raw<ChatMessage | null>(null);
+	let banOpen = $state(false);
 
 	// One clock for every message's "2m".
 	let now = $state(Date.now());
@@ -101,13 +106,15 @@
 
 	// Follow new messages while at the bottom; count them while reading history.
 	$effect(() => {
-		const count = channel.messages.length;
+		const messages = channel.messages;
 		if (atBottom) {
-			seen = count;
+			seen = messages.at(-1)?.uri;
 			unread = 0;
 			void tick().then(toBottom);
 		} else {
-			unread = Math.max(0, count - seen);
+			// By position, not by length: a full chat drops an old message for every new one.
+			const at = messages.findLastIndex((message) => message.uri === seen);
+			unread = messages.length - 1 - at;
 		}
 	});
 
@@ -146,10 +153,9 @@
 			else if (action === 'pin') await channel.pin(message.uri);
 			else if (action === 'ban') {
 				// A ban blocks the account everywhere, so it is confirmed first.
-				if (!confirm(`Ban @${message.author.handle} from your chat? This blocks the account.`))
-					return;
 				cardOpen = false;
-				await channel.ban(message.author.did);
+				banning = message;
+				banOpen = true;
 			}
 		} catch (cause) {
 			notice = cause instanceof Error ? cause.message : 'That did not work';
@@ -163,6 +169,16 @@
 			await channel.react(message, emoji, viewer);
 		} catch (cause) {
 			notice = cause instanceof Error ? cause.message : 'Could not react';
+		}
+	}
+
+	async function ban(message: ChatMessage) {
+		banOpen = false;
+		notice = '';
+		try {
+			await channel.ban(message.author.did);
+		} catch (cause) {
+			notice = cause instanceof Error ? cause.message : 'Could not ban';
 		}
 	}
 
@@ -425,3 +441,15 @@
 		/>
 	{/if}
 </Popover>
+
+<Modal
+	bind:open={banOpen}
+	title={banning ? `Ban @${banning.author.handle}?` : 'Ban'}
+	description="This blocks the account everywhere, not only in your chat."
+	class="max-w-sm"
+>
+	<div class="flex justify-end gap-2">
+		<Button variant="secondary" onclick={() => (banOpen = false)}>Cancel</Button>
+		<Button onclick={() => banning && ban(banning)}>Ban</Button>
+	</div>
+</Modal>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import StreamPlayer from '../lib/streamplace/StreamPlayer.svelte';
 import { createRawSnippet } from 'svelte';
@@ -120,5 +120,15 @@ describe('StreamPlayer', () => {
 		await page.getByRole('button', { name: 'Settings' }).click({ force: true });
 		await expect.element(page.getByRole('menuitemradio', { name: 'Lowest' })).toBeInTheDocument();
 		await expect.element(page.getByRole('menuitemradio', { name: 'Smoother' })).toBeInTheDocument();
+		// The menu is worked with the keyboard: focus starts inside, arrows move, Escape returns.
+		const focused = () => document.activeElement?.textContent?.trim();
+		await expect.poll(focused).toBe('Lowest');
+		await userEvent.keyboard('{ArrowDown}');
+		expect(focused()).toBe('Smoother');
+		await userEvent.keyboard('{End}{ArrowDown}');
+		expect(focused()).toBe('Lowest');
+		await userEvent.keyboard('{Escape}');
+		await expect.poll(() => document.querySelector('[role=menu]')).toBeNull();
+		expect(document.activeElement?.getAttribute('aria-label')).toBe('Settings');
 	});
 });

@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { parseStreamplaceLink as legacyParser } from '@atmo-dev/kit/streamplace';
 import test from 'node:test';
 
 // The actual public, built entry point in plain Node: no Vite, Svelte loader or DOM.
@@ -14,19 +12,11 @@ import {
 	withoutLink
 } from '@atmo-dev/kit/streamplace-data';
 
-test('the original Streamplace entry keeps its Node parser and Svelte component entry', () => {
-	assert.equal(legacyParser, parseStreamplaceLink);
-	const resolved = execFileSync(
-		process.execPath,
-		[
-			'--conditions=svelte',
-			'--input-type=module',
-			'-e',
-			"console.log(import.meta.resolve('@atmo-dev/kit/streamplace'))"
-		],
-		{ cwd: new URL('../', import.meta.url), encoding: 'utf8' }
-	);
-	assert.equal(resolved.trim(), new URL('../dist/streamplace.js', import.meta.url).href);
+test('the Streamplace entry is the same module under every condition', () => {
+	const { exports } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+	const targets = Object.entries(exports['./streamplace']).filter(([key]) => key !== 'types');
+	assert.ok(targets.length);
+	for (const [, target] of targets) assert.equal(target, './dist/streamplace.js');
 });
 
 test('Streamplace data helpers work on the server through the published export', () => {

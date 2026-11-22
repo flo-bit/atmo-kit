@@ -60,8 +60,8 @@ export function getLiveStreamsCached(): Promise<LivestreamView[]> {
 }
 
 type PublicProfile = { did: string; handle: string; displayName?: string; avatar?: string };
-/** Names and avatars from the public profile index, for lists loaded in the browser. */
-export async function fetchProfiles(dids: string[], signal?: AbortSignal) {
+/** Names and avatars from the public profile index. Accounts it does not know are left out. */
+export async function fetchProfiles(dids: string[], options: Options = {}) {
 	const profiles = new Map<string, PublicProfile>();
 	const unique = [...new Set(dids)];
 	for (let i = 0; i < unique.length; i += 25) {
@@ -69,9 +69,10 @@ export async function fetchProfiles(dids: string[], signal?: AbortSignal) {
 			.slice(i, i + 25)
 			.map((did) => `actors=${encodeURIComponent(did)}`)
 			.join('&');
-		const response = await fetch(`${appviewUrl()}/xrpc/app.bsky.actor.getProfiles?${query}`, {
-			signal
-		}).catch(() => null);
+		const response = await (options.fetch ?? fetch)(
+			`${appviewUrl()}/xrpc/app.bsky.actor.getProfiles?${query}`,
+			{ signal: options.signal }
+		).catch(() => null);
 		if (!response?.ok) continue;
 		const body = (await response.json()) as { profiles?: PublicProfile[] };
 		for (const profile of body.profiles ?? []) {
@@ -87,9 +88,13 @@ export async function fetchProfiles(dids: string[], signal?: AbortSignal) {
 }
 
 export async function withProfiles<T extends { author: { did: string } }>(
-	items: T[]
+	items: T[],
+	options?: Options
 ): Promise<T[]> {
-	const profiles = await fetchProfiles(items.map((item) => item.author.did));
+	const profiles = await fetchProfiles(
+		items.map((item) => item.author.did),
+		options
+	);
 	return items.map((item) => ({
 		...item,
 		author: { ...item.author, ...profiles.get(item.author.did) }
@@ -98,18 +103,23 @@ export async function withProfiles<T extends { author: { did: string } }>(
 
 /** Which of these accounts the viewer follows. Failed lookups count as not followed. */
 export async function followedAmong(viewer: string, dids: string[], options: Options = {}) {
-	const found = await Promise.all(
-		dids.map((did) =>
-			xrpc<{ follow?: unknown }>(
+	const found: string[] = [];
+	const queue = [...new Set(dids)];
+	// The node has no batch lookup: one request per account, a few at a time.
+	const worker = async () => {
+		for (let did = queue.shift(); did; did = queue.shift()) {
+			const subject = did;
+			await xrpc<{ follow?: unknown }>(
 				'place.stream.graph.getFollowingUser',
-				{ userDID: viewer, subjectDID: did },
+				{ userDID: viewer, subjectDID: subject },
 				options
 			)
-				.then((result) => (result.follow ? did : null))
-				.catch(() => null)
-		)
-	);
-	return found.filter((did) => did !== null);
+				.then((result) => result.follow && found.push(subject))
+				.catch(() => {});
+		}
+	};
+	await Promise.all(Array.from({ length: 6 }, worker));
+	return dids.filter((did) => found.includes(did));
 }
 
 export async function getLivestream(user: string, options: Options = {}) {
@@ -174,7 +184,6 @@ export function activityName(activity?: Activity) {
 export const visibleTags = (tags?: string[]) => (tags ?? []).filter((tag) => !tag.includes(':'));
 
 export const rkeyOf = (uri: string) => uri.split('/').pop() ?? '';
-export const didOf = (uri: string) => uri.split('/')[2] ?? '';
 
 export const displayName = (profile: { displayName?: string; handle: string; did: string }) =>
 	profile.displayName?.trim() || handleOf(profile);

@@ -11,9 +11,9 @@ are written.
 
 The main entry still exports `parseStreamplaceLink` and `StreamplacePicker`.
 
-In plain Node, `@atmo-dev/kit/streamplace` resolves to the data entry, so existing
-`parseStreamplaceLink` imports still work. Svelte builds get the components and `Channel`.
-Use `@atmo-dev/kit/streamplace-data` for data-only imports in either environment.
+`@atmo-dev/kit/streamplace` used to hold only link parsing and worked in plain Node. It now
+contains Svelte components, so server code without a Svelte build step imports from
+`@atmo-dev/kit/streamplace-data`.
 
 ## Reading
 
@@ -27,8 +27,8 @@ const { videos, cursor } = await getVideos({ repo: did, limit: 12 }, { fetch });
 Reads go to the fixed `stream.place` node with the caller's `fetch` and `signal`; there are no
 built-in timeouts. `getLivestream(user)` returns a channel's latest stream record or `null`;
 whether it is live right now comes from `getLiveStreams()` or the channel store, not from the
-record's `lastSeenAt`. Names and avatars from the node are often missing: `withProfiles(items)`
-fills them from the public AppView set with `configureAtproto`.
+record's `lastSeenAt`. Names and avatars from the node are often missing: `withProfiles(items,
+{ fetch })` fills them from the public AppView set with `configureAtproto`.
 
 `livePlaylist(user)`, `whepUrl(user)` and `videoPlaylist(uri)` give playback addresses.
 
@@ -111,7 +111,8 @@ viewer)` adds one, or removes the viewer's by deleting that reply.
 <StreamPlayer src={videoPlaylist(video.uri)} title={video.record.title} startAt={90} />
 ```
 
-- Live plays over WebRTC for the shortest delay and falls back to HLS when that fails;
+- Live plays over WebRTC for the shortest delay and falls back to HLS when that fails or no
+  video arrives;
   `delay="smooth"` chooses HLS, which buffers a few seconds. Playback starts and stops with
   `live`. While offline the `offline` snippet covers the player.
 - Playback starts by itself; pass `autoplay={false}` to wait for the play button.
@@ -166,8 +167,9 @@ Event recordings and event live streams use the same controls (`VodPlayer` in
   and a small age. Handles typed into the message box mark everything those people wrote.
 - Links: the first link of a message is shown as an embed from the app's link embeds
   (`embeds` overrides the list), an image after a click, or a card when `linkPreview` finds
-  a title. A link that is on screen this way is left out of the message text. Nothing is
-  looked up for ordinary links without `linkPreview`.
+  a title. A link shown this way is left out of the text when it ends the message; one with
+  words after it stays where it was written. Nothing is looked up for ordinary links without
+  `linkPreview`.
 - The streamer (the viewer whose DID is the channel's) also gets pin, hide and ban. Ban asks
   first, since it blocks the account everywhere.
 - `previews` and `times` are bindable and not stored. `settings` adds rows to the settings

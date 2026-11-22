@@ -301,6 +301,52 @@ describe('Channel', () => {
 		expect(channel.messages[0].pending).toBeUndefined();
 	});
 
+	it('shows a message before its mentions are looked up, then with them', async () => {
+		let found!: (response: Response) => void;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => new Promise<Response>((resolve) => (found = resolve)))
+		);
+		const write = writer();
+		const { channel } = open(write);
+		const sending = channel.send('hi @new.test', viewer);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(channel.messages[0]).toMatchObject({ pending: true, record: { text: 'hi @new.test' } });
+		expect(channel.messages[0].record.facets).toBeUndefined();
+		expect(write.create).not.toHaveBeenCalled();
+		found(Response.json({ did: 'did:plc:new' }));
+		await sending;
+		expect(write.create.mock.calls[0][1]).toMatchObject({
+			facets: [{ features: [{ $type: 'app.bsky.richtext.facet#mention', did: 'did:plc:new' }] }]
+		});
+		expect(channel.messages[0].record.facets).toHaveLength(1);
+	});
+
+	it('keeps a reply the same object while its quote is unchanged', () => {
+		const { channel, emit } = open();
+		const first = message('did:plc:alice', 'hello', 1);
+		emit(first, message('did:plc:bob', 'hi back', 2, first));
+		const reply = channel.messages[1];
+		expect(reply.replyTo?.record.text).toBe('hello');
+		emit(message('did:plc:carol', 'later', 3));
+		expect(channel.messages[1]).toBe(reply);
+		emit({ $type: 'place.stream.chat.gate', hiddenMessage: first.uri });
+		expect(channel.messages[0].replyTo).toBeUndefined();
+	});
+
+	it('drops reactions along with old messages once the chat is full', () => {
+		const { channel, emit } = open();
+		const gone = message('did:plc:alice', 'never loaded', 1);
+		const first = message('did:plc:alice', 'first', 2);
+		emit(first, message('did:plc:bob', '🔥', 3, first), message('did:plc:bob', '👍', 3, gone));
+		emit(...Array.from({ length: 500 }, (_, i) => message('did:plc:carol', `m${i}`, 4 + i / 100)));
+		expect(channel.messages).toHaveLength(500);
+		expect(channel.reactions.size).toBe(0);
+		// Not kept out of sight either: the message coming back does not bring them along.
+		emit(...Array.from({ length: 2 }, (_, i) => message('did:plc:carol', `late${i}`, 20 + i)));
+		expect(channel.reactions.size).toBe(0);
+	});
+
 	it('takes a message back when it cannot be written', async () => {
 		const { channel } = open(writer('create'));
 		await expect(channel.send('lost', viewer)).rejects.toThrow('offline');

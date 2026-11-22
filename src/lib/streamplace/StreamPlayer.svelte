@@ -245,9 +245,39 @@
 		webrtcFailed = false;
 	}
 
+	let menuButton = $state<HTMLButtonElement>();
+	const menuItems = (node: HTMLElement) => [
+		...node.querySelectorAll<HTMLElement>('[role^="menuitem"]')
+	];
+	/** Focus starts on the first item, so the arrow keys work at once. */
+	function openMenu(node: HTMLElement) {
+		menuItems(node)[0]?.focus();
+	}
+	function menuKey(event: KeyboardEvent & { currentTarget: HTMLElement }) {
+		const items = menuItems(event.currentTarget);
+		const at = items.indexOf(document.activeElement as HTMLElement);
+		const to =
+			event.key === 'ArrowDown'
+				? (at + 1) % items.length
+				: event.key === 'ArrowUp'
+					? (at - 1 + items.length) % items.length
+					: event.key === 'Home'
+						? 0
+						: event.key === 'End'
+							? items.length - 1
+							: -1;
+		if (to < 0) return;
+		event.preventDefault();
+		// The player's own arrow keys seek; here they only move through the menu.
+		event.stopPropagation();
+		items[to]?.focus();
+	}
+
 	function onkeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && menu) {
 			menu = false;
+			// Back to where the menu was opened from, not to the top of the page.
+			menuButton?.focus();
 			return event.preventDefault();
 		}
 		const target = event.target as HTMLElement;
@@ -318,6 +348,7 @@
 	{#snippet controls(button)}
 		<div class="relative">
 			<button
+				bind:this={menuButton}
 				type="button"
 				class={button}
 				aria-label="Settings"
@@ -337,6 +368,9 @@
 				></button>
 				<div
 					role="menu"
+					tabindex="-1"
+					{@attach openMenu}
+					onkeydown={menuKey}
 					aria-label="Settings"
 					class="absolute right-0 bottom-11 max-h-72 min-w-44 divide-y divide-white/10 overflow-y-auto rounded-xl bg-zinc-900/95 py-1 shadow-xl ring-1 ring-white/10 backdrop-blur"
 				>

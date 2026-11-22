@@ -75,6 +75,8 @@ export class Channel {
 	#hidden = new Set<string>();
 	#blocked = new Set<string>();
 	#canceled = new Set<string>();
+	/** The published copy of each reply, reused while its quote is unchanged so rows stay put. */
+	#quoted = new WeakMap<ChatMessage, ChatMessage>();
 
 	constructor(
 		user: string,
@@ -293,19 +295,27 @@ export class Channel {
 	}
 
 	#publish() {
-		const all = [...this.#index.values()]
+		let all = [...this.#index.values()]
 			.filter((message) => !this.#gone(message.uri, message.author.did))
 			.sort((a, b) => timeOf(a) - timeOf(b));
 		let list = all.filter((message) => !reactionTarget(message));
 		if (list.length > MAX_MESSAGES) {
 			const dropped = new Set(list.slice(0, list.length - MAX_MESSAGES).map((old) => old.uri));
 			// Reactions go with the message they are on.
+			list = list.slice(-MAX_MESSAGES);
+			const oldest = timeOf(list[0]);
 			for (const message of all) {
-				if (dropped.has(message.uri) || dropped.has(reactionTarget(message) ?? '')) {
+				const target = reactionTarget(message);
+				if (
+					dropped.has(message.uri) ||
+					// Also reactions to messages that were never loaded and are older than the list.
+					(target &&
+						(dropped.has(target) || (!this.#index.has(target) && timeOf(message) < oldest)))
+				) {
 					this.#index.delete(message.uri);
 				}
 			}
-			list = list.slice(-MAX_MESSAGES);
+			all = all.filter((message) => this.#index.has(message.uri));
 		}
 		// A reply quotes the message it answers. The quote is taken from what is on screen now,
 		// so a hidden, deleted or blocked message does not live on inside its replies.
@@ -314,7 +324,12 @@ export class Channel {
 			if (!parent) return message;
 			const quoted = this.#index.get(parent) ?? message.replyTo;
 			const replyTo = quoted && !this.#gone(parent, quoted.author.did) ? quoted : undefined;
-			return replyTo === message.replyTo ? message : { ...message, replyTo };
+			if (replyTo === message.replyTo) return message;
+			const previous = this.#quoted.get(message);
+			if (previous && previous.replyTo === replyTo) return previous;
+			const next = { ...message, replyTo };
+			this.#quoted.set(message, next);
+			return next;
 		});
 		this.reactions = groupReactions(all);
 		this.#publishPin();
@@ -356,13 +371,11 @@ export class Channel {
 		const write = this.#writer();
 		const streamer = this.profile?.did ?? this.livestream?.author.did;
 		if (!streamer) throw new Error('The chat is still connecting');
-		const facets = await detectFacets(text, (handle) => this.resolveHandle(handle));
-		const record: ChatMessageRecord = {
+		const draft: ChatMessageRecord = {
 			$type: 'place.stream.chat.message',
 			text,
 			createdAt: new Date().toISOString(),
 			streamer,
-			...(facets.length ? { facets } : {}),
 			...(replyTo
 				? {
 						reply: {
@@ -372,13 +385,14 @@ export class Channel {
 					}
 				: {})
 		};
-		const local: ChatMessage = {
+		// On screen before anything is looked up: resolving a mention can take a moment.
+		let local: ChatMessage = {
 			uri: `local:${crypto.randomUUID()}`,
 			cid: '',
 			author: { did: viewer.did, handle: viewer.handle, displayName: viewer.displayName },
 			chatProfile: this.authors.get(viewer.did)?.chatProfile,
-			record,
-			indexedAt: record.createdAt,
+			record: draft,
+			indexedAt: draft.createdAt,
 			replyTo: replyTo ?? undefined,
 			pending: true
 		};
@@ -386,7 +400,14 @@ export class Channel {
 		this.#publish();
 		let created: { uri?: string; cid?: string } | undefined;
 		try {
-			created = await write.create('place.stream.chat.message', record);
+			const facets = await detectFacets(text, (handle) => this.resolveHandle(handle));
+			if (facets.length) {
+				// A new object, so the row on screen picks up its links and mentions.
+				local = { ...local, record: { ...draft, facets } };
+				this.#index.set(local.uri, local);
+				this.#publish();
+			}
+			created = await write.create('place.stream.chat.message', local.record);
 		} catch (cause) {
 			this.#index.delete(local.uri);
 			this.#publish();

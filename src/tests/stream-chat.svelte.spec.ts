@@ -149,6 +149,67 @@ describe('StreamChat', () => {
 		await expect.poll(() => rows().length).toBe(0);
 	});
 
+	it('asks before banning, and bans only when confirmed', async () => {
+		const { channel, create } = setup();
+		channel.receive([message('bob.example', 'spam')]);
+		await render(StreamChat, {
+			channel,
+			viewer: { did: streamer, handle: 'streamer.example' }
+		});
+		await page.getByText('spam').hover();
+		await page.getByRole('button', { name: 'Ban from chat' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Ban @bob.example?' });
+		await expect.element(dialog).toBeVisible();
+		await dialog.getByRole('button', { name: 'Cancel' }).click();
+		await expect.poll(() => document.querySelector('[role=dialog]')).toBeNull();
+		expect(create).not.toHaveBeenCalled();
+		expect(rows()).toHaveLength(1);
+		await page.getByText('spam').hover();
+		await page.getByRole('button', { name: 'Ban from chat' }).click();
+		await dialog.getByRole('button', { name: 'Ban', exact: true }).click();
+		await expect
+			.poll(() => create.mock.calls.map(([collection]) => collection))
+			.toEqual(['app.bsky.graph.block']);
+		await expect.poll(() => rows().length).toBe(0);
+	});
+
+	it('keeps a link where it was written unless it ends the message', async () => {
+		const { channel } = setup();
+		channel.receive([
+			message('alice.example', 'watch https://stream.place/bob.example before tonight'),
+			message('carol.example', 'my channel https://stream.place/carol.example')
+		]);
+		await render(StreamChat, {
+			channel,
+			viewer,
+			embeds: [
+				{
+					id: 'stream',
+					label: 'stream',
+					match: (url: URL) => (url.hostname === 'stream.place' ? {} : null),
+					load: () => import('./fixtures/EmbedCard.svelte')
+				}
+			]
+		});
+		await expect.poll(() => document.querySelectorAll('[data-test-card]').length).toBe(2);
+		const text = (index: number) => rows()[index].querySelector('p')?.textContent ?? '';
+		await expect.poll(() => text(1)).not.toContain('stream.place');
+		expect(text(1)).toContain('my channel');
+		expect(text(0)).toMatch(/watch\s+https:\/\/stream\.place\/bob\.example\s+before tonight/);
+	});
+
+	it('counts new messages while reading history, also once the chat is full', async () => {
+		const { channel } = setup();
+		channel.receive(Array.from({ length: 500 }, (_, i) => message('alice.example', `m${i}`)));
+		await render(StreamChat, { channel, viewer, class: 'h-80' });
+		const log = document.querySelector<HTMLElement>('[role=log]')!;
+		await expect.poll(() => log.scrollTop).toBeGreaterThan(0);
+		log.scrollTop = 0;
+		await expect.element(page.getByRole('button', { name: 'Latest messages' })).toBeVisible();
+		channel.receive([message('bob.example', 'new one'), message('bob.example', 'new two')]);
+		await expect.element(page.getByRole('button', { name: '2 new messages' })).toBeVisible();
+	});
+
 	it('marks everyone whose handle is typed into the message box', async () => {
 		const { channel } = setup();
 		channel.receive([

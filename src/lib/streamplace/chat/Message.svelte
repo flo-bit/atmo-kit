@@ -78,14 +78,18 @@
 			? withoutLink(message.record.text, message.record.facets, link)
 			: { text: message.record.text, facets: message.record.facets }
 	);
+	// A record can carry any string as its date; the node's own timestamp is the fallback.
+	const created = $derived(
+		Date.parse(message.record.createdAt) || Date.parse(message.indexedAt) || now
+	);
 	const time = $derived(
-		new Date(message.record.createdAt).toLocaleTimeString([], {
+		new Date(created).toLocaleTimeString([], {
 			hour: '2-digit',
 			minute: '2-digit'
 		})
 	);
 	const ago = $derived.by(() => {
-		const seconds = Math.max(0, (now - Date.parse(message.record.createdAt)) / 1000);
+		const seconds = Math.max(0, (now - created) / 1000);
 		if (seconds < 10) return 'now';
 		if (seconds < 60) return `${Math.floor(seconds / 5) * 5}s`;
 		if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
@@ -156,7 +160,7 @@
 		{/if}
 		<p>
 			{#if times}<time
-					datetime={message.record.createdAt}
+					datetime={new Date(created).toISOString()}
 					title={time}
 					class="float-right mt-0.5 ml-2 text-[10.5px] text-base-600 tabular-nums dark:text-base-400"
 					>{ago}</time

@@ -4,7 +4,31 @@
  */
 export * from './streamplace/links.js';
 export type * from './streamplace/types.js';
-export * from './streamplace/api.js';
+export {
+	ApiError,
+	activityName,
+	activityOptions,
+	blobImage,
+	displayName,
+	fetchProfiles,
+	followedAmong,
+	formatCount,
+	getLiveStreams,
+	getLiveStreamsCached,
+	getLivestream,
+	getVideo,
+	getVideos,
+	handleOf,
+	livePlaylist,
+	liveThumbnail,
+	rkeyOf,
+	timeAgo,
+	videoPlaylist,
+	visibleTags,
+	whepUrl,
+	withProfiles,
+	xrpc
+} from './streamplace/api.js';
 export { detectFacets, linksOf, withoutLink, type ResolveHandle } from './streamplace/facets.js';
 export {
 	groupReactions,

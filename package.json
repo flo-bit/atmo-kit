@@ -80,12 +80,8 @@
 			"default": "./dist/semble.js"
 		},
 		"./streamplace": {
-			"svelte": "./dist/streamplace.js",
-			"node": {
-				"types": "./dist/streamplace-data.d.ts",
-				"default": "./dist/streamplace-data.js"
-			},
 			"types": "./dist/streamplace.d.ts",
+			"svelte": "./dist/streamplace.js",
 			"default": "./dist/streamplace.js"
 		},
 		"./streamplace-data": {

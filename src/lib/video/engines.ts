@@ -25,9 +25,13 @@ export type Engine = {
 /** How long the node gets to answer one playback request. */
 const ANSWER_DEADLINE = 8000;
 
+/** A peer that negotiated but never delivered media is not worth many more tries. */
+const SILENT_ATTEMPTS = 2;
+
 /**
  * Sub-second playback over WHEP. Reconnects by itself and gives up after `attempts` failures
- * in a row (4 by default; 1 never retries).
+ * in a row (4 by default; 1 never retries), or sooner when peers connect and no media ever
+ * arrives, as on networks that block it.
  */
 export function startWebRTC(
 	video: HTMLVideoElement,
@@ -41,6 +45,7 @@ export function startWebRTC(
 	let retry: ReturnType<typeof setTimeout> | undefined;
 	let watchdog: ReturnType<typeof setInterval> | undefined;
 	let failures = 0;
+	let silent = 0;
 	let lastBytes = 0;
 	let lastBytesAt = 0;
 	let previous: { bytes: number; at: number } | undefined;
@@ -137,9 +142,12 @@ export function startWebRTC(
 			if (bytes > lastBytes) {
 				// A negotiated peer alone does not mean any media arrived.
 				failures = 0;
+				silent = 0;
 				lastBytes = bytes;
 				lastBytesAt = Date.now();
 			} else if (Date.now() - lastBytesAt > 6000) {
+				// Never any media on this peer, again: stop early so the caller can fall back.
+				if (!lastBytes && ++silent >= SILENT_ATTEMPTS) failures = attempts;
 				failed('offline');
 			}
 		}, 2000);
@@ -191,6 +199,7 @@ export function startHls(
 	let hls: Hls | undefined;
 	let retry: ReturnType<typeof setTimeout> | undefined;
 	let misses = 0;
+	let recoveries = 0;
 
 	const retryLoad = (reason: 'offline' | 'network', reload: () => void) => {
 		clearTimeout(retry);
@@ -200,13 +209,13 @@ export function startHls(
 		retry = setTimeout(() => !destroyed && reload(), Math.min(8000, 1500 * misses));
 	};
 
-	const nativeListeners = new AbortController();
+	const listeners = new AbortController();
 	const native = () => {
 		const reload = () => {
 			video.src = url;
 			if (options.startAt) video.currentTime = options.startAt;
 		};
-		const listener = { signal: nativeListeners.signal };
+		const listener = { signal: listeners.signal };
 		video.addEventListener('loadedmetadata', () => events.onready?.(), listener);
 		video.addEventListener('playing', () => (misses = 0), listener);
 		video.addEventListener('error', () => retryLoad('offline', reload), listener);
@@ -234,6 +243,9 @@ export function startHls(
 		});
 		hls = instance;
 		instance.on(HlsClass.Events.FRAG_BUFFERED, () => (misses = 0));
+		// Recovered for real once playback moves on, not merely once a fragment is buffered.
+		const progressed = () => (recoveries = 0);
+		video.addEventListener('timeupdate', progressed, { signal: listeners.signal });
 		instance.on(HlsClass.Events.MANIFEST_PARSED, () => {
 			events.onready?.();
 			const levels = instance.levels
@@ -246,7 +258,14 @@ export function startHls(
 		});
 		instance.on(HlsClass.Events.ERROR, (_event, data) => {
 			if (!data.fatal || destroyed) return;
-			if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR) return instance.recoverMediaError();
+			if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR) {
+				// Media the browser cannot decode fails the same way every time.
+				if (++recoveries > 3) {
+					instance.stopLoad();
+					return events.onfail?.();
+				}
+				return instance.recoverMediaError();
+			}
 			// A missing playlist means the stream is not live on this node (yet).
 			retryLoad(data.response?.code && data.response.code < 500 ? 'offline' : 'network', () => {
 				instance.loadSource(url);
@@ -263,7 +282,7 @@ export function startHls(
 		destroy() {
 			destroyed = true;
 			clearTimeout(retry);
-			nativeListeners.abort();
+			listeners.abort();
 			hls?.destroy();
 			video.removeAttribute('src');
 			video.load();
