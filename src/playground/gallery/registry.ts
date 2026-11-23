@@ -80,6 +80,7 @@ export const demoGroups: DemoGroup[] = [
 		load: () => import('./Media.svelte')
 	},
 	{ names: ['LegalDocument', 'LegalFooter', 'ReportDialog'], load: () => import('./Legal.svelte') },
+	{ names: ['DataLabel'], load: () => import('./Data.svelte') },
 	{ names: ['PageTitle', 'AtTags'], load: () => import('./Metadata.svelte') },
 	{
 		names: [

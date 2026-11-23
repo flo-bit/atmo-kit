@@ -68,6 +68,11 @@ export type {
 	LegalFooterLinks,
 	LegalDraftConfig
 } from './components/legal/types.js';
+export { default as DataLabel } from './components/data/DataLabel.svelte';
+export type { DataLabelProps } from './components/data/DataLabel.svelte';
+export { getDataLabelIssues } from './components/data/issues.js';
+export { dataVisibilityLevels } from './components/data/visibility.js';
+export type { DataLabelData, DataLabelEntry, DataVisibility } from './components/data/types.js';
 export { default as ReportDialog } from './components/report/ReportDialog.svelte';
 export type { ReportDialogProps } from './components/report/ReportDialog.svelte';
 export type {

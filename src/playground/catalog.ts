@@ -10,7 +10,10 @@ export type CatalogGroup = {
 		| '@atmo-dev/kit/articles'
 		| '@atmo-dev/kit/streamplace';
 	guide?: string;
-	example?: { href: '/' | '/examples' | '/navigation' | '/login' | '/legal'; label: string };
+	example?: {
+		href: '/' | '/examples' | '/navigation' | '/login' | '/legal' | '/data';
+		label: string;
+	};
 	components: CatalogComponent[];
 };
 
@@ -199,6 +202,20 @@ export const catalog: CatalogGroup[] = [
 				'ReportDialog',
 				'Report form, submission feedback, and email fallback.',
 				'components/report/ReportDialog.svelte'
+			)
+		]
+	},
+	{
+		id: 'data-label',
+		title: 'Data label',
+		entry: '@atmo-dev/kit',
+		guide: 'data-label.md',
+		example: { href: '/data', label: 'Data-label example' },
+		components: [
+			component(
+				'DataLabel',
+				'What an app saves, where, and who can see it.',
+				'components/data/DataLabel.svelte'
 			)
 		]
 	},

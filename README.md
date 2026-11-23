@@ -36,7 +36,7 @@ pnpm dev
 
 Browse `/components` for visual previews of every public component. Select one
 for its interactive example at `/components/<name>`. The combined playgrounds
-remain at `/`, `/examples`, `/navigation`, `/login`, and `/legal`.
+remain at `/`, `/examples`, `/navigation`, `/login`, `/legal`, and `/data`.
 
 Run `pnpm lint`, `pnpm check`, `pnpm test:ci`, and `pnpm build` to validate changes.
 See [development](docs/development.md) for tests and package checks, and

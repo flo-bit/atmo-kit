@@ -13,6 +13,7 @@
 	links={{
 		terms: '/terms',
 		privacy: '/privacy',
+		data: '/data',
 		imprint: '/imprint',
 		moderation: false,
 		report: '/report',

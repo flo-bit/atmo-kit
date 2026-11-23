@@ -18,6 +18,7 @@ gallery shows every public component and links to individual interactive example
 | [AT Tags](at-tags.md)                          | Record metadata and page ownership                       |
 | [Safe URLs](urls.md)                           | Link validation and security boundaries                  |
 | [Legal pages](legal.md)                        | Documents, footer links, draft authoring and review      |
+| [Data label](data-label.md)                    | What an app saves, where, and who can see it             |
 | [Reporting](reporting.md)                      | Report form, submission callback, email fallback         |
 | [Development](development.md)                  | Local examples, checks, package boundaries               |
 
@@ -41,7 +42,7 @@ gallery shows every public component and links to individual interactive example
 | `@atmo-dev/kit/semble`           | Semble contracts, URL parsing, optional API client                                                |
 | `@atmo-dev/kit/streamplace`      | Streamplace data, live `Channel` store, player, chat and cards; see [Streamplace](streamplace.md) |
 | `@atmo-dev/kit/streamplace-data` | Streamplace types, API reads and chat helpers; no UI imports                                      |
-| `@atmo-dev/kit/legal`            | Framework-free legal document types, drafts, diagnostics                                          |
+| `@atmo-dev/kit/legal`            | Framework-free legal document and data-label types, drafts, diagnostics                           |
 | `@atmo-dev/kit/theme.css`        | Theme, fonts, Tailwind sources                                                                    |
 
 The preferred-client schema is published at
