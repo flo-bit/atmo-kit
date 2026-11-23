@@ -83,8 +83,9 @@ function openPeer(url: string): Peer {
 		for (const listener of peer.listeners) listener.state();
 	};
 	peer.answered = negotiate(peer);
-	// Whoever uses the session hears of a failure; an unused one just closes.
-	peer.answered.catch(() => closePeer(peer));
+	// Close a failed session without notifying listeners via `state()`: active users already
+	// await `peer.answered` and need the original `Refused` reason before reacting.
+	peer.answered.catch(() => closePeer(peer, false));
 	peers.set(url, peer);
 	return peer;
 }
@@ -150,7 +151,7 @@ function releasePeer(peer: Peer, keep: number) {
 	for (const old of idle.slice(MAX_IDLE_PEERS)) closePeer(old);
 }
 
-function closePeer(peer: Peer) {
+function closePeer(peer: Peer, notify = true) {
 	if (peer.closed) return;
 	peer.closed = true;
 	clearTimeout(peer.idle);
@@ -158,7 +159,7 @@ function closePeer(peer: Peer) {
 	peer.pc.close();
 	if (peers.get(peer.url) === peer) peers.delete(peer.url);
 	// `close()` fires no state change; anyone still playing it has to hear.
-	for (const listener of peer.listeners) listener.state();
+	if (notify) for (const listener of peer.listeners) listener.state();
 }
 
 /**
@@ -211,6 +212,7 @@ export function startWebRTC(
 
 	const failed = (reason: 'offline' | 'network') => {
 		if (destroyed) return;
+		clearTimeout(retry);
 		detach(true);
 		failures += 1;
 		if (failures >= attempts) return events.onfail?.();
@@ -233,7 +235,7 @@ export function startWebRTC(
 			state: () => {
 				if (peer !== current) return;
 				const state = current.pc.connectionState;
-				if (state === 'failed' || state === 'closed') failed('network');
+				if (current.closed || state === 'failed' || state === 'closed') failed('network');
 			}
 		};
 		current.listeners.add(listener);
@@ -314,22 +316,60 @@ export function startWebRTC(
  */
 type Prefetched = {
 	at: number;
-	data: Promise<{ body: string | ArrayBuffer; start: number; end: number }>;
+	bytes: number;
+	data: Promise<{ body: string | ArrayBuffer; url: string; start: number; end: number }>;
 };
 const prefetched = new Map<string, Prefetched>();
 const PREFETCH_TTL = 4 * 60_000;
+const MAX_PREFETCH_ENTRIES = 120;
+const MAX_PREFETCH_BYTES = 16 * 1024 * 1024;
+let prefetchedBytes = 0;
+let sweepTimer: ReturnType<typeof setTimeout> | undefined;
 
 const cacheKey = (url: string, start = 0, end = 0) => (end ? `${url}#${start}-${end}` : url);
+
+function deletePrefetched(key: string) {
+	const entry = prefetched.get(key);
+	if (!entry) return;
+	prefetchedBytes -= entry.bytes;
+	prefetched.delete(key);
+}
+
+function scheduleSweep() {
+	if (sweepTimer || !prefetched.size) return;
+	let oldest = Infinity;
+	for (const entry of prefetched.values()) if (entry.at < oldest) oldest = entry.at;
+	const delay = Math.max(1000, oldest + PREFETCH_TTL - Date.now());
+	sweepTimer = setTimeout(() => {
+		sweepTimer = undefined;
+		sweep();
+	}, delay);
+}
 
 function cached(key: string) {
 	const entry = prefetched.get(key);
 	if (entry && Date.now() - entry.at < PREFETCH_TTL) return entry.data;
-	prefetched.delete(key);
+	deletePrefetched(key);
 }
 
 function sweep() {
 	const now = Date.now();
-	for (const [key, entry] of prefetched) if (now - entry.at >= PREFETCH_TTL) prefetched.delete(key);
+	for (const [key, entry] of prefetched) {
+		if (now - entry.at >= PREFETCH_TTL) deletePrefetched(key);
+	}
+	if (!prefetched.size) {
+		clearTimeout(sweepTimer);
+		sweepTimer = undefined;
+	} else {
+		scheduleSweep();
+	}
+}
+
+function trimPrefetched() {
+	for (const key of prefetched.keys()) {
+		if (prefetched.size <= MAX_PREFETCH_ENTRIES && prefetchedBytes <= MAX_PREFETCH_BYTES) break;
+		deletePrefetched(key);
+	}
 }
 
 function prefetchOnce(url: string, kind: 'text' | 'bytes', range?: [number, number]) {
@@ -342,13 +382,22 @@ function prefetchOnce(url: string, kind: 'text' | 'bytes', range?: [number, numb
 		.then(async (response) => {
 			if (!response.ok) throw new Error(`${response.status}`);
 			const body = kind === 'text' ? await response.text() : await response.arrayBuffer();
-			return { body, start, end: performance.now() };
+			const size = typeof body === 'string' ? body.length * 2 : body.byteLength;
+			const entry = prefetched.get(key);
+			if (entry?.data === data) {
+				prefetchedBytes += size - entry.bytes;
+				entry.bytes = size;
+				trimPrefetched();
+			}
+			return { body, url: response.url || url, start, end: performance.now() };
 		})
 		.catch((cause) => {
-			if (prefetched.get(key)?.data === data) prefetched.delete(key);
+			if (prefetched.get(key)?.data === data) deletePrefetched(key);
 			throw cause;
 		});
-	prefetched.set(key, { at: Date.now(), data });
+	prefetched.set(key, { at: Date.now(), bytes: 0, data });
+	trimPrefetched();
+	scheduleSweep();
 	// Nobody may ever use it.
 	data.catch(() => {});
 	return data;
@@ -362,7 +411,9 @@ const tagValue = (line: string, name: string) =>
 
 /** Fetches the first `seconds` of a media playlist, the same requests hls.js will make. */
 async function prefetchMedia(url: string, seconds: number) {
-	const text = String((await prefetchOnce(url, 'text')).body);
+	const playlist = await prefetchOnce(url, 'text');
+	const base = playlist.url;
+	const text = String(playlist.body);
 	const loads: Promise<unknown>[] = [];
 	let duration = 0;
 	let range: [number, number] | undefined;
@@ -377,7 +428,7 @@ async function prefetchMedia(url: string, seconds: number) {
 				const mapRange: [number, number] | undefined = length
 					? [offset || 0, (offset || 0) + length]
 					: undefined;
-				loads.push(prefetchOnce(new URL(uri, url).href, 'bytes', mapRange));
+				loads.push(prefetchOnce(new URL(uri, base).href, 'bytes', mapRange));
 			}
 		} else if (line.startsWith('#EXTINF:')) {
 			if (duration >= seconds) break;
@@ -387,12 +438,20 @@ async function prefetchMedia(url: string, seconds: number) {
 			const start = Number.isFinite(offset) ? offset : previousEnd;
 			range = [start, start + length];
 		} else if (!line.startsWith('#')) {
-			loads.push(prefetchOnce(new URL(line, url).href, 'bytes', range));
+			loads.push(prefetchOnce(new URL(line, base).href, 'bytes', range));
 			previousEnd = range?.[1] ?? 0;
 			range = undefined;
 		}
 	}
 	await Promise.all(loads);
+}
+
+let hlsModule: Promise<typeof import('hls.js')> | undefined;
+function loadHls() {
+	return (hlsModule ??= import('hls.js').catch((cause) => {
+		hlsModule = undefined;
+		throw cause;
+	}));
 }
 
 /**
@@ -403,11 +462,15 @@ async function prefetchMedia(url: string, seconds: number) {
  */
 export async function prefetchHls(url: string, seconds = 2) {
 	if (typeof window === 'undefined') return;
-	void import('hls.js').catch(() => {});
+	void loadHls().catch(() => {});
 	try {
-		const text = String((await prefetchOnce(url, 'text')).body);
+		const master = await prefetchOnce(url, 'text');
+		const text = String(master.body);
 		if (!text.includes('#EXT-X-STREAM-INF')) return await prefetchMedia(url, seconds);
-		const lines = text.split('\n').map((line) => line.trim());
+		const lines = text
+			.split('\n')
+			.map((line) => line.trim())
+			.filter(Boolean);
 		// hls.js starts on the first variant listed and the default audio rendition.
 		const variant = lines.find((_, i) => i && lines[i - 1].startsWith('#EXT-X-STREAM-INF'));
 		const audio = lines.filter(
@@ -420,7 +483,7 @@ export async function prefetchHls(url: string, seconds = 2) {
 		await Promise.all(
 			[variant, audioUri]
 				.filter((uri): uri is string => !!uri)
-				.map((uri) => prefetchMedia(new URL(uri, url).href, seconds))
+				.map((uri) => prefetchMedia(new URL(uri, master.url).href, seconds))
 		);
 	} catch {
 		// Playback loads it again.
@@ -434,6 +497,7 @@ function prefetchingLoader(Base: LoaderClass): LoaderClass {
 	return class implements Loader<LoaderContext> {
 		#inner: Loader<LoaderContext>;
 		#done = false;
+		#pending?: LoaderCallbacks<LoaderContext>;
 		context: LoaderContext | null = null;
 		stats: LoaderStats;
 		constructor(config: HlsConfig) {
@@ -447,14 +511,17 @@ function prefetchingLoader(Base: LoaderClass): LoaderClass {
 		) {
 			const hit = cached(cacheKey(context.url, context.rangeStart, context.rangeEnd));
 			const fallback = () => {
+				this.#pending = undefined;
 				this.#inner.load(context, config, callbacks);
 				this.context = this.#inner.context;
 			};
 			if (!hit) return fallback();
 			this.context = context;
+			this.#pending = callbacks;
 			hit.then(
-				({ body, start, end }) => {
+				({ body, url, start, end }) => {
 					if (this.#done) return;
+					this.#pending = undefined;
 					const wantsText = context.responseType === 'text';
 					if (wantsText !== (typeof body === 'string')) return fallback();
 					// The real timings, so bandwidth estimates stay honest. A copy, because hls.js
@@ -466,17 +533,25 @@ function prefetchingLoader(Base: LoaderClass): LoaderClass {
 					stats.loading.first = start + Math.min(50, end - start);
 					stats.loading.end = end;
 					stats.loaded = stats.total = size;
-					callbacks.onSuccess({ url: context.url, data, code: 200 }, stats, context, null);
+					callbacks.onSuccess({ url: url || context.url, data, code: 200 }, stats, context, null);
 				},
 				() => !this.#done && fallback()
 			);
 		}
 		abort() {
 			this.#done = true;
+			if (this.#pending && this.context) {
+				const callbacks = this.#pending;
+				this.#pending = undefined;
+				this.stats.aborted = true;
+				callbacks.onAbort?.(this.stats, this.context, null);
+				return;
+			}
 			this.#inner.abort();
 		}
 		destroy() {
 			this.#done = true;
+			this.#pending = undefined;
 			this.#inner.destroy();
 		}
 		getCacheAge() {
@@ -513,26 +588,42 @@ export function startHls(
 
 	const listeners = new AbortController();
 	const native = () => {
+		let sought = false;
 		const reload = () => {
 			video.src = url;
-			if (options.startAt) video.currentTime = options.startAt;
 		};
 		const listener = { signal: listeners.signal };
-		video.addEventListener('loadedmetadata', () => events.onready?.(), listener);
+		video.addEventListener(
+			'loadedmetadata',
+			() => {
+				if (options.startAt && !sought) {
+					sought = true;
+					video.currentTime = options.startAt;
+				}
+				events.onready?.();
+			},
+			listener
+		);
 		video.addEventListener('playing', () => (misses = 0), listener);
 		video.addEventListener('error', () => retryLoad('offline', reload), listener);
 		reload();
 	};
 
 	async function load() {
-		const { default: HlsClass } = await import('hls.js');
+		let HlsClass: typeof Hls;
+		try {
+			({ default: HlsClass } = await loadHls());
+		} catch {
+			if (!destroyed) events.onfail?.();
+			return;
+		}
 		if (destroyed) return;
 		if (!HlsClass.isSupported()) {
 			if (video.canPlayType('application/vnd.apple.mpegurl')) return native();
 			return events.onfail?.();
 		}
 		const instance = new HlsClass({
-			...(HlsClass.DefaultConfig?.loader
+			...(!options.live && HlsClass.DefaultConfig?.loader
 				? { loader: prefetchingLoader(HlsClass.DefaultConfig.loader) }
 				: {}),
 			lowLatencyMode: options.live,

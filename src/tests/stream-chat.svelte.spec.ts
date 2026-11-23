@@ -196,15 +196,35 @@ describe('StreamChat', () => {
 		await expect.poll(() => text(1)).not.toContain('stream.place');
 		expect(text(1)).toContain('my channel');
 		expect(text(0)).toMatch(/watch\s+https:\/\/stream\.place\/bob\.example\s+before tonight/);
+		// Messages never nest a paragraph inside a paragraph (invalid HTML / SSR mismatch).
+		expect(document.querySelector('p p')).toBeNull();
 	});
 
-	it('counts new messages while reading history, also once the chat is full', async () => {
+	it('does not crash on a malformed facet link URI', async () => {
 		const { channel } = setup();
-		channel.receive(Array.from({ length: 500 }, (_, i) => message('alice.example', `m${i}`)));
+		const broken = message('alice.example', 'bad link');
+		broken.record.facets = [
+			{
+				index: { byteStart: 0, byteEnd: 8 },
+				features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://[invalid' }]
+			}
+		];
+		channel.receive([broken]);
+		await render(StreamChat, { channel, viewer });
+		await expect.element(page.getByText('bad link')).toBeVisible();
+	});
+
+	it('counts new messages while reading history, also once the chat is full or the last seen message is deleted', async () => {
+		const { channel } = setup();
+		const initial = Array.from({ length: 500 }, (_, i) => message('alice.example', `m${i}`));
+		channel.receive(initial);
 		await render(StreamChat, { channel, viewer, class: 'h-80' });
 		const log = document.querySelector<HTMLElement>('[role=log]')!;
 		await expect.poll(() => log.scrollTop).toBeGreaterThan(0);
 		log.scrollTop = 0;
+		await expect.element(page.getByRole('button', { name: 'Latest messages' })).toBeVisible();
+		// Deleting the last seen message must not turn the whole history into "unread".
+		channel.receive([{ ...initial[499], deleted: true }]);
 		await expect.element(page.getByRole('button', { name: 'Latest messages' })).toBeVisible();
 		channel.receive([message('bob.example', 'new one'), message('bob.example', 'new two')]);
 		await expect.element(page.getByRole('button', { name: '2 new messages' })).toBeVisible();
@@ -222,7 +242,7 @@ describe('StreamChat', () => {
 		const marked = () =>
 			rows()
 				.filter((row) => row.className.includes('bg-accent-500/20'))
-				.map((row) => row.querySelector('p')?.textContent?.includes('alice'));
+				.map((row) => row.textContent?.includes('alice'));
 		await expect.poll(marked).toEqual([true, true]);
 	});
 
@@ -299,6 +319,34 @@ describe('StreamChatPopups', () => {
 				.dispatchEvent(new PointerEvent('pointerleave'));
 			vi.advanceTimersByTime(9000);
 			await expect.poll(() => shown().length).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('still expires future popups when a hovered popup is clicked and closes the list', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		try {
+			const { channel } = setup();
+			const screen = await render(StreamChatPopups, {
+				channel,
+				active: true,
+				viewerDid: viewer.did,
+				onopen: () => {}
+			});
+			vi.advanceTimersByTime(3100);
+			channel.receive([message('alice.example', 'first')]);
+			const list = () => document.querySelector('ul[aria-label="New chat messages"]');
+			await expect.poll(() => list()?.querySelectorAll('li').length ?? 0).toBe(1);
+			// Hover, then deactivate (unmounting the list without firing pointerleave).
+			list()!.dispatchEvent(new PointerEvent('pointerenter'));
+			await screen.rerender({ active: false });
+			await expect.poll(() => list()).toBeNull();
+			await screen.rerender({ active: true });
+			channel.receive([message('bob.example', 'second')]);
+			await expect.poll(() => list()?.querySelectorAll('li').length ?? 0).toBe(1);
+			vi.advanceTimersByTime(8000);
+			await expect.poll(() => list()?.querySelectorAll('li').length ?? 0).toBe(0);
 		} finally {
 			vi.useRealTimers();
 		}

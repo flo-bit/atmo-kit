@@ -79,6 +79,7 @@
 		if (!sender) return onsignin?.();
 		const reply = replyTo;
 		text = '';
+		caret = 0;
 		replyTo = null;
 		error = '';
 		await tick();
@@ -87,8 +88,13 @@
 			await channel.send(value, sender, reply);
 		} catch (cause) {
 			// Give the text back so nothing is lost.
-			if (!text) text = value;
-			replyTo = reply;
+			if (!text) {
+				text = value;
+				caret = value.length;
+				await tick();
+				resize();
+			}
+			if (!replyTo) replyTo = reply;
 			error = cause instanceof Error ? cause.message : 'Could not send';
 		}
 	}

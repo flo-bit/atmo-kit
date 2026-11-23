@@ -10,6 +10,7 @@
 	let stream = $state.raw<LivestreamView | null>();
 	$effect(() => {
 		let current = true;
+		stream = undefined;
 		getLivestream(ref.actor)
 			.then((result) => current && (stream = result))
 			.catch(() => current && (stream = null));
@@ -18,10 +19,15 @@
 	let live = $state(false);
 	$effect(() => {
 		const did = stream?.author.did;
+		live = false;
 		if (!did) return;
+		let current = true;
 		void getLiveStreamsCached()
-			.then((streams) => (live = streams.some((other) => other.author.did === did)))
+			.then((streams) => {
+				if (current) live = streams.some((other) => other.author.did === did);
+			})
 			.catch(() => {});
+		return () => (current = false);
 	});
 </script>
 

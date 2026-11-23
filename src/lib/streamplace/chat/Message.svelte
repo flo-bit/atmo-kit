@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import Icon from '../../components/Icon.svelte';
 	import RichText from '../../components/RichText.svelte';
 	import type { LinkEmbed } from '../../embeds/types.js';
@@ -17,6 +18,7 @@
 		Plus,
 		type IconNode
 	} from '@sketchyicons/svelte';
+	import { handleOf } from '../api.js';
 	import { linksOf, withoutLink } from '../facets.js';
 	import { quickReactions, type Reaction } from '../reactions.js';
 	import type { ChatMessage } from '../types.js';
@@ -59,6 +61,15 @@
 	} = $props();
 
 	let picking = $state(false);
+	let reactButton = $state<HTMLButtonElement>();
+	function focusFirst(node: HTMLElement) {
+		node.querySelector<HTMLElement>('button')?.focus();
+	}
+	async function closePicker() {
+		picking = false;
+		await tick();
+		reactButton?.focus();
+	}
 	const own = $derived(message.author.did === viewerDid);
 	const mod = $derived(!!viewerDid && viewerDid === streamerDid);
 	const mentioned = $derived(
@@ -96,7 +107,8 @@
 		if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
 		return `${Math.floor(seconds / 86400)}d`;
 	});
-	const name = $derived(shortHandle(message.author.handle || message.author.did));
+	const handle = $derived(handleOf(message.author));
+	const name = $derived(shortHandle(handle));
 
 	const badges = $derived(
 		(message.badges ?? [])
@@ -154,11 +166,11 @@
 				onclick={() => onaction('jump', message)}
 			>
 				<Icon img={CornerDownRight} size={12} class="shrink-0" />
-				<span class="shrink-0 font-medium">{shortHandle(message.replyTo.author.handle)}</span>
+				<span class="shrink-0 font-medium">{shortHandle(handleOf(message.replyTo.author))}</span>
 				<span class="truncate">{message.replyTo.record.text}</span>
 			</button>
 		{/if}
-		<p>
+		<div>
 			{#if times}<time
 					datetime={new Date(created).toISOString()}
 					title={time}
@@ -181,7 +193,7 @@
 				type="button"
 				class="font-semibold hover:underline"
 				style:color={nameColor(message.author.did, message.chatProfile?.color)}
-				title="@{message.author.handle} · {time}"
+				title="@{handle} · {time}"
 				onclick={(event) => onaction('user', message, event.currentTarget)}>{name}</button
 			><span class="text-base-600 dark:text-base-400">:</span>
 			<RichText
@@ -191,7 +203,7 @@
 				{mentionUrl}
 				class="inline leading-[1.45] whitespace-pre-wrap"
 			/>
-		</p>
+		</div>
 		{#if link}<Embeds url={link} {embeds} {linkPreview} bind:shown={embedded} />{/if}
 		{#if reactions.length}
 			<ul class="mt-1 mb-0.5 flex flex-wrap gap-1" aria-label="Reactions">
@@ -210,7 +222,7 @@
 							aria-label="{reaction.emoji} {reaction.by.length}, {mine
 								? 'remove yours'
 								: 'add yours'}"
-							title={reaction.by.map((person) => shortHandle(person.handle)).join(', ')}
+							title={reaction.by.map((person) => shortHandle(handleOf(person))).join(', ')}
 							onclick={() => onreact(message, reaction.emoji)}
 						>
 							<span class="text-[13px] leading-none">{reaction.emoji}</span>{reaction.by.length}
@@ -222,39 +234,48 @@
 
 		{#if viewerDid && !message.pending}
 			<div
+				onkeydown={(event) => {
+					if (event.key === 'Escape' && picking) {
+						event.preventDefault();
+						void closePicker();
+					}
+				}}
 				class={[
 					'absolute -top-3.5 right-1 z-10 rounded-lg border border-base-300 bg-base-50 p-0.5 shadow-sm group-focus-within/message:flex group-hover/message:flex dark:border-base-800 dark:bg-base-925',
 					picking ? 'flex' : 'hidden'
 				]}
 			>
 				{#if picking}
-					{#each quickReactions as emoji (emoji)}
+					<div class="flex" {@attach focusFirst}>
+						{#each quickReactions as emoji (emoji)}
+							<button
+								type="button"
+								class="grid size-7 place-items-center rounded-md text-[15px] hover:bg-base-200/60 dark:hover:bg-base-800/50"
+								aria-label="React with {emoji}"
+								onclick={() => {
+									picking = false;
+									onreact(message, emoji);
+								}}>{emoji}</button
+							>
+						{/each}
 						<button
 							type="button"
-							class="grid size-7 place-items-center rounded-md text-[15px] hover:bg-base-200/60 dark:hover:bg-base-800/50"
-							aria-label="React with {emoji}"
-							onclick={() => {
-								picking = false;
-								onreact(message, emoji);
-							}}>{emoji}</button
+							class="grid size-7 place-items-center rounded-md text-base-600 hover:bg-base-200/60 hover:text-base-950 dark:text-base-400 dark:hover:bg-base-800/50 dark:hover:text-base-50"
+							aria-label="More emoji"
+							title="More emoji"
+							onclick={(event) => {
+								// The quick row stays under the pointer, so a second click cannot land on
+								// another action. The picker is anchored to the message, which stays put.
+								const row = event.currentTarget.closest<HTMLElement>('[data-uri]');
+								onaction('emoji', message, row ?? undefined);
+							}}
 						>
-					{/each}
-					<button
-						type="button"
-						class="grid size-7 place-items-center rounded-md text-base-600 hover:bg-base-200/60 hover:text-base-950 dark:text-base-400 dark:hover:bg-base-800/50 dark:hover:text-base-50"
-						aria-label="More emoji"
-						title="More emoji"
-						onclick={(event) => {
-							// The quick row stays under the pointer, so a second click cannot land on
-							// another action. The picker is anchored to the message, which stays put.
-							const row = event.currentTarget.closest<HTMLElement>('[data-uri]');
-							onaction('emoji', message, row ?? undefined);
-						}}
-					>
-						<Icon img={Plus} size={15} />
-					</button>
+							<Icon img={Plus} size={15} />
+						</button>
+					</div>
 				{:else}
 					<button
+						bind:this={reactButton}
 						type="button"
 						class="grid size-7 place-items-center rounded-md text-base-600 hover:bg-base-200/60 hover:text-base-950 dark:text-base-400 dark:hover:bg-base-800/50 dark:hover:text-base-50"
 						aria-label="React"

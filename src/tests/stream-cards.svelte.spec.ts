@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import '../routes/layout.css';
@@ -68,6 +68,47 @@ describe('StreamCard', () => {
 			.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
 		await new Promise((resolve) => setTimeout(resolve, 500));
 		expect(container.querySelector('video')).toBeNull();
+	});
+
+	it('closes the preview WebRTC session on leave when prefetch is off (external link)', async () => {
+		const peers: { closed: boolean }[] = [];
+		class StubPeer {
+			iceGatheringState = 'complete';
+			connectionState = 'connected';
+			localDescription = { sdp: 'offer' };
+			closed = false;
+			constructor() {
+				peers.push(this);
+			}
+			addTransceiver() {}
+			addEventListener() {}
+			async createOffer() {
+				return { sdp: 'offer' };
+			}
+			async setLocalDescription() {}
+			async setRemoteDescription() {}
+			async getStats() {
+				return new Map();
+			}
+			close() {
+				this.closed = true;
+			}
+		}
+		vi.stubGlobal('RTCPeerConnection', StubPeer);
+		const fetchSpy = vi
+			.spyOn(window, 'fetch')
+			.mockResolvedValue(new Response('answer', { status: 201 }));
+		try {
+			const { container } = await render(StreamCard, { stream, thumbnail: picture });
+			const link = container.querySelector('a')!;
+			link.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+			await expect.poll(() => peers.length).toBe(1);
+			link.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+			await expect.poll(() => peers[0].closed).toBe(true);
+		} finally {
+			fetchSpy.mockRestore();
+			vi.unstubAllGlobals();
+		}
 	});
 });
 

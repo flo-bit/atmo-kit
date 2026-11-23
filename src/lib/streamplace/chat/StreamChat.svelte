@@ -44,6 +44,7 @@
 	import EmojiPanel from '../../components/composer/EmojiPanel.svelte';
 	import { linkEmbedOptions, selectLinkEmbeds } from '../../embeds/context.js';
 	import { cn } from '../../utils.js';
+	import { handleOf } from '../api.js';
 	import { shortHandle } from './color.js';
 	import Composer from './Composer.svelte';
 	import Message, { type MessageAction } from './Message.svelte';
@@ -76,8 +77,9 @@
 	let draft = $state('');
 	let atBottom = $state(true);
 	let unread = $state(0);
-	/** The newest message that was on screen while following the chat. */
-	let seen: string | undefined;
+	/** Messages already on screen while following the chat, so deletions do not skew `unread`. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping; `unread` drives UI
+	let seen = new Set<string>();
 	let replyTo = $state.raw<ChatMessage | null>(null);
 	let notice = $state('');
 	let settingsOpen = $state(false);
@@ -108,13 +110,14 @@
 	$effect(() => {
 		const messages = channel.messages;
 		if (atBottom) {
-			seen = messages.at(-1)?.uri;
+			seen.clear();
+			for (const message of messages) seen.add(message.uri);
 			unread = 0;
 			void tick().then(toBottom);
 		} else {
-			// By position, not by length: a full chat drops an old message for every new one.
-			const at = messages.findLastIndex((message) => message.uri === seen);
-			unread = messages.length - 1 - at;
+			let count = 0;
+			for (const message of messages) if (!seen.has(message.uri)) count += 1;
+			unread = count;
 		}
 	});
 
@@ -130,7 +133,7 @@
 		if (!list || jumping) return;
 		// Scroll events arrive a frame late. If the content grew in the meantime (a preview
 		// loaded), the distance is not the reader scrolling away: stay at the bottom.
-		if (atBottom && list.scrollHeight !== pinnedHeight) return toBottom();
+		if (atBottom && list.scrollHeight > pinnedHeight) return toBottom();
 		atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 48;
 	}
 
@@ -192,7 +195,8 @@
 
 	function mention(message: ChatMessage) {
 		cardOpen = false;
-		void composer?.insert(`@${message.author.handle} `);
+		if (!viewer) return;
+		void composer?.insert(`@${handleOf(message.author)} `);
 	}
 
 	// Jumping to the message a reply answers marks it for a moment.
@@ -200,6 +204,10 @@
 	let flashTimer: ReturnType<typeof setTimeout> | undefined;
 	let jumping = false;
 	let jumpTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => () => {
+		clearTimeout(jumpTimer);
+		clearTimeout(flashTimer);
+	});
 	function jumpTo(uri: string) {
 		const target = [...(content?.children ?? [])].find(
 			(element) => (element as HTMLElement).dataset.uri === uri
@@ -279,7 +287,7 @@
 				title="Open chat in a new window"
 				onclick={(event) => {
 					event.preventDefault();
-					window.open(event.currentTarget.href, '_blank', 'popup,width=380,height=720');
+					window.open(event.currentTarget.href, '_blank', 'popup,noopener,width=380,height=720');
 				}}
 			>
 				<Icon img={ExternalLink} size={16} />
@@ -315,7 +323,7 @@
 		>
 			<Icon img={Pin} size={14} class="mt-0.5 shrink-0 text-accent-700 dark:text-accent-300" />
 			<p class="min-w-0 flex-1 wrap-anywhere">
-				<span class="font-semibold">{shortHandle(pinned.message.author.handle)}</span>
+				<span class="font-semibold">{shortHandle(handleOf(pinned.message.author))}</span>
 				{pinned.message.record.text}
 			</p>
 			<button
@@ -415,8 +423,8 @@
 		<UserCard
 			{message}
 			canModerate={canModerate && message.author.did !== viewer?.did}
-			channelHref={channelUrl(message.author.handle || message.author.did)}
-			onmention={() => mention(message)}
+			channelHref={channelUrl(handleOf(message.author))}
+			onmention={viewer ? () => mention(message) : undefined}
 			onban={() => act('ban', message)}
 		/>
 	{/if}
@@ -444,7 +452,7 @@
 
 <Modal
 	bind:open={banOpen}
-	title={banning ? `Ban @${banning.author.handle}?` : 'Ban'}
+	title={banning ? `Ban @${handleOf(banning.author)}?` : 'Ban'}
 	description="This blocks the account everywhere, not only in your chat."
 	class="max-w-sm"
 >

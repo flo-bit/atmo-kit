@@ -27,9 +27,9 @@ export function startBroadcast(
 			if (track.kind !== 'video') continue;
 			// The node records H.264; offer it first where the browser can encode it.
 			const codecs = RTCRtpSender.getCapabilities?.('video')?.codecs ?? [];
-			const h264 = codecs.filter((codec) => codec.mimeType === 'video/H264');
+			const h264 = codecs.filter((codec) => codec.mimeType.toLowerCase() === 'video/h264');
 			if (h264.length) {
-				transceiver.setCodecPreferences([
+				transceiver.setCodecPreferences?.([
 					...h264,
 					...codecs.filter((codec) => !h264.includes(codec))
 				]);
@@ -90,6 +90,7 @@ export function startBroadcast(
 
 	function again() {
 		if (stopped) return;
+		clearTimeout(retry);
 		attempts += 1;
 		onstate('reconnecting');
 		retry = setTimeout(connect, Math.min(8000, 1000 * attempts));

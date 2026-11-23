@@ -1,3 +1,4 @@
+import { safeHttpUrl } from '../urls.js';
 import type { Facet } from './types.js';
 
 const encoder = new TextEncoder();
@@ -69,15 +70,17 @@ export async function detectFacets(text: string, resolve: ResolveHandle): Promis
 /** Links in a message: its facets, or plain `https://` URLs when it has none. */
 export function linksOf(facets?: Facet[], text = ''): string[] {
 	const links: string[] = [];
+	const validHttps = (value: unknown): value is string =>
+		typeof value === 'string' && !!safeHttpUrl(value)?.startsWith('https://');
 	if (!facets?.length) {
 		for (const match of text.matchAll(/https:\/\/[^\s<>"']+/g)) {
 			const url = match[0].replace(/[.,;:!?)]+$/, '');
-			if (URL.canParse(url)) links.push(url);
+			if (validHttps(url)) links.push(url);
 		}
 	}
 	for (const facet of facets ?? []) {
-		for (const feature of facet.features ?? []) {
-			if (feature.uri && /^https:\/\//.test(feature.uri)) links.push(feature.uri);
+		for (const feature of facet?.features ?? []) {
+			if (validHttps(feature?.uri)) links.push(feature.uri);
 		}
 	}
 	return links;
@@ -95,10 +98,10 @@ export function withoutLink(text: string, facets: Facet[] | undefined, uri: stri
 	const data = encoder.encode(text);
 	let start = -1;
 	let end = -1;
-	const facet = facets?.find((item) => item.features?.some((feature) => feature.uri === uri));
+	const facet = facets?.find((item) => item?.features?.some((feature) => feature?.uri === uri));
 	if (facet) {
-		start = facet.index.byteStart;
-		end = facet.index.byteEnd;
+		start = facet.index?.byteStart;
+		end = facet.index?.byteEnd;
 	} else if (!facets?.length) {
 		const at = text.indexOf(uri);
 		if (at >= 0) {
@@ -106,11 +109,20 @@ export function withoutLink(text: string, facets: Facet[] | undefined, uri: stri
 			end = start + bytes(uri);
 		}
 	}
-	if (start < 0 || end <= start || end > data.length) return { text, facets };
+	if (
+		!Number.isInteger(start) ||
+		!Number.isInteger(end) ||
+		start < 0 ||
+		end <= start ||
+		end > data.length
+	)
+		return { text, facets };
 	if (!data.subarray(end).every(isSpace)) return { text, facets };
 	while (start > 0 && isSpace(data[start - 1])) start -= 1;
 	return {
 		text: decoder.decode(data.subarray(0, start)),
-		facets: (facets ?? []).filter((item) => item.index.byteEnd <= start)
+		facets: (facets ?? []).filter(
+			(item) => Number.isInteger(item?.index?.byteEnd) && item.index.byteEnd <= start
+		)
 	};
 }

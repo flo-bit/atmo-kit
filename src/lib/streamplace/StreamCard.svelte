@@ -63,10 +63,12 @@
 	const stored = $derived(
 		thumbnail ? undefined : blobImage(stream.author.did, stream.record.thumb)
 	);
-	let pictureLoaded = $state(false);
+	let loadedPicture = $state<string>();
+	const pictureLoaded = $derived(loadedPicture === picture);
 	/** A picture that finished loading before the page was interactive fires no `load`. */
 	function loaded(node: HTMLImageElement) {
-		if (node.complete && node.naturalWidth) pictureLoaded = true;
+		const current = picture;
+		if (node.complete && node.naturalWidth) loadedPicture = current;
 	}
 
 	let video = $state<HTMLVideoElement>();
@@ -74,9 +76,10 @@
 	let playing = $state(false);
 	/** The stream page plays the same session; it stays open this long after the card lets go. */
 	const KEEP = 15_000;
+	const prefetchEnabled = $derived(prefetch ?? local);
 
 	function warm() {
-		if (prefetch ?? local) warmWebRTC(whepUrl(stream.author.did), KEEP);
+		if (prefetchEnabled) warmWebRTC(whepUrl(stream.author.did), KEEP);
 	}
 	function enter(event: PointerEvent) {
 		warm();
@@ -94,11 +97,12 @@
 		if (!previewing || !video) return;
 		const element = video;
 		// One attempt: a preview that does not start is simply not shown.
+		// Only keep the session open for handoff when prefetching is enabled.
 		const engine = startWebRTC(
 			element,
 			whepUrl(stream.author.did),
 			{ onready: () => void element.play().catch(() => {}), onfail: leave },
-			{ attempts: 1, keep: KEEP }
+			{ attempts: 1, keep: prefetchEnabled ? KEEP : 0 }
 		);
 		return () => {
 			engine.destroy();
@@ -141,7 +145,7 @@
 			loading={eager ? 'eager' : 'lazy'}
 			decoding="async"
 			{@attach loaded}
-			onload={() => (pictureLoaded = true)}
+			onload={() => (loadedPicture = picture)}
 			class={[
 				'absolute inset-0 size-full object-cover transition-[opacity,transform] duration-300 group-hover:scale-[1.02] motion-reduce:transition-none',
 				stored && !pictureLoaded && 'opacity-0'

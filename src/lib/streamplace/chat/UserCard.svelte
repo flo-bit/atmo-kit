@@ -2,6 +2,7 @@
 	import Avatar from '../../components/Avatar.svelte';
 	import Button from '../../components/Button.svelte';
 	import { appviewUrl } from '../../events/atproto-helpers.js';
+	import { handleOf } from '../api.js';
 	import type { ChatMessage } from '../types.js';
 
 	let {
@@ -15,35 +16,43 @@
 		canModerate: boolean;
 		/** Where "Channel" leads. */
 		channelHref: string;
-		onmention: () => void;
+		onmention?: () => void;
 		onban: () => void;
 	} = $props();
 
 	type Profile = { displayName?: string; avatar?: string; description?: string };
 	let profile = $state.raw<Profile>({});
 	const author = $derived(message.author);
+	const handle = $derived(handleOf(author));
+	const local = $derived(/^\/(?!\/)/.test(channelHref));
 
 	$effect(() => {
-		let current = true;
-		fetch(
-			`${appviewUrl()}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(author.did)}`,
-			{ signal: AbortSignal.timeout(4000) }
-		)
+		const did = author.did;
+		profile = {};
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), 4000);
+		fetch(`${appviewUrl()}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`, {
+			signal: controller.signal
+		})
 			.then((response) => (response.ok ? (response.json() as Promise<Profile>) : {}))
-			.then((data) => current && (profile = data))
-			.catch(() => {});
-		return () => (current = false);
+			.then((data) => !controller.signal.aborted && (profile = data))
+			.catch(() => {})
+			.finally(() => clearTimeout(timer));
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
 	});
 </script>
 
 <div class="w-64">
 	<div class="flex items-center gap-3">
-		<Avatar name={author.handle} src={profile.avatar ?? author.avatar} size={44} />
+		<Avatar name={handle} src={profile.avatar ?? author.avatar} size={44} />
 		<div class="min-w-0">
 			<p class="truncate text-sm font-semibold">
-				{profile.displayName || author.displayName || author.handle}
+				{profile.displayName || author.displayName || handle}
 			</p>
-			<p class="truncate text-xs text-base-600 dark:text-base-400">@{author.handle}</p>
+			<p class="truncate text-xs text-base-600 dark:text-base-400">@{handle}</p>
 		</div>
 	</div>
 	{#if profile.description}
@@ -54,10 +63,12 @@
 			size="sm"
 			variant="secondary"
 			href={channelHref}
-			target={channelHref.startsWith('/') ? undefined : '_blank'}
-			rel={channelHref.startsWith('/') ? undefined : 'noopener noreferrer'}>Channel</Button
+			target={local ? undefined : '_blank'}
+			rel={local ? undefined : 'noopener noreferrer'}>Channel</Button
 		>
-		<Button size="sm" variant="secondary" onclick={onmention}>Mention</Button>
+		{#if onmention}
+			<Button size="sm" variant="secondary" onclick={onmention}>Mention</Button>
+		{/if}
 		{#if canModerate}
 			<Button size="sm" variant="ghost" onclick={onban}>Ban from chat</Button>
 		{/if}

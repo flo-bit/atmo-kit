@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import StreamPlayer from '../lib/streamplace/StreamPlayer.svelte';
@@ -96,14 +96,79 @@ describe('StreamPlayer', () => {
 		expect(video.srcObject).toBeNull();
 		expect(video.getAttribute('src')).toBeNull();
 		expect(container.querySelector('[role=slider]')).toBeNull();
+		// Covered controls stay inert so keyboard focus never disappears behind the offline screen.
+		expect(container.querySelector<HTMLElement>('[data-part=controls]')?.inert).toBe(true);
 	});
 
 	it('offers delay and theater mode for a live channel, and corner buttons from the page', async () => {
+		class StubPeer {
+			iceGatheringState = 'complete';
+			connectionState = 'connected';
+			localDescription = { sdp: 'offer' };
+			addTransceiver() {}
+			addEventListener() {}
+			async createOffer() {
+				return { sdp: 'offer' };
+			}
+			async setLocalDescription() {}
+			async setRemoteDescription() {}
+			async getStats() {
+				return new Map();
+			}
+			close() {}
+		}
+		vi.stubGlobal('RTCPeerConnection', StubPeer);
+		const fetchSpy = vi
+			.spyOn(window, 'fetch')
+			.mockResolvedValue(new Response('answer', { status: 201 }));
+		try {
+			let theater = false;
+			let pressed = 0;
+			const screen = await render(StreamPlayer, {
+				user: 'did:plc:abcdefghijklmnopqrstuvwx',
+				live: true,
+				showTheater: true,
+				get theater() {
+					return theater;
+				},
+				set theater(value) {
+					theater = value;
+				},
+				cornerControls: [{ label: 'Hide chat', icon: [], onclick: () => (pressed += 1) }]
+			});
+			await page.getByRole('button', { name: 'Hide chat' }).click({ force: true });
+			expect(pressed).toBe(1);
+			await page.getByRole('button', { name: 'Theater mode' }).click({ force: true });
+			await expect.poll(() => theater).toBe(true);
+			await page.getByRole('button', { name: 'Settings' }).click({ force: true });
+			await expect.element(page.getByRole('menuitemradio', { name: 'Lowest' })).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('menuitemradio', { name: 'Smoother' }))
+				.toBeInTheDocument();
+			// The menu is worked with the keyboard: focus starts inside, arrows move, Escape returns.
+			const focused = () => document.activeElement?.textContent?.trim();
+			await expect.poll(focused).toBe('Lowest');
+			await userEvent.keyboard('{ArrowDown}');
+			expect(focused()).toBe('Smoother');
+			await userEvent.keyboard('{End}{ArrowDown}');
+			expect(focused()).toBe('Lowest');
+			await userEvent.keyboard('{Escape}');
+			await expect.poll(() => document.querySelector('[role=menu]')).toBeNull();
+			expect(document.activeElement?.getAttribute('aria-label')).toBe('Settings');
+			screen.unmount();
+		} finally {
+			fetchSpy.mockRestore();
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('ignores page-wide shortcuts while typing inside a shadow DOM input', async () => {
 		let theater = false;
-		let pressed = 0;
+		let muted = false;
 		await render(StreamPlayer, {
-			user: 'did:plc:abcdefghijklmnopqrstuvwx',
-			live: false,
+			src: playlist,
+			autoplay: false,
+			shortcuts: 'page',
 			showTheater: true,
 			get theater() {
 				return theater;
@@ -111,24 +176,26 @@ describe('StreamPlayer', () => {
 			set theater(value) {
 				theater = value;
 			},
-			cornerControls: [{ label: 'Hide chat', icon: [], onclick: () => (pressed += 1) }]
+			get muted() {
+				return muted;
+			},
+			set muted(value) {
+				muted = value;
+			}
 		});
-		await page.getByRole('button', { name: 'Hide chat' }).click({ force: true });
-		expect(pressed).toBe(1);
-		await page.getByRole('button', { name: 'Theater mode' }).click({ force: true });
-		await expect.poll(() => theater).toBe(true);
-		await page.getByRole('button', { name: 'Settings' }).click({ force: true });
-		await expect.element(page.getByRole('menuitemradio', { name: 'Lowest' })).toBeInTheDocument();
-		await expect.element(page.getByRole('menuitemradio', { name: 'Smoother' })).toBeInTheDocument();
-		// The menu is worked with the keyboard: focus starts inside, arrows move, Escape returns.
-		const focused = () => document.activeElement?.textContent?.trim();
-		await expect.poll(focused).toBe('Lowest');
-		await userEvent.keyboard('{ArrowDown}');
-		expect(focused()).toBe('Smoother');
-		await userEvent.keyboard('{End}{ArrowDown}');
-		expect(focused()).toBe('Lowest');
-		await userEvent.keyboard('{Escape}');
-		await expect.poll(() => document.querySelector('[role=menu]')).toBeNull();
-		expect(document.activeElement?.getAttribute('aria-label')).toBe('Settings');
+		const host = document.createElement('div');
+		const shadow = host.attachShadow({ mode: 'open' });
+		const input = document.createElement('input');
+		shadow.append(input);
+		document.body.append(host);
+		try {
+			input.focus();
+			await userEvent.keyboard('mt');
+			expect(muted).toBe(false);
+			expect(theater).toBe(false);
+			expect(input.value).toBe('mt');
+		} finally {
+			host.remove();
+		}
 	});
 });

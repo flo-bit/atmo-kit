@@ -41,6 +41,7 @@
 		controlsVisible = $bindable(true),
 		fullscreen = $bindable(false),
 		loading = false,
+		inactive = false,
 		keepControls = false,
 		shortcuts = 'focus',
 		liveStatus,
@@ -64,6 +65,8 @@
 		fullscreen?: boolean;
 		/** Media is being fetched or reconnected: a spinner replaces the play button. */
 		loading?: boolean;
+		/** Caller covers the video (e.g. offline/error): disable controls and shortcuts underneath. */
+		inactive?: boolean;
 		/** Keep the controls up, e.g. while a menu opened from them is showing. */
 		keepControls?: boolean;
 		/** Where the keyboard shortcuts work: with focus in the player, or anywhere on the page. */
@@ -203,24 +206,22 @@
 		currentTime = video.currentTime;
 	}
 	function key(event: KeyboardEvent) {
-		if (!video || event.defaultPrevented) return;
-		const target = event.target as HTMLElement;
-		// Buttons and the volume slider keep their own keys.
-		if (target.tagName === 'INPUT' || (target.tagName === 'BUTTON' && event.key === ' ')) return;
-		// Page-wide shortcuts never fire while typing or together with a modifier.
+		if (!video || inactive || event.defaultPrevented) return;
+		if (event.metaKey || event.ctrlKey || event.altKey) return;
+		// `composedPath` sees inputs inside shadow DOM (such as an emoji picker's search field).
+		const target = (event.composedPath?.()[0] ?? event.target) as HTMLElement | null;
+		if (!target) return;
+		// Inputs, editable regions and buttons (for Space) keep their own keys.
 		if (
-			shortcuts === 'page' &&
-			(event.metaKey ||
-				event.ctrlKey ||
-				event.altKey ||
-				target.isContentEditable ||
-				/^(TEXTAREA|SELECT)$/.test(target.tagName))
+			target.isContentEditable ||
+			/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) ||
+			(target.tagName === 'BUTTON' && event.key === ' ')
 		)
 			return;
 		const step = (delta: number) => {
 			if (!live) seek(Math.min(duration || 0, Math.max(0, video!.currentTime + delta)));
 		};
-		switch (event.key) {
+		switch (event.key.length === 1 ? event.key.toLowerCase() : event.key) {
 			case ' ':
 			case 'k':
 				toggle();
@@ -259,8 +260,9 @@
 	bind:this={frame}
 	role="group"
 	aria-label={title}
-	tabindex="0"
-	class="group/player relative size-full overflow-hidden bg-black outline-none {controlsVisible
+	tabindex={inactive ? undefined : 0}
+	class="group/player relative size-full overflow-hidden bg-black outline-none {controlsVisible ||
+	inactive
 		? ''
 		: 'cursor-none'}"
 	onpointermove={poke}
@@ -303,7 +305,7 @@
 		{/if}
 	</video>
 
-	{#if !playing && !waiting && !scrubbing && !loading}
+	{#if !playing && !waiting && !scrubbing && !loading && !inactive}
 		<button
 			type="button"
 			aria-label="Play"
@@ -330,10 +332,12 @@
 
 	<div
 		data-part="controls"
+		inert={inactive}
 		onfocusin={(event) => (focused = (event.target as Element).matches(':focus-visible'))}
 		onfocusout={() => (focused = false)}
-		class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-2 pt-8 pb-1.5 transition-opacity duration-200 motion-reduce:transition-none {controlsVisible &&
-		(started || !live)
+		class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-2 pt-8 pb-1.5 transition-opacity duration-200 motion-reduce:transition-none {keepControls
+			? 'z-40'
+			: 'z-10'} {controlsVisible && (started || !live)
 			? 'opacity-100'
 			: 'pointer-events-none opacity-0'}"
 	>
@@ -344,7 +348,7 @@
 				tabindex="0"
 				aria-label="Seek"
 				aria-valuemin="0"
-				aria-valuemax={Math.round(duration)}
+				aria-valuemax={Number.isFinite(duration) ? Math.round(duration) : 0}
 				aria-valuenow={Math.round(currentTime)}
 				aria-valuetext="{clock(currentTime)} of {clock(duration)}"
 				class="group/bar flex h-4 cursor-pointer touch-none items-center px-1.5 outline-none"

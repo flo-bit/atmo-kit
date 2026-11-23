@@ -103,9 +103,10 @@
 	);
 	const qualityOptions = $derived(
 		protocol === 'webrtc'
-			? ['source', ...renditions.filter((name) => name !== 'source' && name !== 'audio')].map(
-					(name) => ({ value: name, label: name === 'source' ? 'Source' : name })
-				)
+			? [
+					'source',
+					...new Set(renditions.filter((name) => name !== 'source' && name !== 'audio'))
+				].map((name) => ({ value: name, label: name === 'source' ? 'Source' : name }))
 			: levels.length
 				? [
 						{ value: '-1', label: 'Auto' },
@@ -115,6 +116,22 @@
 	);
 	const quality = $derived(protocol === 'webrtc' ? rendition : String(level));
 	const behind = $derived(isLive && latency !== undefined && latency > 8);
+
+	// A different channel or recording starts fresh on WebRTC and source quality.
+	// Derived so unrelated prop updates never reset fallback state.
+	const streamKey = $derived(`${user ?? ''}\0${src ?? ''}`);
+	$effect(() => {
+		void streamKey;
+		webrtcFailed = false;
+		rendition = 'source';
+		stats = {};
+	});
+	$effect(() => {
+		if (isOffline) {
+			webrtcFailed = false;
+			menu = false;
+		}
+	});
 
 	async function play() {
 		const node = video;
@@ -128,7 +145,15 @@
 			// Browsers refuse sound without a gesture; start silently instead.
 			needsGesture = true;
 			node.muted = true;
-			await node.play().catch(() => (status = 'blocked'));
+			try {
+				await node.play();
+			} catch {
+				// Muted autoplay was also refused: restore the viewer's mute setting for when
+				// they press Play.
+				needsGesture = false;
+				node.muted = muted;
+				status = 'blocked';
+			}
 		}
 	}
 
@@ -207,7 +232,7 @@
 
 	// Latency and stats are polled only while something shows them.
 	$effect(() => {
-		if (status !== 'playing') return;
+		if (status !== 'playing' || (!isLive && !showStats)) return;
 		const wantStats = showStats;
 		const timer = setInterval(async () => {
 			latency = engine?.latency?.();
@@ -230,7 +255,7 @@
 		void play();
 	}
 	async function togglePip() {
-		if (document.pictureInPictureElement) await document.exitPictureInPicture();
+		if (document.pictureInPictureElement) await document.exitPictureInPicture().catch(() => {});
 		else await video?.requestPictureInPicture?.().catch(() => {});
 	}
 	function pickQuality(value: string) {
@@ -280,7 +305,9 @@
 			menuButton?.focus();
 			return event.preventDefault();
 		}
-		const target = event.target as HTMLElement;
+		if (isOffline || status === 'failed') return;
+		const target = (event.composedPath?.()[0] ?? event.target) as HTMLElement | null;
+		if (!target) return;
 		if (event.key.toLowerCase() !== 't' || !showTheater || fullscreen) return;
 		if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
 		if (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
@@ -290,7 +317,7 @@
 	}
 
 	const pipSupported = $derived(
-		typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
+		typeof document !== 'undefined' && Boolean(document.pictureInPictureEnabled)
 	);
 	const item =
 		'flex w-full cursor-pointer items-center justify-between gap-6 px-3 py-1.5 text-left text-[13px] text-white/90 outline-none hover:bg-white/10 focus-visible:bg-white/10';
@@ -329,6 +356,7 @@
 	{poster}
 	live={isLive}
 	loading={!isOffline && (status === 'loading' || status === 'reconnecting')}
+	inactive={isOffline || status === 'failed'}
 	keepControls={menu}
 	{shortcuts}
 >

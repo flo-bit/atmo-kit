@@ -5,6 +5,7 @@ import test from 'node:test';
 // The actual public, built entry point in plain Node: no Vite, Svelte loader or DOM.
 import {
 	activityName,
+	configureAtproto,
 	isEmoji,
 	linksOf,
 	livePlaylist,
@@ -20,6 +21,7 @@ test('the Streamplace entry is the same module under every condition', () => {
 });
 
 test('Streamplace data helpers work on the server through the published export', () => {
+	assert.equal(typeof configureAtproto, 'function');
 	assert.equal(parseStreamplaceLink('https://stream.place/Alice.example')?.actor, 'alice.example');
 	assert.equal(parseStreamplaceLink('https://example.com/alice.example'), null);
 	assert.equal(activityName({ $type: 'place.stream.defs#activityLabel', label: 'art' }), 'Art');

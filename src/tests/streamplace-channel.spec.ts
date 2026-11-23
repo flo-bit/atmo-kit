@@ -217,6 +217,50 @@ describe('Channel', () => {
 		expect(channel.live).toBe(false);
 	});
 
+	it('still marks a stream live when the device clock is ahead of the server, without marking old bursts live', () => {
+		const { channel, emit } = open();
+		// Two old segments in the initial snapshot stay offline.
+		const old = Date.now() - 86_400_000;
+		emit(
+			{ $type: 'place.stream.segment', startTime: new Date(old).toISOString(), duration: 1e9 },
+			{
+				$type: 'place.stream.segment',
+				startTime: new Date(old + 1000).toISOString(),
+				duration: 1e9
+			}
+		);
+		expect(channel.live).toBe(false);
+
+		// A channel whose segments have timestamps 60s behind the local clock (fast device clock):
+		// once a newer segment arrives in a later batch, it counts as live.
+		const skewed = Date.now() - 60_000;
+		emit({
+			$type: 'place.stream.segment',
+			startTime: new Date(skewed).toISOString(),
+			duration: 1e9
+		});
+		expect(channel.live).toBe(false);
+		vi.advanceTimersByTime(1000);
+		emit({
+			$type: 'place.stream.segment',
+			startTime: new Date(skewed + 1000).toISOString(),
+			duration: 1e9
+		});
+		expect(channel.live).toBe(true);
+		vi.advanceTimersByTime(20_000);
+		expect(channel.live).toBe(false);
+	});
+
+	it('ignores malformed gate and teleport arrival events without dropping the rest of the batch', () => {
+		const { channel, emit } = open();
+		emit(
+			{ $type: 'place.stream.chat.gate' },
+			{ $type: 'place.stream.livestream#teleportArrival', teleportUri: 'at://x/y/1' },
+			message('did:plc:alice', 'still works', 1)
+		);
+		expect(texts(channel)).toEqual(['still works']);
+	});
+
 	it('is read-only without a writer', async () => {
 		const { channel } = open();
 		await expect(channel.send('hi', viewer)).rejects.toThrow('Sign in');
@@ -382,9 +426,18 @@ describe('Channel', () => {
 		await channel.hide(spam.uri);
 		await channel.ban('did:plc:bob');
 		expect(write.create.mock.calls.map(([collection, record]) => [collection, record])).toEqual([
-			['place.stream.chat.pinnedRecord', expect.objectContaining({ pinnedMessage: spam.uri })],
-			['place.stream.chat.gate', { hiddenMessage: spam.uri }],
-			['app.bsky.graph.block', expect.objectContaining({ subject: 'did:plc:bob' })]
+			[
+				'place.stream.chat.pinnedRecord',
+				expect.objectContaining({
+					$type: 'place.stream.chat.pinnedRecord',
+					pinnedMessage: spam.uri
+				})
+			],
+			['place.stream.chat.gate', { $type: 'place.stream.chat.gate', hiddenMessage: spam.uri }],
+			[
+				'app.bsky.graph.block',
+				expect.objectContaining({ $type: 'app.bsky.graph.block', subject: 'did:plc:bob' })
+			]
 		]);
 		expect(texts(channel)).toEqual(['fine']);
 	});

@@ -55,11 +55,13 @@ export class Channel {
 	/** Everyone seen in chat, for mentions and name colours. */
 	authors = new SvelteMap<string, { handle: string; chatProfile?: ChatProfile }>();
 
-	#lastSegmentAt = $state(0);
+	#lastSegmentAt = $state(-Infinity);
 	#now = $state(Date.now());
 	readonly live = $derived(this.#now - this.#lastSegmentAt < LIVE_WINDOW);
 	readonly ended = $derived(!!this.livestream?.record.endedAt);
 
+	#lastSegmentStart = 0;
+	#lastSegmentReceivedAt = 0;
 	#write?: RecordWriter;
 	#socket?: WebSocket;
 	#closed = true;
@@ -189,9 +191,23 @@ export class Channel {
 				case 'place.stream.segment': {
 					const segment = data as unknown as Segment;
 					this.segment = segment;
-					const end = Date.parse(segment.startTime) + (segment.duration ?? 0) / 1e6;
-					this.#lastSegmentAt = Math.max(this.#lastSegmentAt, Math.min(Date.now(), end || 0));
-					this.#now = Date.now();
+					const start = Date.parse(segment.startTime) || 0;
+					const end = start + (segment.duration ?? 0) / 1e6;
+					const now = Date.now();
+					// A strictly newer segment arriving in a later batch proves the stream is live
+					// even when this device's clock is ahead of the server's. On the initial burst,
+					// fall back to the segment's timestamp so a past stream never looks live.
+					const advancing =
+						this.#lastSegmentStart > 0 &&
+						start > this.#lastSegmentStart &&
+						now - this.#lastSegmentReceivedAt >= 200;
+					if (start > this.#lastSegmentStart) this.#lastSegmentStart = start;
+					this.#lastSegmentReceivedAt = now;
+					this.#lastSegmentAt = Math.max(
+						this.#lastSegmentAt,
+						advancing ? now : Math.min(now, end || 0)
+					);
+					this.#now = now;
 					this.settled = true;
 					break;
 				}
@@ -215,7 +231,8 @@ export class Channel {
 					break;
 				}
 				case 'place.stream.chat.gate': {
-					const uri = data.hiddenMessage as string;
+					const uri = data.hiddenMessage;
+					if (typeof uri !== 'string' || !uri) break;
 					this.#hidden.add(uri);
 					this.#index.delete(uri);
 					// Even when the message itself is not loaded, a quote or the pin may show it.
@@ -249,7 +266,8 @@ export class Channel {
 					break;
 				}
 				case 'place.stream.livestream#teleportArrival': {
-					const source = data.source as ProfileBasic;
+					const source = data.source as ProfileBasic | undefined;
+					if (!source?.did || typeof data.teleportUri !== 'string') break;
 					const uri = `system:${data.teleportUri}`;
 					if (this.#index.has(uri)) break;
 					const count = (data.viewerCount as number) ?? 0;
@@ -276,6 +294,7 @@ export class Channel {
 	}
 
 	#message(message: ChatMessage): boolean {
+		if (!message?.uri || !message.author?.did || !message.record) return false;
 		if (message.deleted) {
 			// Remembered, so its text also goes from quotes and the pin, and it cannot come back.
 			this.#hidden.add(message.uri);
@@ -352,10 +371,13 @@ export class Channel {
 
 	/** Resolves a mentioned handle from chat first, then from the network. */
 	async resolveHandle(handle: string): Promise<string | undefined> {
-		for (const [did, author] of this.authors) if (author.handle === handle) return did;
-		if (this.profile?.handle === handle) return this.profile.did;
+		const needle = handle.toLowerCase();
+		for (const [did, author] of this.authors) {
+			if (author.handle.toLowerCase() === needle) return did;
+		}
+		if (this.profile?.handle.toLowerCase() === needle) return this.profile.did;
 		const response = await fetch(
-			`${appviewUrl()}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`,
+			`${appviewUrl()}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(needle)}`,
 			{ signal: AbortSignal.timeout(2500) }
 		);
 		return response.ok ? ((await response.json()) as { did: string }).did : undefined;
@@ -389,7 +411,12 @@ export class Channel {
 		let local: ChatMessage = {
 			uri: `local:${crypto.randomUUID()}`,
 			cid: '',
-			author: { did: viewer.did, handle: viewer.handle, displayName: viewer.displayName },
+			author: {
+				did: viewer.did,
+				handle: viewer.handle,
+				displayName: viewer.displayName,
+				avatar: viewer.avatar
+			},
 			chatProfile: this.authors.get(viewer.did)?.chatProfile,
 			record: draft,
 			indexedAt: draft.createdAt,
@@ -463,13 +490,17 @@ export class Channel {
 	async hide(uri: string) {
 		const write = this.#writer();
 		await this.#withoutMessage(uri, () =>
-			write.create('place.stream.chat.gate', { hiddenMessage: uri })
+			write.create('place.stream.chat.gate', {
+				$type: 'place.stream.chat.gate',
+				hiddenMessage: uri
+			})
 		);
 	}
 
 	/** Streamer: pins a message above the chat. */
 	async pin(uri: string) {
 		await this.#writer().create('place.stream.chat.pinnedRecord', {
+			$type: 'place.stream.chat.pinnedRecord',
 			pinnedMessage: uri,
 			createdAt: new Date().toISOString()
 		});
@@ -489,6 +520,7 @@ export class Channel {
 	 */
 	async ban(did: string) {
 		await this.#writer().create('app.bsky.graph.block', {
+			$type: 'app.bsky.graph.block',
 			subject: did,
 			createdAt: new Date().toISOString()
 		});

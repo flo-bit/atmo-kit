@@ -1,4 +1,5 @@
 import { appviewUrl, cdnUrl } from '../events/atproto-helpers.js';
+import { isLinkedActor } from '../grain/urls.js';
 import type { Activity, BlobRef, LivestreamView, VideoView } from './types.js';
 
 // One fixed node; never a user-supplied host.
@@ -49,12 +50,18 @@ export async function getLiveStreams(options?: Options): Promise<LivestreamView[
 }
 
 let recent: { at: number; streams: Promise<LivestreamView[]> } | undefined;
-/** The live list, shared for half a minute between callers that only need a hint. */
+/**
+ * The live list, shared for half a minute between browser callers that only need a hint.
+ * On the server this fetches fresh per call so in-flight I/O is never shared across requests.
+ */
 export function getLiveStreamsCached(): Promise<LivestreamView[]> {
+	if (typeof window === 'undefined') return getLiveStreams();
 	if (!recent || Date.now() - recent.at > 30_000) {
 		const streams = getLiveStreams();
 		recent = { at: Date.now(), streams };
-		streams.catch(() => (recent = undefined));
+		streams.catch(() => {
+			if (recent?.streams === streams) recent = undefined;
+		});
 	}
 	return recent.streams;
 }
@@ -65,6 +72,7 @@ export async function fetchProfiles(dids: string[], options: Options = {}) {
 	const profiles = new Map<string, PublicProfile>();
 	const unique = [...new Set(dids)];
 	for (let i = 0; i < unique.length; i += 25) {
+		if (options.signal?.aborted) break;
 		const query = unique
 			.slice(i, i + 25)
 			.map((did) => `actors=${encodeURIComponent(did)}`)
@@ -74,13 +82,13 @@ export async function fetchProfiles(dids: string[], options: Options = {}) {
 			{ signal: options.signal }
 		).catch(() => null);
 		if (!response?.ok) continue;
-		const body = (await response.json()) as { profiles?: PublicProfile[] };
-		for (const profile of body.profiles ?? []) {
+		const body = (await response.json().catch(() => null)) as { profiles?: PublicProfile[] } | null;
+		for (const profile of body?.profiles ?? []) {
 			profiles.set(profile.did, {
 				did: profile.did,
 				handle: profile.handle,
-				displayName: profile.displayName || undefined,
-				avatar: profile.avatar
+				...(profile.displayName ? { displayName: profile.displayName } : {}),
+				...(profile.avatar ? { avatar: profile.avatar } : {})
 			});
 		}
 	}
@@ -103,23 +111,24 @@ export async function withProfiles<T extends { author: { did: string } }>(
 
 /** Which of these accounts the viewer follows. Failed lookups count as not followed. */
 export async function followedAmong(viewer: string, dids: string[], options: Options = {}) {
-	const found: string[] = [];
+	const found = new Set<string>();
 	const queue = [...new Set(dids)];
 	// The node has no batch lookup: one request per account, a few at a time.
 	const worker = async () => {
 		for (let did = queue.shift(); did; did = queue.shift()) {
+			if (options.signal?.aborted) break;
 			const subject = did;
 			await xrpc<{ follow?: unknown }>(
 				'place.stream.graph.getFollowingUser',
 				{ userDID: viewer, subjectDID: subject },
 				options
 			)
-				.then((result) => result.follow && found.push(subject))
+				.then((result) => result.follow && found.add(subject))
 				.catch(() => {});
 		}
 	};
 	await Promise.all(Array.from({ length: 6 }, worker));
-	return dids.filter((did) => found.includes(did));
+	return dids.filter((did) => found.has(did));
 }
 
 export async function getLivestream(user: string, options: Options = {}) {
@@ -128,7 +137,8 @@ export async function getLivestream(user: string, options: Options = {}) {
 		{ signal: options.signal }
 	);
 	if (!response.ok) return null;
-	return (await response.json()) as LivestreamView;
+	const data = (await response.json().catch(() => null)) as LivestreamView | null;
+	return data?.record ? data : null;
 }
 
 export const getVideos = (
@@ -142,8 +152,18 @@ export const getVideo = (uri: string, o?: Options) =>
 export const liveThumbnail = (did: string, bust?: number) =>
 	`${NODE}/api/playback/${encodeURIComponent(did)}/stream.jpg${bust ? `?t=${bust}` : ''}`;
 
-export const blobImage = (did: string, blob?: BlobRef, preset = 'feed_thumbnail') =>
-	blob?.ref?.$link ? `${cdnUrl()}/img/${preset}/plain/${did}/${blob.ref.$link}@jpeg` : undefined;
+export const blobImage = (did: string, blob?: BlobRef, preset = 'feed_thumbnail') => {
+	const cid = blob?.ref?.$link;
+	if (
+		!cid ||
+		!did.startsWith('did:') ||
+		!isLinkedActor(did) ||
+		!/^[A-Za-z0-9_-]+$/.test(cid) ||
+		!/^[a-z0-9_]+$/i.test(preset)
+	)
+		return undefined;
+	return `${cdnUrl()}/img/${preset}/plain/${did}/${cid}@jpeg`;
+};
 
 export const livePlaylist = (user: string, rendition?: string) =>
 	`${NODE}/xrpc/place.stream.playback.getLivePlaylist?streamer=${encodeURIComponent(user)}${

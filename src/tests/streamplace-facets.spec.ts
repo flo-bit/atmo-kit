@@ -68,4 +68,33 @@ describe('withoutLink', () => {
 		);
 		expect(withoutLink('nothing here', [], 'https://a.example/x').text).toBe('nothing here');
 	});
+
+	it('ignores malformed and credential-bearing links in facets and plain text', () => {
+		const bad = [
+			{
+				index: { byteStart: 0, byteEnd: 16 },
+				features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://[invalid' }]
+			},
+			{
+				index: { byteStart: 17, byteEnd: 46 },
+				features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://user:pass@example.com' }]
+			}
+		];
+		expect(linksOf(bad, 'https://[invalid https://user:pass@example.com')).toEqual([]);
+		expect(linksOf(undefined, 'see https://user:pass@example.com/a.png')).toEqual([]);
+	});
+
+	it('leaves text intact when facet byte offsets are malformed', () => {
+		const text = 'hello https://example.com';
+		const malformed = [
+			{
+				index: { byteStart: Number.NaN, byteEnd: text.length },
+				features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://example.com' }]
+			}
+		];
+		expect(withoutLink(text, malformed, 'https://example.com')).toEqual({
+			text,
+			facets: malformed
+		});
+	});
 });

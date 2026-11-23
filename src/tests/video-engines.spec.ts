@@ -200,6 +200,15 @@ describe('shared WebRTC sessions', () => {
 		expect(FakePeer.all[1].closed).toBe(true);
 	});
 
+	it('passes the offline refusal reason when the node answers 5xx', async () => {
+		vi.stubGlobal('fetch', async () => new Response('', { status: 503 }));
+		const onwaiting = vi.fn();
+		const engine = startWebRTC(video, '/whep/e503', { onwaiting }, { attempts: 2 });
+		await gathered();
+		expect(onwaiting).toHaveBeenCalledWith('offline');
+		engine.destroy();
+	});
+
 	it('tells every user of a session that failed', async () => {
 		vi.stubGlobal('fetch', async () => new Response('answer'));
 		const first = vi.fn();
@@ -276,6 +285,7 @@ describe('prefetchHls', () => {
 describe('native HLS', () => {
 	class NativeVideo extends EventTarget {
 		urls: string[] = [];
+		currentTime = 0;
 		set src(url: string) {
 			this.urls.push(url);
 		}
@@ -285,6 +295,24 @@ describe('native HLS', () => {
 		removeAttribute() {}
 		load() {}
 	}
+
+	it('seeks to startAt once on loadedmetadata, not before metadata or on retry', async () => {
+		const element = new NativeVideo();
+		const engine = startHls(
+			element as unknown as HTMLVideoElement,
+			'/video',
+			{},
+			{ live: false, startAt: 42 }
+		);
+		await vi.waitFor(() => expect(element.urls).toEqual(['/video']));
+		expect(element.currentTime).toBe(0);
+		element.dispatchEvent(new Event('loadedmetadata'));
+		expect(element.currentTime).toBe(42);
+		element.currentTime = 120;
+		element.dispatchEvent(new Event('loadedmetadata'));
+		expect(element.currentTime).toBe(120);
+		engine.destroy();
+	});
 
 	it('retries failed recordings, then offers a manual retry', async () => {
 		const element = new NativeVideo();

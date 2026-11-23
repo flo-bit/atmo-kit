@@ -8,6 +8,10 @@
 	function enqueue(task: () => Promise<unknown>) {
 		waiting.push(task);
 		drain();
+		return () => {
+			const at = waiting.indexOf(task);
+			if (at >= 0) waiting.splice(at, 1);
+		};
 	}
 	function drain() {
 		while (running < 3 && waiting.length) {
@@ -54,33 +58,38 @@
 
 	const link = $derived(
 		href ??
-			`https://stream.place/${encodeURIComponent(handleOf(video.author))}/video/${rkeyOf(video.uri)}`
+			`https://stream.place/${encodeURIComponent(handleOf(video.author))}/video/${encodeURIComponent(rkeyOf(video.uri))}`
 	);
 	const local = $derived(/^\/(?!\/)/.test(link));
 	const thumbnail = $derived(blobImage(video.author.did, video.record.thumb));
 
 	const enabled = $derived(prefetch ?? local);
-	let posterLoaded = false;
+	let loadedPoster: string | undefined;
 	/** The start of the recording, for a card that is pointed at, focused or pressed. */
 	function warm() {
 		if (!enabled) return;
 		void prefetchHls(videoPlaylist(video.uri), 2);
-		if (posterLoaded) return;
-		posterLoaded = true;
 		// The video page's poster.
 		const poster = blobImage(video.author.did, video.record.thumb, 'feed_fullsize');
-		if (poster) new Image().src = poster;
+		if (!poster || poster === loadedPoster) return;
+		loadedPoster = poster;
+		new Image().src = poster;
 	}
 
 	/** The playlists alone, for a card that comes into view. */
 	function inView(node: HTMLElement) {
 		if (!enabled || typeof IntersectionObserver === 'undefined') return;
+		const uri = video.uri;
 		let idle: number | undefined;
+		let cancelQueued: (() => void) | undefined;
 		const observer = new IntersectionObserver(
 			([entry]) => {
 				if (!entry?.isIntersecting) return;
 				observer.disconnect();
-				const queue = () => enqueue(() => prefetchHls(videoPlaylist(video.uri), 0));
+				const queue = () => {
+					idle = undefined;
+					cancelQueued = enqueue(() => prefetchHls(videoPlaylist(uri), 0));
+				};
 				idle =
 					typeof requestIdleCallback === 'function'
 						? requestIdleCallback(queue, { timeout: 1500 })
@@ -91,9 +100,10 @@
 		observer.observe(node);
 		return () => {
 			observer.disconnect();
+			cancelQueued?.();
 			if (idle === undefined) return;
 			if (typeof cancelIdleCallback === 'function') cancelIdleCallback(idle);
-			clearTimeout(idle);
+			else clearTimeout(idle);
 		};
 	}
 	const views = $derived(video.viewCounts?.count ?? 0);

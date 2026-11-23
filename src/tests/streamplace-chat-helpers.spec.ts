@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { resolveLinkEmbed } from '../lib/embeds/resolve.js';
+import { blobImage, getLivestream, withProfiles } from '../lib/streamplace/api.js';
 import { nameColor, shortHandle } from '../lib/streamplace/chat/color.js';
 import { cachedPreview, isImageUrl } from '../lib/streamplace/chat/links.js';
 import { streamLinkEmbed } from '../lib/streamplace/link-embed.js';
@@ -67,5 +68,58 @@ describe('chat link helpers', () => {
 		expect(await cachedPreview(load, 'https://example.com/untitled')).toBeUndefined();
 		expect(await cachedPreview(load, 'https://example.com/down')).toBeUndefined();
 		expect(load).toHaveBeenCalledTimes(3);
+	});
+});
+
+describe('streamplace api helpers', () => {
+	it('does not clobber existing displayName or avatar when AppView profile omits them', async () => {
+		const fetchImpl = vi.fn<typeof fetch>(async () =>
+			Response.json({
+				profiles: [{ did: 'did:plc:alice', handle: 'alice.test', displayName: '' }]
+			})
+		);
+		const [item] = await withProfiles(
+			[
+				{
+					author: {
+						did: 'did:plc:alice',
+						handle: 'old.test',
+						displayName: 'Alice',
+						avatar: 'https://cdn.example/a.jpg'
+					}
+				}
+			],
+			{ fetch: fetchImpl }
+		);
+		expect(item.author).toEqual({
+			did: 'did:plc:alice',
+			handle: 'alice.test',
+			displayName: 'Alice',
+			avatar: 'https://cdn.example/a.jpg'
+		});
+	});
+
+	it('rejects untrusted path segments in blobImage', () => {
+		const validBlob = {
+			$type: 'blob' as const,
+			ref: { $link: 'bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku' },
+			mimeType: 'image/jpeg',
+			size: 10
+		};
+		expect(blobImage('did:plc:abcdefghijklmnopqrstuvwx', validBlob)).toMatch(
+			/\/img\/feed_thumbnail\/plain\/did:plc:abcdefghijklmnopqrstuvwx\/bafkrei.*@jpeg$/
+		);
+		expect(
+			blobImage('did:plc:abcdefghijklmnopqrstuvwx', {
+				...validBlob,
+				ref: { $link: '../../evil' }
+			})
+		).toBeUndefined();
+		expect(blobImage('../evil', validBlob)).toBeUndefined();
+	});
+
+	it('returns null from getLivestream when the response has no record', async () => {
+		const fetchImpl = vi.fn<typeof fetch>(async () => Response.json({}));
+		expect(await getLivestream('alice.test', { fetch: fetchImpl })).toBeNull();
 	});
 });

@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
+	import { handleOf } from '../api.js';
 	import type { Channel } from '../channel.svelte.js';
 	import type { ChatMessage } from '../types.js';
 	import { cn } from '../../utils.js';
@@ -32,13 +33,29 @@
 	const timers = new Map<string, ReturnType<typeof setTimeout>>();
 	/* eslint-enable svelte/prefer-svelte-reactivity */
 
-	// The history that arrives on connecting is not news.
+	const reducedMotion = () =>
+		typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	function clearTimers() {
+		for (const pending of timers.values()) clearTimeout(pending);
+		timers.clear();
+	}
+
+	// The history that arrives on connecting (or when switching channels) is not news.
+	// Derived so unrelated prop updates (e.g. toggling `active`) never reset `ready`.
+	const currentChannel = $derived(channel);
 	let ready = $state(false);
-	onMount(() => {
+	$effect(() => {
+		void currentChannel;
+		ready = false;
+		hovering = false;
+		known.clear();
+		clearTimers();
+		popups = [];
 		const timer = setTimeout(() => (ready = true), 3000);
 		return () => {
 			clearTimeout(timer);
-			for (const pending of timers.values()) clearTimeout(pending);
+			clearTimers();
 		};
 	});
 
@@ -50,7 +67,9 @@
 				setTimeout(() => expire(uri), 1500)
 			);
 		timers.delete(uri);
-		popups = popups.filter((message) => message.uri !== uri);
+		const next = popups.filter((message) => message.uri !== uri);
+		popups = next;
+		if (!next.length) hovering = false;
 	}
 
 	$effect(() => {
@@ -66,24 +85,39 @@
 			}
 		}
 		if (!active) {
-			for (const pending of timers.values()) clearTimeout(pending);
-			timers.clear();
+			hovering = false;
+			clearTimers();
 			popups = [];
-		} else if (fresh.length) {
-			for (const message of fresh)
+			return;
+		}
+		const current = untrack(() => popups);
+		let next = fresh.length ? [...current, ...fresh].slice(-3) : current;
+		// A message hidden or deleted while its popup is up goes with it.
+		next = next.filter((message) => present.has(message.uri));
+		const kept = new Set(next.map((message) => message.uri));
+		for (const [uri, pending] of timers) {
+			if (!kept.has(uri)) {
+				clearTimeout(pending);
+				timers.delete(uri);
+			}
+		}
+		for (const message of next) {
+			if (!timers.has(message.uri)) {
 				timers.set(
 					message.uri,
 					setTimeout(() => expire(message.uri), SHOWN_FOR)
 				);
-			popups = [...popups, ...fresh].slice(-3);
+			}
 		}
-		// A message hidden or deleted while its popup is up goes with it.
-		const visible = untrack(() => popups).filter((message) => present.has(message.uri));
-		if (visible.length !== untrack(() => popups).length) popups = visible;
+		if (next !== current && (next.length !== current.length || fresh.length)) {
+			popups = next;
+			if (!next.length) hovering = false;
+		}
 	});
 </script>
 
 {#if popups.length}
+	{@const reduced = reducedMotion()}
 	<ul
 		class={cn(
 			'fixed right-3 bottom-16 z-30 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col gap-1.5 max-sm:bottom-20',
@@ -94,7 +128,10 @@
 		onpointerleave={() => (hovering = false)}
 	>
 		{#each popups as message (message.uri)}
-			<li in:fly={{ y: 12, duration: 180 }} out:fade={{ duration: 400 }}>
+			<li
+				in:fly={{ y: reduced ? 0 : 12, duration: reduced ? 0 : 180 }}
+				out:fade={{ duration: reduced ? 0 : 400 }}
+			>
 				<button
 					type="button"
 					class="block w-full rounded-xl border border-white/30 bg-black/75 px-3 py-2 text-left text-[13px] leading-snug text-white shadow-lg backdrop-blur-sm hover:bg-black/90"
@@ -104,7 +141,7 @@
 						<span
 							class="font-semibold"
 							style:color={nameColor(message.author.did, message.chatProfile?.color, 'dark')}
-							>{shortHandle(message.author.handle || message.author.did)}</span
+							>{shortHandle(handleOf(message.author))}</span
 						>{message.system ? ' ' : ': '}{message.record.text}
 					</span>
 				</button>
