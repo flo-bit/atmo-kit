@@ -196,6 +196,9 @@ app's own page; a path stays in the tab.
 <VideoCard {video} href="/{handle}/video/{rkey}" showAuthor={false} />
 ```
 
+A `StreamCard`'s picture is the stream's current frame. The node is slow to send it, so the
+stream's own thumbnail shows first and the frame fades in over it once loaded.
+
 Pointing at a `StreamCard` plays the stream in place, silently; the picture fades in once
 frames arrive. Pass `preview={false}` to turn it off. It never runs for touch or with reduced
 motion.

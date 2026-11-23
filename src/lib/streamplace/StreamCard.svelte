@@ -5,7 +5,10 @@
 		stream: LivestreamView;
 		/** Where the card leads: a path in this app, or stream.place by default. */
 		href?: string;
-		/** The picture; the node's current frame of the stream by default. */
+		/**
+		 * The picture. By default the node's current frame of the stream, shown over the
+		 * stream's own thumbnail once it has loaded (the node is slow to send it).
+		 */
 		thumbnail?: string;
 		/** Load the picture at once, for cards at the top of a page. */
 		eager?: boolean;
@@ -27,6 +30,7 @@
 	import { startWebRTC, warmWebRTC } from '../video/engines.js';
 	import {
 		activityName,
+		blobImage,
 		displayName,
 		formatCount,
 		handleOf,
@@ -55,6 +59,15 @@
 	const picture = $derived(
 		thumbnail ?? liveThumbnail(stream.author.did, Math.floor(Date.now() / 60_000))
 	);
+	// The stream's own thumbnail comes from a fast CDN, but is only as recent as the stream.
+	const stored = $derived(
+		thumbnail ? undefined : blobImage(stream.author.did, stream.record.thumb)
+	);
+	let pictureLoaded = $state(false);
+	/** A picture that finished loading before the page was interactive fires no `load`. */
+	function loaded(node: HTMLImageElement) {
+		if (node.complete && node.naturalWidth) pictureLoaded = true;
+	}
 
 	let video = $state<HTMLVideoElement>();
 	let previewing = $state(false);
@@ -113,12 +126,26 @@
 			recess
 		)}
 	>
+		{#if stored}
+			<img
+				src={stored}
+				alt=""
+				loading={eager ? 'eager' : 'lazy'}
+				decoding="async"
+				class="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none"
+			/>
+		{/if}
 		<img
 			src={picture}
 			alt=""
 			loading={eager ? 'eager' : 'lazy'}
 			decoding="async"
-			class="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none"
+			{@attach loaded}
+			onload={() => (pictureLoaded = true)}
+			class={[
+				'absolute inset-0 size-full object-cover transition-[opacity,transform] duration-300 group-hover:scale-[1.02] motion-reduce:transition-none',
+				stored && !pictureLoaded && 'opacity-0'
+			]}
 		/>
 		{#if previewing}
 			<video
