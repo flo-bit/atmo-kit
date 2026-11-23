@@ -1,5 +1,27 @@
 # @atmo-dev/kit
 
+## 0.22.0
+
+### Minor Changes
+
+- 7ced64e: Article images have captions: the title of a Markdown image, `![alt](url "caption")`, is shown under it in a `<figure>` by `RichText` and `ArticleView` instead of as a tooltip. In the editor the field under an image is gone; clicking an image (or Enter while it is selected) opens a dialog for its alt text and caption, with a button to remove it. `RichTextEditorImages.altLabel` is removed.
+- 70360a8: Add `DataLabel`, a plain-language page for what an app saves, where, and who can see it, with optional Sketchyicons, `getDataLabelIssues`, and a `data` footer link.
+- afbd43b: Event cards without the event page's optional peers: `@atmo-dev/kit/events/card` has `EventCard`, `eventLinkEmbed` and `loadAtmoRsvpEvent` and does not load the map. `eventLinkEmbed()` with no options shows atmo.rsvp event links, read from its public index. Event cards that link outside the app open in a new tab.
+- 08d8321: Add `NotificationList`, `NotificationSettings` and `NotificationPushToggle` for an app's notifications.
+- afbd43b: `StreamCard` and `VideoCard` in `@atmo-dev/kit/streamplace`: a live stream with a silent hover preview, and a recording with length and views. The playback engines (`startWebRTC`, `startHls`) are exported for apps building their own playback.
+- afbd43b: `StreamChat` and `StreamChatPopups` in `@atmo-dev/kit/streamplace`: live chat for a `Channel` with replies, reactions, mentions, link embeds and cards, message ages and the streamer's moderation actions, and brief popups for new messages while the chat is hidden. `streamLinkEmbed()` shows channel links as cards. `Channel.receive()` applies events an app supplies itself.
+- afbd43b: Near-instant playback from Streamplace cards. `StreamCard` opens the stream's WebRTC session as soon as it is pointed at, focused or pressed, previews without a delay, and leaves the session for `StreamPlayer` to take over. `VideoCard` loads playlists for cards in view and the first seconds of media on hover, which `startHls` plays from. New `warmWebRTC` and `prefetchHls` for other links; `startWebRTC` shares sessions by URL and takes a `keep` option.
+- afbd43b: `StreamPlayer` in `@atmo-dev/kit/streamplace`: live streams over WebRTC with HLS as the fallback and as the smoother option, and recordings, with quality, delay, stats, picture in picture and theater mode. It shares its controls with the event players, whose live player now uses the same playback engine.
+- afbd43b: Streamplace beyond link parsing: `@atmo-dev/kit/streamplace-data` has types, API reads for live streams and videos, and chat text helpers (links, mentions, reactions), with no UI imports. `@atmo-dev/kit/streamplace` adds `Channel`, one streamer's live state and chat over a single socket, writing through an app-supplied `RecordWriter`.
+
+  `@atmo-dev/kit/streamplace` now contains Svelte code and needs a Svelte-aware bundler. Code that imported `parseStreamplaceLink` from it in plain Node imports it from `@atmo-dev/kit/streamplace-data` (or the main entry) instead.
+
+### Patch Changes
+
+- afbd43b: Grain albums load again: the client reads Grain's current gallery and feed endpoints, and fails on the notice the retired ones return instead of listing it as an album.
+- afbd43b: Event players keep the sound the way the viewer set it: muting a recording, or unmuting a live stream, was undone as soon as the controls re-rendered.
+- afbd43b: Video players load their poster from hosts without CORS headers again: the video element only uses CORS mode when there is a captions file to fetch.
+
 ## 0.21.0
 
 ### Minor Changes
