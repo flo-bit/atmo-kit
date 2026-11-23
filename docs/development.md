@@ -21,6 +21,7 @@ Activating external embeds can load third-party media; the HLS video fixture is 
 | `/navigation` | IconRail, WorkspaceSidebar, AccountMenu at desktop and mobile sizes |
 | `/login`      | Login form/dialog, permission review, recent accounts, errors       |
 | `/legal`      | Document rendering, footer links, authoring configuration           |
+| `/data`       | Data label, its footer link, authoring check                        |
 
 Every public component has an individual example at `/components/<name>`, including
 event UI. Viewport-owning components run in isolated iframes. Event comments and

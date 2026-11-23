@@ -26,7 +26,7 @@ export interface LegalDocumentData {
 /** Omit a link, or set it to false, to hide it. */
 export type LegalFooterLink = string | false | LegalLink;
 export type LegalFooterLinks = Partial<
-	Record<LegalDocumentKind | 'report' | 'source', LegalFooterLink>
+	Record<LegalDocumentKind | 'data' | 'report' | 'source', LegalFooterLink>
 >;
 
 export interface LegalDraftConfig {

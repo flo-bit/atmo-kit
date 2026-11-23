@@ -11,3 +11,6 @@ export type {
 	LegalSection,
 	LegalFooterLinks
 } from './components/legal/types.js';
+export { getDataLabelIssues } from './components/data/issues.js';
+export { dataVisibilityLevels } from './components/data/visibility.js';
+export type { DataLabelData, DataLabelEntry, DataVisibility } from './components/data/types.js';

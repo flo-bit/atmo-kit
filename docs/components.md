@@ -137,6 +137,14 @@ These are UI components, not an OAuth implementation.
 | `LegalFooter`   | Configured policy links and report action            |
 | `ReportDialog`  | Report form, submission feedback, and email fallback |
 
+## Data label
+
+[Guide](data-label.md) · Local example: `/data`.
+
+| Component   | Purpose                                      |
+| ----------- | -------------------------------------------- |
+| `DataLabel` | What an app saves, where, and who can see it |
+
 ## Page metadata
 
 [AT Tags guide](at-tags.md).

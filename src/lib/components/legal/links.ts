@@ -21,6 +21,7 @@ export function safeLegalHref(value: string, allowMail = false): string | undefi
 const labels = {
 	terms: 'Terms',
 	privacy: 'Privacy',
+	data: 'Your data',
 	imprint: 'Imprint',
 	moderation: 'Moderation',
 	report: 'Report',
