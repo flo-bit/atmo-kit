@@ -10,9 +10,10 @@ test('gallery links every public component to its own visual example', async ({ 
 		catalog.map((group) => group.title)
 	);
 	// Check the whole inventory in one browser round trip, rather than one per link.
+	// Scope to the card links themselves so links inside inert component previews are ignored.
 	expect(
 		await page
-			.locator('main a[href^="/components/"]')
+			.locator('main section > ul > li > a[href^="/components/"]')
 			.evaluateAll((links) =>
 				links.map((link) => ({ name: link.textContent?.trim(), href: link.getAttribute('href') }))
 			)
