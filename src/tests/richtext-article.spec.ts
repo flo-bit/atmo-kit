@@ -59,6 +59,32 @@ describe('article Markdown', () => {
 		);
 	});
 
+	it('round-trips image alt text and captions with punctuation, entities, syntax and newlines', () => {
+		const cases = [
+			{ alt: 'A cat', title: 'She said "hi" to Tom & Jerry' },
+			{ alt: 'A &amp; B', title: 'A &amp; B and C:\\Users\\me' },
+			{ alt: 'Note ==highlighted== and $x^2$', title: 'Caption with \\&amp; entity' },
+			{ alt: 'Line 1\r\nLine 2', title: 'Cap 1\nCap 2' }
+		];
+		for (const { alt, title } of cases) {
+			const doc: RichTextDocument = {
+				version: 1,
+				markdown: true,
+				children: [{ type: 'image', url: 'https://example.com/cat.png', alt, title }]
+			};
+			const markdown = richTextToMarkdown(doc, article);
+			const parsed = parseMarkdown(markdown, article);
+			expect(parsed.children, markdown).toEqual([
+				{
+					type: 'image',
+					url: 'https://example.com/cat.png',
+					alt: alt.replace(/[\r\n]+/g, ' '),
+					title: title.replace(/[\r\n]+/g, ' ')
+				}
+			]);
+		}
+	});
+
 	it('keeps images as links outside articles and inside links', () => {
 		expect(parseMarkdown('![cat](https://example.com/cat.png)').children[0]).toMatchObject({
 			type: 'paragraph',

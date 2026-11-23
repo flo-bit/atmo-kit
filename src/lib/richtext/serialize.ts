@@ -242,8 +242,8 @@ function shapeOf(blocks: readonly RichTextBlock[], depth = 0): Shape[] {
 				return [
 					{
 						img: safeWebUrl(block.url) ?? block.url,
-						alt: block.alt ?? '',
-						title: block.title ?? ''
+						alt: (block.alt ?? '').replace(/[\r\n]+/g, ' '),
+						title: (block.title ?? '').replace(/[\r\n]+/g, ' ')
 					}
 				];
 			case 'table':
@@ -549,11 +549,21 @@ function tableMarkdown(
 	].join('\n');
 }
 
-function imageMarkdown(block: Extract<RichTextBlock, { type: 'image' }>): string {
-	const title = block.title
-		? ` "${block.title.replace(/["\\]/g, '\\$&').replace(/\n+/g, ' ')}"`
-		: '';
-	const alt = escapeText((block.alt ?? '').replace(/\n+/g, ' '), true);
+function escapeTitle(value: string): string {
+	return value
+		.replace(/[\r\n]+/g, ' ')
+		.replace(/["\\]/g, '\\$&')
+		.replace(/&(?=(?:[A-Za-z][A-Za-z0-9]{0,31}|#[0-9]{1,7}|#[xX][0-9A-Fa-f]{1,6});)/g, '\\&');
+}
+
+function imageMarkdown(
+	block: Extract<RichTextBlock, { type: 'image' }>,
+	aggressive: boolean,
+	article: boolean
+): string {
+	const title = block.title ? ` "${escapeTitle(block.title)}"` : '';
+	const altText = (block.alt ?? '').replace(/[\r\n]+/g, ' ');
+	const alt = aggressive ? escapeAll(altText) : escapeText(altText, true, article);
 	return `![${alt}](${linkDestination(block.url)}${title})`;
 }
 
@@ -635,7 +645,7 @@ function blocksMarkdown(
 				result.push(inList ? '***' : '---');
 				break;
 			case 'image':
-				result.push(imageMarkdown(block));
+				result.push(imageMarkdown(block, aggressive, article));
 				break;
 			case 'math':
 				result.push(`$$\n${block.value}\n$$`);

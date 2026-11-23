@@ -74,8 +74,84 @@ describe('article editor', () => {
 		paste(editor.element(), (data) => data.items.add(file));
 		await expect.poll(() => onupdate.mock.calls.at(-1)?.[0].text).toBe('![](local:1)');
 		expect(upload).toHaveBeenCalledWith(file);
-		await page.getByRole('textbox', { name: 'Alt text' }).fill('A cat');
-		await expect.poll(() => onupdate.mock.calls.at(-1)?.[0].text).toBe('![A cat](local:1)');
+	});
+
+	it('edits the description and caption of a clicked image, and removes it', async () => {
+		const onupdate = vi.fn();
+		const { container } = render(RichTextEditor, {
+			label: 'Article',
+			markdown: 'article',
+			value: '![](local:1)',
+			images: { src: (url) => (url === 'local:1' ? '/favicon.png' : undefined) },
+			onupdate
+		});
+		const editor = page.getByRole('textbox', { name: 'Article', exact: true });
+		await expect.element(editor).toBeVisible();
+		const image = () => container.querySelector<HTMLElement>('figure[data-image]')!;
+		// Nothing to type under the image itself.
+		expect(image().querySelector('input')).toBeNull();
+		expect(image().querySelector('img')?.referrerPolicy).toBe('no-referrer');
+		image().click();
+		await page.getByRole('textbox', { name: 'Alt text' }).fill('A cat\non a rug');
+		await page.getByRole('textbox', { name: 'Caption' }).fill('Tom, asleep');
+		await page.getByRole('button', { name: 'Save' }).click();
+		await expect
+			.poll(() => onupdate.mock.calls.at(-1)?.[0].text)
+			.toBe('![A cat on a rug](local:1 "Tom, asleep")');
+		expect(image().querySelector('img')?.alt).toBe('A cat on a rug');
+		expect(image().querySelector('figcaption')?.textContent).toBe('Tom, asleep');
+		expect(image().querySelector('figcaption')?.hidden).toBe(false);
+		await expect.element(editor).toHaveFocus();
+
+		// Enter while the image is selected opens the dialog too; clearing the caption hides it.
+		await userEvent.keyboard('{Enter}');
+		await expect
+			.element(page.getByRole('textbox', { name: 'Alt text' }))
+			.toHaveValue('A cat on a rug');
+		await expect.element(page.getByRole('textbox', { name: 'Caption' })).toHaveValue('Tom, asleep');
+		await page.getByRole('textbox', { name: 'Caption' }).fill('');
+		await page.getByRole('button', { name: 'Save' }).click();
+		await expect
+			.poll(() => onupdate.mock.calls.at(-1)?.[0].text)
+			.toBe('![A cat on a rug](local:1)');
+		expect(image().querySelector('figcaption')?.hidden).toBe(true);
+
+		image().click();
+		await expect.element(page.getByRole('button', { name: 'Remove' })).toBeVisible();
+		await page.getByRole('button', { name: 'Remove' }).click();
+		await expect.poll(() => onupdate.mock.calls.at(-1)?.[0].text).toBe('');
+		await expect.element(editor).toHaveFocus();
+	});
+
+	it('does not edit images when disabled or after an outside update replaces the document', async () => {
+		const onupdate = vi.fn();
+		const { container, rerender } = render(RichTextEditor, {
+			label: 'Article',
+			markdown: 'article',
+			value: 'Intro\n\n![](local:1)',
+			images: { src: (url) => (url === 'local:1' ? '/favicon.png' : undefined) },
+			disabled: true,
+			onupdate
+		});
+		await expect.element(page.getByRole('textbox', { name: 'Article', exact: true })).toBeVisible();
+		container.querySelector<HTMLElement>('figure[data-image]')!.click();
+		await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+
+		await rerender({ disabled: false });
+		container.querySelector<HTMLElement>('figure[data-image]')!.click();
+		await expect.element(page.getByRole('dialog')).toBeVisible();
+
+		// Disabling while open closes the dialog.
+		await rerender({ disabled: true });
+		await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+
+		// Reopen, then replace the document with shorter text from outside: dialog closes cleanly.
+		await rerender({ disabled: false });
+		container.querySelector<HTMLElement>('figure[data-image]')!.click();
+		await expect.element(page.getByRole('dialog')).toBeVisible();
+		await rerender({ value: 'Short' });
+		await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+		expect(onupdate).not.toHaveBeenCalled();
 	});
 });
 
