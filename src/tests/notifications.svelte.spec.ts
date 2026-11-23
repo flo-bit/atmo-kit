@@ -24,16 +24,23 @@ const items: NotificationItem[] = [
 
 it('lists notifications with unread state, relative dates and safe links', async () => {
 	const onopen = vi.fn();
-	const { container } = render(NotificationList, { items, now, locale: 'en', onopen });
+	const { container } = render(NotificationList, {
+		items,
+		now,
+		locale: 'en',
+		timeZone: 'UTC',
+		unreadLabel: 'New',
+		onopen
+	});
 
 	const unread = page.getByRole('link', { name: /Mira is going/ });
 	await expect.element(unread).toHaveTextContent('Evening walk');
 	await expect.element(unread).toHaveTextContent('5 minutes ago');
-	await expect.element(unread).toHaveTextContent('Unread');
+	await expect.element(unread).toHaveTextContent('New');
 	expect(container.querySelector('img')?.getAttribute('src')).toBe('/favicon.png');
 	const read = page.getByRole('link', { name: /Open studio moved/ });
 	await expect.element(read).toHaveTextContent('2 hours ago');
-	await expect.element(read).not.toHaveTextContent('Unread');
+	await expect.element(read).not.toHaveTextContent('New');
 
 	// A destination that is not a web link renders as text, with a calendar date.
 	await expect.element(page.getByText('Unsafe link')).toBeVisible();
@@ -46,6 +53,16 @@ it('lists notifications with unread state, relative dates and safe links', async
 
 	await unread.click();
 	expect(onopen).toHaveBeenCalledWith(items[0]);
+
+	// Items without a usable link can still be opened, e.g. to mark them read.
+	await page.getByRole('button', { name: /Unsafe link/ }).click();
+	expect(onopen).toHaveBeenLastCalledWith(items[2]);
+});
+
+it('renders items without a link as text when nothing handles opening them', async () => {
+	render(NotificationList, { items: [{ ...items[3], sendAt: 9e15 }], now });
+	await expect.element(page.getByText('Missing date')).toBeVisible();
+	expect(page.getByRole('button').elements()).toHaveLength(0);
 });
 
 it('shows an empty state', async () => {
@@ -96,7 +113,7 @@ it('reports in-app and channel choices per category', async () => {
 	await expect.element(page.getByRole('button', { name: 'Changes: Use default' })).toBeDisabled();
 
 	await rerender({ preferences: [], disabled: false });
-	expect(page.getByRole('columnheader').elements()).toHaveLength(0);
+	expect(page.getByRole('table').elements()).toHaveLength(0);
 });
 
 it('keeps both choices at the committed values until the parent updates them', async () => {
@@ -147,6 +164,8 @@ it('toggles push and explains states it cannot change', async () => {
 	await rerender({ state: 'denied' });
 	await expect.element(page.getByRole('status')).toHaveTextContent(/blocked for this site/);
 	expect(page.getByRole('button').elements()).toHaveLength(0);
+	// The focused button was replaced; focus follows to the explanation.
+	await expect.element(page.getByRole('status')).toHaveFocus();
 
 	await rerender({ state: 'unsupported' });
 	await expect.element(page.getByText(/does not support push/)).toBeVisible();

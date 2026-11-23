@@ -3,11 +3,15 @@
 	import type { NotificationItem } from './types.js';
 	export type NotificationListProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
 		items: readonly NotificationItem[];
-		/** Called when an item is activated, before navigation. */
+		/** Called when an item is activated, before navigation. Items without a link become buttons. */
 		onopen?: (item: NotificationItem) => void;
 		/** Shown when there are no items. */
 		empty?: string;
+		/** Text for the unread marker, for assistive technology. */
+		unreadLabel?: string;
 		locale?: string;
+		/** Time zone for calendar dates; defaults to the runtime's. */
+		timeZone?: string;
 		/** Reference time for relative dates; defaults to the current time. */
 		now?: number;
 	};
@@ -29,20 +33,33 @@
 		items,
 		onopen,
 		empty = 'No notifications yet.',
+		unreadLabel = 'Unread',
 		locale,
+		timeZone,
 		now = Date.now(),
 		class: className,
 		...rest
 	}: NotificationListProps = $props();
 
 	const relative = $derived(new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }));
-	const absolute = $derived(new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }));
+	const absolute = $derived(new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone }));
+	const row = 'flex items-start gap-3 px-2 py-3';
+	const interactive = cn(
+		'rounded-ui no-underline transition-colors duration-(--atmo-duration) motion-reduce:transition-none',
+		hoverRecess,
+		focus
+	);
 
 	function link(item: NotificationItem) {
 		const href = safeLinkHref(item.uri);
 		return href && (href.startsWith('/') || href.startsWith('#') || safeHttpUrl(href))
 			? href
 			: undefined;
+	}
+
+	function iso(time: number) {
+		const date = new Date(time);
+		return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 	}
 
 	function when(time: number) {
@@ -58,6 +75,7 @@
 {#snippet content(item: NotificationItem)}
 	{@const actor = item.actors?.[0]}
 	{@const unread = item.readAt == null}
+	{@const datetime = iso(item.sendAt)}
 	{#if actor}
 		<Avatar
 			name={actor.displayName || actor.handle || actor.did}
@@ -73,11 +91,8 @@
 		{#if item.body}
 			<span class="text-sm text-base-600 dark:text-base-400">{item.body}</span>
 		{/if}
-		{#if Number.isFinite(item.sendAt)}
-			<time
-				class="text-xs text-base-600 dark:text-base-400"
-				datetime={new Date(item.sendAt).toISOString()}
-			>
+		{#if datetime}
+			<time class="text-xs text-base-600 dark:text-base-400" {datetime}>
 				{when(item.sendAt)}
 			</time>
 		{/if}
@@ -87,7 +102,7 @@
 			class="mt-1.5 size-2 shrink-0 rounded-full bg-accent-700 dark:bg-accent-300"
 			aria-hidden="true"
 		></span>
-		<span class="sr-only">Unread</span>
+		<span class="sr-only">{unreadLabel}</span>
 	{/if}
 {/snippet}
 
@@ -102,19 +117,19 @@
 			{@const href = link(item)}
 			<li>
 				{#if href}
-					<a
-						{href}
-						onclick={() => onopen?.(item)}
-						class={cn(
-							'flex items-start gap-3 rounded-ui px-2 py-3 no-underline transition-colors duration-(--atmo-duration) motion-reduce:transition-none',
-							hoverRecess,
-							focus
-						)}
-					>
+					<a {href} onclick={() => onopen?.(item)} class={cn(row, interactive)}>
 						{@render content(item)}
 					</a>
+				{:else if onopen}
+					<button
+						type="button"
+						onclick={() => onopen(item)}
+						class={cn(row, interactive, 'w-full cursor-pointer text-left')}
+					>
+						{@render content(item)}
+					</button>
 				{:else}
-					<div class="flex items-start gap-3 px-2 py-3">{@render content(item)}</div>
+					<div class={row}>{@render content(item)}</div>
 				{/if}
 			</li>
 		{/each}

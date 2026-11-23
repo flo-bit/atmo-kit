@@ -21,10 +21,12 @@ The prop types match the shapes returned by `@atmo-dev/notify`, but Kit does not
 Items with a `uri` are links; same-site paths and `http(s)` URLs are accepted and anything
 else renders as plain text. An item is unread until it has a `readAt`. The first actor's avatar
 is shown when there is one. `onopen` runs when an item is activated, before navigation, so it is
-the place to mark it read. Paging is the app's: render your own "Show more" below the list.
+the place to mark it read. With `onopen`, items without a link are buttons, so they can be
+marked read too. Paging is the app's: render your own "Show more" below the list.
 
-Dates are relative ("5 minutes ago") up to a week, then a calendar date. Pass `now` when
-rendering on the server to keep server and browser output identical.
+Dates are relative ("5 minutes ago") up to a week, then a calendar date. When rendering on the
+server, pass `now` and the person's `timeZone` to keep server and browser output identical.
+Use `empty` and `unreadLabel` for translated text.
 
 ## Settings
 
@@ -49,6 +51,6 @@ after saving.
 ```
 
 `state` is `'on'`, `'off'`, `'denied'` (blocked in the browser) or `'unsupported'`. The last two
-show an explanation instead of a button. Call the browser permission prompt from `onenable`: it
+show an explanation instead of a button; focus moves to it when a request is blocked. Call the browser permission prompt from `onenable`: it
 has to happen in response to the click. Pass `loading` while a push change is in progress, or
 `disabled` while other settings are saving. Override `labels` for translated action and status text.
