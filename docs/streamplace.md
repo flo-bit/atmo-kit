@@ -196,9 +196,20 @@ app's own page; a path stays in the tab.
 <VideoCard {video} href="/{handle}/video/{rkey}" showAuthor={false} />
 ```
 
-Resting the mouse on a `StreamCard` plays the stream in place, silently, after a moment.
-That opens a connection to the node; pass `preview={false}` to turn it off. It never runs
-for touch or with reduced motion.
+Pointing at a `StreamCard` plays the stream in place, silently; the picture fades in once
+frames arrive. Pass `preview={false}` to turn it off. It never runs for touch or with reduced
+motion.
+
+Cards that link within the app also get the next page ready (`prefetch`, on by default for
+paths). A `StreamCard` that is pointed at, focused or pressed opens the stream's WebRTC session
+and keeps it for 15 seconds, and `StreamPlayer` takes that session over, so the stream page
+starts with frames already arriving. A `VideoCard` loads its playlists once it is in view, and
+the first two seconds of media once it is pointed at, focused or pressed; the player starts from
+those. Both use bandwidth on cards nobody opens.
+
+For other links, `warmWebRTC(whepUrl(user), keep?)` and `prefetchHls(videoPlaylist(uri), seconds?)`
+do the same. WebRTC sessions are shared by URL: `startWebRTC(..., { keep })` leaves a session
+open that long after `destroy()` for the next player to take over.
 
 `startBroadcast(media, streamKey, onstate)` sends a camera or screen capture to the node and
 returns a function that stops it. Each attempt gives the node ten seconds to answer before

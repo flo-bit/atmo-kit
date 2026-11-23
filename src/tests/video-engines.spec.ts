@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { startHls, startWebRTC } from '../lib/video/engines.js';
+import { prefetchHls, startHls, startWebRTC, warmWebRTC } from '../lib/video/engines.js';
 
 class FakePeer {
 	static all: FakePeer[] = [];
@@ -52,7 +52,18 @@ beforeEach(() => {
 	vi.useFakeTimers();
 	FakePeer.all = [];
 	vi.stubGlobal('RTCPeerConnection', FakePeer);
-	vi.stubGlobal('MediaStream', class {});
+	vi.stubGlobal(
+		'MediaStream',
+		class {
+			tracks: unknown[] = [];
+			addTrack(track: unknown) {
+				this.tracks.push(track);
+			}
+			getTracks() {
+				return this.tracks;
+			}
+		}
+	);
 });
 afterEach(() => {
 	vi.useRealTimers();
@@ -150,6 +161,115 @@ describe('startWebRTC', () => {
 		expect(signals[0].aborted).toBe(true);
 		expect(onwaiting).not.toHaveBeenCalled();
 		expect(onfail).not.toHaveBeenCalled();
+	});
+});
+
+describe('shared WebRTC sessions', () => {
+	it('takes over a warmed session instead of negotiating again', async () => {
+		const fetcher = vi.fn<typeof fetch>(async () => new Response('answer', { status: 201 }));
+		vi.stubGlobal('fetch', fetcher);
+		warmWebRTC('/whep/a', 5000);
+		await gathered();
+		const element = { srcObject: null } as unknown as HTMLVideoElement;
+		const onready = vi.fn();
+		// Frames already arrive on the warmed session.
+		FakePeer.all[0].ontrack?.({ track: {} });
+		const engine = startWebRTC(element, '/whep/a', { onready });
+		await vi.advanceTimersByTimeAsync(0);
+		expect(FakePeer.all).toHaveLength(1);
+		expect(fetcher).toHaveBeenCalledTimes(1);
+		expect(onready).toHaveBeenCalled();
+		expect(element.srcObject).not.toBeNull();
+		engine.destroy();
+		expect(FakePeer.all[0].closed).toBe(true);
+	});
+
+	it('keeps a session open after destroy only when asked, then closes it', async () => {
+		vi.stubGlobal('fetch', async () => new Response('answer'));
+		const preview = startWebRTC(video, '/whep/b', {}, { keep: 3000 });
+		await gathered();
+		preview.destroy();
+		expect(FakePeer.all[0].closed).toBe(false);
+		const page = startWebRTC(video, '/whep/b', {});
+		expect(FakePeer.all).toHaveLength(1);
+		page.destroy();
+		expect(FakePeer.all[0].closed).toBe(true);
+
+		warmWebRTC('/whep/c', 3000);
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(FakePeer.all[1].closed).toBe(true);
+	});
+
+	it('tells every user of a session that failed', async () => {
+		vi.stubGlobal('fetch', async () => new Response('answer'));
+		const first = vi.fn();
+		const second = vi.fn();
+		const a = startWebRTC(video, '/whep/d', { onwaiting: first });
+		const b = startWebRTC(video, '/whep/d', { onwaiting: second });
+		await gathered();
+		const peer = FakePeer.all[0];
+		peer.connectionState = 'failed';
+		peer.onconnectionstatechange?.();
+		expect(first).toHaveBeenCalled();
+		expect(second).toHaveBeenCalled();
+		a.destroy();
+		b.destroy();
+	});
+});
+
+describe('prefetchHls', () => {
+	it('loads the first variant, the default audio and the first seconds of each, once', async () => {
+		const files: Record<string, string> = {
+			'https://n.example/master': [
+				'#EXTM3U',
+				'#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="a",NAME="opus",DEFAULT=NO,URI="/audio-opus"',
+				'#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="a",NAME="aac",DEFAULT=YES,URI="/audio-aac"',
+				'#EXT-X-STREAM-INF:BANDWIDTH=1,AUDIO="a"',
+				'/video',
+				'#EXT-X-STREAM-INF:BANDWIDTH=2,AUDIO="a"',
+				'/video-other'
+			].join('\n'),
+			'https://n.example/video': [
+				'#EXTM3U',
+				'#EXT-X-MAP:URI="https://cdn.example/init-v"',
+				'#EXTINF:1.0,',
+				'#EXT-X-BYTERANGE:100@10',
+				'https://cdn.example/v',
+				'#EXTINF:1.0,',
+				'#EXT-X-BYTERANGE:100',
+				'https://cdn.example/v',
+				'#EXTINF:1.0,',
+				'#EXT-X-BYTERANGE:100@210',
+				'https://cdn.example/v'
+			].join('\n'),
+			'https://n.example/audio-aac': ['#EXTM3U', '#EXTINF:2.0,', 'https://cdn.example/a1'].join(
+				'\n'
+			)
+		};
+		const fetcher = vi.fn<typeof fetch>(async (url) => {
+			const body = files[String(url)];
+			return new Response(body ?? 'bytes');
+		});
+		vi.stubGlobal('fetch', fetcher);
+		vi.stubGlobal('window', {});
+		await prefetchHls('https://n.example/master', 2);
+		const requests = fetcher.mock.calls.map(
+			([url, init]) =>
+				`${url}${(init?.headers as Record<string, string> | undefined)?.range ? ` ${(init!.headers as Record<string, string>).range}` : ''}`
+		);
+		expect(requests.sort()).toEqual(
+			[
+				'https://n.example/master',
+				'https://n.example/video',
+				'https://n.example/audio-aac',
+				'https://cdn.example/init-v',
+				'https://cdn.example/v bytes=10-109',
+				'https://cdn.example/v bytes=110-209',
+				'https://cdn.example/a1'
+			].sort()
+		);
+		await prefetchHls('https://n.example/master', 2);
+		expect(fetcher).toHaveBeenCalledTimes(7);
 	});
 });
 

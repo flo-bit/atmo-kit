@@ -1,4 +1,5 @@
 import type Hls from 'hls.js';
+import type { HlsConfig, Loader, LoaderCallbacks, LoaderContext, LoaderStats } from 'hls.js';
 
 export type Level = { index: number; label: string };
 
@@ -28,20 +29,167 @@ const ANSWER_DEADLINE = 8000;
 /** A peer that negotiated but never delivered media is not worth many more tries. */
 const SILENT_ATTEMPTS = 2;
 
+/** The node's refusal of a playback request, with whether to treat it as offline. */
+class Refused extends Error {
+	constructor(readonly reason: 'offline' | 'network') {
+		super(reason);
+	}
+}
+
+/**
+ * One WHEP session, shared by every engine playing the same URL. A session nobody uses any
+ * more can stay open for a while, so a player that starts soon after (the stream page after a
+ * hover preview) gets frames that are already arriving instead of negotiating again.
+ */
+type Peer = {
+	url: string;
+	pc: RTCPeerConnection;
+	stream: MediaStream;
+	/** Resolves once the node's answer is applied. */
+	answered: Promise<void>;
+	request: AbortController;
+	users: number;
+	idle?: ReturnType<typeof setTimeout>;
+	idleSince: number;
+	closed: boolean;
+	listeners: Set<PeerListener>;
+};
+type PeerListener = { track: () => void; state: () => void };
+
+const peers = new Map<string, Peer>();
+/** Unused sessions kept open at most, newest first. */
+const MAX_IDLE_PEERS = 4;
+
+function openPeer(url: string): Peer {
+	const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+	pc.addTransceiver('video', { direction: 'recvonly' });
+	pc.addTransceiver('audio', { direction: 'recvonly' });
+	const peer: Peer = {
+		url,
+		pc,
+		stream: new MediaStream(),
+		answered: Promise.resolve(),
+		request: new AbortController(),
+		users: 0,
+		idleSince: 0,
+		closed: false,
+		listeners: new Set()
+	};
+	pc.ontrack = (event) => {
+		peer.stream.addTrack(event.track);
+		for (const listener of peer.listeners) listener.track();
+	};
+	pc.onconnectionstatechange = () => {
+		for (const listener of peer.listeners) listener.state();
+	};
+	peer.answered = negotiate(peer);
+	// Whoever uses the session hears of a failure; an unused one just closes.
+	peer.answered.catch(() => closePeer(peer));
+	peers.set(url, peer);
+	return peer;
+}
+
+async function negotiate(peer: Peer) {
+	const { pc } = peer;
+	await pc.setLocalDescription(await pc.createOffer());
+	await new Promise<void>((resolve) => {
+		if (pc.iceGatheringState === 'complete') return resolve();
+		const timer = setTimeout(resolve, 800);
+		pc.addEventListener('icegatheringstatechange', () => {
+			if (pc.iceGatheringState === 'complete') {
+				clearTimeout(timer);
+				resolve();
+			}
+		});
+	});
+	// Closed while gathering: nothing is requested.
+	if (peer.closed) throw new Refused('network');
+	const deadline = setTimeout(() => peer.request.abort(), ANSWER_DEADLINE);
+	let response: Response;
+	let answer: string;
+	try {
+		response = await fetch(peer.url, {
+			method: 'POST',
+			headers: { 'content-type': 'application/sdp' },
+			body: pc.localDescription?.sdp,
+			signal: peer.request.signal
+		});
+		// The deadline covers the body too.
+		answer = await response.text();
+	} finally {
+		clearTimeout(deadline);
+	}
+	if (peer.closed) throw new Refused('network');
+	if (!response.ok) throw new Refused(response.status >= 500 ? 'offline' : 'network');
+	await pc.setRemoteDescription({ type: 'answer', sdp: answer });
+}
+
+function usable(peer: Peer | undefined): peer is Peer {
+	const state = peer?.pc.connectionState;
+	return !!peer && !peer.closed && state !== 'failed' && state !== 'closed';
+}
+
+function acquirePeer(url: string) {
+	const existing = peers.get(url);
+	const peer = usable(existing) ? existing : openPeer(url);
+	clearTimeout(peer.idle);
+	peer.idle = undefined;
+	peer.users += 1;
+	return peer;
+}
+
+function releasePeer(peer: Peer, keep: number) {
+	peer.users -= 1;
+	if (peer.users > 0 || peer.closed) return;
+	if (keep <= 0) return closePeer(peer);
+	peer.idleSince = Date.now();
+	peer.idle = setTimeout(() => closePeer(peer), keep);
+	const idle = [...peers.values()]
+		.filter((other) => !other.users && !other.closed)
+		.sort((a, b) => b.idleSince - a.idleSince);
+	for (const old of idle.slice(MAX_IDLE_PEERS)) closePeer(old);
+}
+
+function closePeer(peer: Peer) {
+	if (peer.closed) return;
+	peer.closed = true;
+	clearTimeout(peer.idle);
+	peer.request.abort();
+	peer.pc.close();
+	if (peers.get(peer.url) === peer) peers.delete(peer.url);
+	// `close()` fires no state change; anyone still playing it has to hear.
+	for (const listener of peer.listeners) listener.state();
+}
+
+/**
+ * Starts a WHEP session nobody watches yet, kept open for `keep` milliseconds, so that
+ * `startWebRTC` for the same URL begins with frames already arriving. Calling it again
+ * while the session is open only extends it.
+ */
+export function warmWebRTC(url: string, keep = 15_000) {
+	if (typeof RTCPeerConnection === 'undefined') return;
+	releasePeer(acquirePeer(url), keep);
+}
+
 /**
  * Sub-second playback over WHEP. Reconnects by itself and gives up after `attempts` failures
  * in a row (4 by default; 1 never retries), or sooner when peers connect and no media ever
  * arrives, as on networks that block it.
+ *
+ * Sessions are shared by URL: one opened by `warmWebRTC`, or by another engine (a hover
+ * preview), is taken over instead of negotiating again. `keep` leaves the session open that
+ * long after `destroy()`, for the next engine to take over.
  */
 export function startWebRTC(
 	video: HTMLVideoElement,
 	url: string,
 	events: EngineEvents,
-	options: { attempts?: number } = {}
+	options: { attempts?: number; keep?: number } = {}
 ): Engine {
 	const attempts = options.attempts ?? 4;
 	let destroyed = false;
-	let pc: RTCPeerConnection | undefined;
+	let peer: Peer | undefined;
+	let listener: PeerListener = { track() {}, state() {} };
 	let retry: ReturnType<typeof setTimeout> | undefined;
 	let watchdog: ReturnType<typeof setInterval> | undefined;
 	let failures = 0;
@@ -49,19 +197,21 @@ export function startWebRTC(
 	let lastBytes = 0;
 	let lastBytesAt = 0;
 	let previous: { bytes: number; at: number } | undefined;
-	let request: AbortController | undefined;
 
-	const close = () => {
+	/** Lets go of the session; `drop` closes it for everyone, as after a failure. */
+	const detach = (drop: boolean) => {
 		clearInterval(watchdog);
-		request?.abort();
-		request = undefined;
-		pc?.close();
-		pc = undefined;
+		const current = peer;
+		peer = undefined;
+		if (!current) return;
+		current.listeners.delete(listener);
+		if (drop) closePeer(current);
+		releasePeer(current, drop ? 0 : (options.keep ?? 0));
 	};
 
 	const failed = (reason: 'offline' | 'network') => {
 		if (destroyed) return;
-		close();
+		detach(true);
 		failures += 1;
 		if (failures >= attempts) return events.onfail?.();
 		events.onwaiting?.(reason);
@@ -70,71 +220,42 @@ export function startWebRTC(
 
 	async function connect() {
 		if (destroyed) return;
-		close();
-		const connection = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
-		pc = connection;
-		connection.addTransceiver('video', { direction: 'recvonly' });
-		connection.addTransceiver('audio', { direction: 'recvonly' });
-		const stream = new MediaStream();
-		connection.ontrack = (event) => {
-			stream.addTrack(event.track);
-			if (video.srcObject !== stream) video.srcObject = stream;
+		detach(false);
+		const current = acquirePeer(url);
+		peer = current;
+		const showTracks = () => {
+			if (peer !== current || !current.stream.getTracks().length) return;
+			if (video.srcObject !== current.stream) video.srcObject = current.stream;
 			events.onready?.();
 		};
-		connection.onconnectionstatechange = () => {
-			if (connection !== pc) return;
-			if (connection.connectionState === 'failed' || connection.connectionState === 'closed') {
-				failed('network');
+		listener = {
+			track: showTracks,
+			state: () => {
+				if (peer !== current) return;
+				const state = current.pc.connectionState;
+				if (state === 'failed' || state === 'closed') failed('network');
 			}
 		};
+		current.listeners.add(listener);
+		// A session taken over may be playing already.
+		showTracks();
 		try {
-			await connection.setLocalDescription(await connection.createOffer());
-			await new Promise<void>((resolve) => {
-				if (connection.iceGatheringState === 'complete') return resolve();
-				const timer = setTimeout(resolve, 800);
-				connection.addEventListener('icegatheringstatechange', () => {
-					if (connection.iceGatheringState === 'complete') {
-						clearTimeout(timer);
-						resolve();
-					}
-				});
-			});
-			// Destroyed or superseded while gathering: nothing is requested.
-			if (connection !== pc || destroyed) return;
-			const attempt = new AbortController();
-			request = attempt;
-			const deadline = setTimeout(() => attempt.abort(), ANSWER_DEADLINE);
-			let response: Response;
-			let answer: string;
-			try {
-				response = await fetch(url, {
-					method: 'POST',
-					headers: { 'content-type': 'application/sdp' },
-					body: connection.localDescription?.sdp,
-					signal: attempt.signal
-				});
-				// The deadline covers the body too.
-				answer = await response.text();
-			} finally {
-				clearTimeout(deadline);
-			}
-			if (connection !== pc || destroyed) return;
-			if (!response.ok) return failed(response.status >= 500 ? 'offline' : 'network');
-			await connection.setRemoteDescription({ type: 'answer', sdp: answer });
-		} catch {
+			await current.answered;
+		} catch (cause) {
 			// A superseded attempt must not count as a failure of the current one.
-			if (connection !== pc) return;
-			return failed('network');
+			if (peer !== current) return;
+			return failed(cause instanceof Refused ? cause.reason : 'network');
 		}
 
 		// A connection can stay "connected" while no media arrives, e.g. when the stream ends.
-		if (connection !== pc) return;
+		if (peer !== current) return;
+		const connection = current.pc;
 		lastBytes = 0;
 		lastBytesAt = Date.now();
 		watchdog = setInterval(async () => {
-			if (connection !== pc) return;
+			if (peer !== current) return;
 			const reports = await connection.getStats().catch(() => undefined);
-			if (connection !== pc) return;
+			if (peer !== current) return;
 			let bytes = 0;
 			reports?.forEach((report) => {
 				if (report.type === 'inbound-rtp') bytes += report.bytesReceived ?? 0;
@@ -159,15 +280,15 @@ export function startWebRTC(
 		destroy() {
 			destroyed = true;
 			clearTimeout(retry);
-			close();
+			detach(false);
 			video.srcObject = null;
 		},
 		latency: () => undefined,
 		async stats() {
-			if (!pc) return {};
+			if (!peer) return {};
 			let bytes = 0;
 			let dropped: number | undefined;
-			(await pc.getStats()).forEach((report) => {
+			(await peer.pc.getStats()).forEach((report) => {
 				if (report.type !== 'inbound-rtp') return;
 				bytes += report.bytesReceived ?? 0;
 				if (report.kind === 'video') dropped = report.framesDropped;
@@ -182,6 +303,187 @@ export function startWebRTC(
 				dropped,
 				resolution: video.videoWidth ? `${video.videoWidth}×${video.videoHeight}` : undefined
 			};
+		}
+	};
+}
+
+/**
+ * Recording playlists and their first seconds of media, fetched ahead of playback and handed
+ * to the next `startHls` of the same playlist. The node signs the media URLs in them for some
+ * minutes; four is well inside that.
+ */
+type Prefetched = {
+	at: number;
+	data: Promise<{ body: string | ArrayBuffer; start: number; end: number }>;
+};
+const prefetched = new Map<string, Prefetched>();
+const PREFETCH_TTL = 4 * 60_000;
+
+const cacheKey = (url: string, start = 0, end = 0) => (end ? `${url}#${start}-${end}` : url);
+
+function cached(key: string) {
+	const entry = prefetched.get(key);
+	if (entry && Date.now() - entry.at < PREFETCH_TTL) return entry.data;
+	prefetched.delete(key);
+}
+
+function sweep() {
+	const now = Date.now();
+	for (const [key, entry] of prefetched) if (now - entry.at >= PREFETCH_TTL) prefetched.delete(key);
+}
+
+function prefetchOnce(url: string, kind: 'text' | 'bytes', range?: [number, number]) {
+	const key = cacheKey(url, range?.[0], range?.[1]);
+	const hit = cached(key);
+	if (hit) return hit;
+	sweep();
+	const start = performance.now();
+	const data = fetch(url, range ? { headers: { range: `bytes=${range[0]}-${range[1] - 1}` } } : {})
+		.then(async (response) => {
+			if (!response.ok) throw new Error(`${response.status}`);
+			const body = kind === 'text' ? await response.text() : await response.arrayBuffer();
+			return { body, start, end: performance.now() };
+		})
+		.catch((cause) => {
+			if (prefetched.get(key)?.data === data) prefetched.delete(key);
+			throw cause;
+		});
+	prefetched.set(key, { at: Date.now(), data });
+	// Nobody may ever use it.
+	data.catch(() => {});
+	return data;
+}
+
+const tagValue = (line: string, name: string) =>
+	line
+		.match(new RegExp(`${name}=(?:"([^"]*)"|([^,]*))`))
+		?.slice(1)
+		.find((v) => v !== undefined);
+
+/** Fetches the first `seconds` of a media playlist, the same requests hls.js will make. */
+async function prefetchMedia(url: string, seconds: number) {
+	const text = String((await prefetchOnce(url, 'text')).body);
+	const loads: Promise<unknown>[] = [];
+	let duration = 0;
+	let range: [number, number] | undefined;
+	let previousEnd = 0;
+	for (const raw of text.split('\n')) {
+		const line = raw.trim();
+		if (!line) continue;
+		if (line.startsWith('#EXT-X-MAP:')) {
+			const uri = tagValue(line, 'URI');
+			const [length, offset] = (tagValue(line, 'BYTERANGE') ?? '').split('@').map(Number);
+			if (uri) {
+				const mapRange: [number, number] | undefined = length
+					? [offset || 0, (offset || 0) + length]
+					: undefined;
+				loads.push(prefetchOnce(new URL(uri, url).href, 'bytes', mapRange));
+			}
+		} else if (line.startsWith('#EXTINF:')) {
+			if (duration >= seconds) break;
+			duration += parseFloat(line.slice(8)) || 0;
+		} else if (line.startsWith('#EXT-X-BYTERANGE:')) {
+			const [length, offset] = line.slice(17).split('@').map(Number);
+			const start = Number.isFinite(offset) ? offset : previousEnd;
+			range = [start, start + length];
+		} else if (!line.startsWith('#')) {
+			loads.push(prefetchOnce(new URL(line, url).href, 'bytes', range));
+			previousEnd = range?.[1] ?? 0;
+			range = undefined;
+		}
+	}
+	await Promise.all(loads);
+}
+
+/**
+ * Loads a recording's playlists and its first `seconds` of media, so `startHls` for the same
+ * URL soon after starts from memory. With `seconds` at 0 only the playlists (and the small
+ * init segments) are loaded: cheap enough for every video in view, leaving the media for the
+ * moment a pointer reaches one. What is already loaded is not loaded again. Never throws.
+ */
+export async function prefetchHls(url: string, seconds = 2) {
+	if (typeof window === 'undefined') return;
+	void import('hls.js').catch(() => {});
+	try {
+		const text = String((await prefetchOnce(url, 'text')).body);
+		if (!text.includes('#EXT-X-STREAM-INF')) return await prefetchMedia(url, seconds);
+		const lines = text.split('\n').map((line) => line.trim());
+		// hls.js starts on the first variant listed and the default audio rendition.
+		const variant = lines.find((_, i) => i && lines[i - 1].startsWith('#EXT-X-STREAM-INF'));
+		const audio = lines.filter(
+			(line) => line.startsWith('#EXT-X-MEDIA:') && /TYPE=AUDIO/.test(line)
+		);
+		const audioUri = tagValue(
+			audio.find((line) => /DEFAULT=YES/.test(line)) ?? audio[0] ?? '',
+			'URI'
+		);
+		await Promise.all(
+			[variant, audioUri]
+				.filter((uri): uri is string => !!uri)
+				.map((uri) => prefetchMedia(new URL(uri, url).href, seconds))
+		);
+	} catch {
+		// Playback loads it again.
+	}
+}
+
+type LoaderClass = new (config: HlsConfig) => Loader<LoaderContext>;
+
+/** hls.js's own loader, answering from what `prefetchHls` already has. */
+function prefetchingLoader(Base: LoaderClass): LoaderClass {
+	return class implements Loader<LoaderContext> {
+		#inner: Loader<LoaderContext>;
+		#done = false;
+		context: LoaderContext | null = null;
+		stats: LoaderStats;
+		constructor(config: HlsConfig) {
+			this.#inner = new Base(config);
+			this.stats = this.#inner.stats;
+		}
+		load(
+			context: LoaderContext,
+			config: Parameters<Loader<LoaderContext>['load']>[1],
+			callbacks: LoaderCallbacks<LoaderContext>
+		) {
+			const hit = cached(cacheKey(context.url, context.rangeStart, context.rangeEnd));
+			const fallback = () => {
+				this.#inner.load(context, config, callbacks);
+				this.context = this.#inner.context;
+			};
+			if (!hit) return fallback();
+			this.context = context;
+			hit.then(
+				({ body, start, end }) => {
+					if (this.#done) return;
+					const wantsText = context.responseType === 'text';
+					if (wantsText !== (typeof body === 'string')) return fallback();
+					// The real timings, so bandwidth estimates stay honest. A copy, because hls.js
+					// may hand the buffer to a worker.
+					const data = typeof body === 'string' ? body : body.slice(0);
+					const size = typeof data === 'string' ? data.length : data.byteLength;
+					const { stats } = this;
+					stats.loading.start = start;
+					stats.loading.first = start + Math.min(50, end - start);
+					stats.loading.end = end;
+					stats.loaded = stats.total = size;
+					callbacks.onSuccess({ url: context.url, data, code: 200 }, stats, context, null);
+				},
+				() => !this.#done && fallback()
+			);
+		}
+		abort() {
+			this.#done = true;
+			this.#inner.abort();
+		}
+		destroy() {
+			this.#done = true;
+			this.#inner.destroy();
+		}
+		getCacheAge() {
+			return this.#inner.getCacheAge?.() ?? null;
+		}
+		getResponseHeader(name: string) {
+			return this.#inner.getResponseHeader?.(name) ?? null;
 		}
 	};
 }
@@ -230,6 +532,9 @@ export function startHls(
 			return events.onfail?.();
 		}
 		const instance = new HlsClass({
+			...(HlsClass.DefaultConfig?.loader
+				? { loader: prefetchingLoader(HlsClass.DefaultConfig.loader) }
+				: {}),
 			lowLatencyMode: options.live,
 			backBufferLength: options.live ? 20 : 60,
 			startPosition: options.startAt ?? -1,

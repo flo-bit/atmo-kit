@@ -1,12 +1,36 @@
 <script lang="ts" module>
 	import type { VideoView } from './types.js';
 
+	// Playlists of cards in view load a few at a time while the page is idle; the node answers
+	// slowly, and a card that is pointed at goes ahead of the queue.
+	const waiting: (() => Promise<unknown>)[] = [];
+	let running = 0;
+	function enqueue(task: () => Promise<unknown>) {
+		waiting.push(task);
+		drain();
+	}
+	function drain() {
+		while (running < 3 && waiting.length) {
+			const task = waiting.shift()!;
+			running += 1;
+			void task().finally(() => {
+				running -= 1;
+				drain();
+			});
+		}
+	}
+
 	export type VideoCardProps = {
 		video: VideoView;
 		/** Where the card leads: a path in this app, or stream.place by default. */
 		href?: string;
 		/** Leave the author out, e.g. on their own page. */
 		showAuthor?: boolean;
+		/**
+		 * Load the start of the recording as soon as the card is pointed at, focused or
+		 * pressed, so the video page that opens next plays at once. On for links within the app.
+		 */
+		prefetch?: boolean;
 		class?: string;
 	};
 </script>
@@ -14,6 +38,7 @@
 <script lang="ts">
 	import { muted, recess } from '../styles.js';
 	import { cn } from '../utils.js';
+	import { prefetchHls } from '../video/engines.js';
 	import {
 		blobImage,
 		displayName,
@@ -21,10 +46,11 @@
 		formatDuration,
 		handleOf,
 		rkeyOf,
-		timeAgo
+		timeAgo,
+		videoPlaylist
 	} from './api.js';
 
-	let { video, href, showAuthor = true, class: className }: VideoCardProps = $props();
+	let { video, href, showAuthor = true, prefetch, class: className }: VideoCardProps = $props();
 
 	const link = $derived(
 		href ??
@@ -32,6 +58,44 @@
 	);
 	const local = $derived(/^\/(?!\/)/.test(link));
 	const thumbnail = $derived(blobImage(video.author.did, video.record.thumb));
+
+	const enabled = $derived(prefetch ?? local);
+	let posterLoaded = false;
+	/** The start of the recording, for a card that is pointed at, focused or pressed. */
+	function warm() {
+		if (!enabled) return;
+		void prefetchHls(videoPlaylist(video.uri), 2);
+		if (posterLoaded) return;
+		posterLoaded = true;
+		// The video page's poster.
+		const poster = blobImage(video.author.did, video.record.thumb, 'feed_fullsize');
+		if (poster) new Image().src = poster;
+	}
+
+	/** The playlists alone, for a card that comes into view. */
+	function inView(node: HTMLElement) {
+		if (!enabled || typeof IntersectionObserver === 'undefined') return;
+		let idle: number | undefined;
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (!entry?.isIntersecting) return;
+				observer.disconnect();
+				const queue = () => enqueue(() => prefetchHls(videoPlaylist(video.uri), 0));
+				idle =
+					typeof requestIdleCallback === 'function'
+						? requestIdleCallback(queue, { timeout: 1500 })
+						: window.setTimeout(queue, 200);
+			},
+			{ rootMargin: '200px' }
+		);
+		observer.observe(node);
+		return () => {
+			observer.disconnect();
+			if (idle === undefined) return;
+			if (typeof cancelIdleCallback === 'function') cancelIdleCallback(idle);
+			clearTimeout(idle);
+		};
+	}
 	const views = $derived(video.viewCounts?.count ?? 0);
 	const byline = $derived(
 		[
@@ -52,6 +116,10 @@
 		'group block min-w-0 text-base-950 no-underline outline-none dark:text-base-50',
 		className
 	)}
+	onpointerenter={warm}
+	onpointerdown={warm}
+	onfocus={warm}
+	{@attach inView}
 >
 	<div
 		class={cn(

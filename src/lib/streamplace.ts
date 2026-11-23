@@ -12,4 +12,11 @@ export type { StreamCardProps } from './streamplace/StreamCard.svelte';
 export { default as VideoCard } from './streamplace/VideoCard.svelte';
 export type { VideoCardProps } from './streamplace/VideoCard.svelte';
 // For apps building their own playback, e.g. a go-live preview.
-export { startHls, startWebRTC, type Engine, type EngineEvents } from './video/engines.js';
+export {
+	prefetchHls,
+	startHls,
+	startWebRTC,
+	warmWebRTC,
+	type Engine,
+	type EngineEvents
+} from './video/engines.js';

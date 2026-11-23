@@ -9,8 +9,13 @@
 		thumbnail?: string;
 		/** Load the picture at once, for cards at the top of a page. */
 		eager?: boolean;
-		/** Play the stream in place, silently, while the mouse rests on the card. */
+		/** Play the stream in place, silently, while the mouse is on the card. */
 		preview?: boolean;
+		/**
+		 * Start connecting to the stream as soon as the card is pointed at, focused or pressed,
+		 * so the stream page that opens next plays at once. On for links within the app.
+		 */
+		prefetch?: boolean;
 		class?: string;
 	};
 </script>
@@ -19,7 +24,7 @@
 	import Avatar from '../components/Avatar.svelte';
 	import { muted, recess } from '../styles.js';
 	import { cn } from '../utils.js';
-	import { startWebRTC } from '../video/engines.js';
+	import { startWebRTC, warmWebRTC } from '../video/engines.js';
 	import {
 		activityName,
 		displayName,
@@ -35,6 +40,7 @@
 		thumbnail,
 		eager = false,
 		preview = true,
+		prefetch,
 		class: className
 	}: StreamCardProps = $props();
 
@@ -53,20 +59,24 @@
 	let video = $state<HTMLVideoElement>();
 	let previewing = $state(false);
 	let playing = $state(false);
-	let timer: ReturnType<typeof setTimeout> | undefined;
+	/** The stream page plays the same session; it stays open this long after the card lets go. */
+	const KEEP = 15_000;
 
+	function warm() {
+		if (prefetch ?? local) warmWebRTC(whepUrl(stream.author.did), KEEP);
+	}
 	function enter(event: PointerEvent) {
+		warm();
 		// Not for touch, where there is no resting pointer, and not against reduced motion.
 		if (!preview || event.pointerType !== 'mouse') return;
 		if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		clearTimeout(timer);
-		timer = setTimeout(() => (previewing = true), 350);
+		// No delay: the session is being opened anyway, and the picture only fades in once
+		// frames arrive, so passing over a card shows nothing.
+		previewing = true;
 	}
 	function leave() {
-		clearTimeout(timer);
 		previewing = false;
 	}
-	$effect(() => () => clearTimeout(timer));
 	$effect(() => {
 		if (!previewing || !video) return;
 		const element = video;
@@ -75,7 +85,7 @@
 			element,
 			whepUrl(stream.author.did),
 			{ onready: () => void element.play().catch(() => {}), onfail: leave },
-			{ attempts: 1 }
+			{ attempts: 1, keep: KEEP }
 		);
 		return () => {
 			engine.destroy();
@@ -94,6 +104,8 @@
 	)}
 	onpointerenter={enter}
 	onpointerleave={leave}
+	onpointerdown={warm}
+	onfocus={warm}
 >
 	<div
 		class={cn(
