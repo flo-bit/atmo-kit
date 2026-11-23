@@ -16,6 +16,7 @@ gallery shows every public component and links to individual interactive example
 | [Articles](articles.md)                        | Publications, Markdown articles, editor, link embed      |
 | [AT Tags](at-tags.md)                          | Record metadata and page ownership                       |
 | [Safe URLs](urls.md)                           | Link validation and security boundaries                  |
+| [Notifications](notifications.md)              | Notification list, per-category settings, push toggle    |
 | [Legal pages](legal.md)                        | Documents, footer links, draft authoring and review      |
 | [Reporting](reporting.md)                      | Report form, submission callback, email fallback         |
 | [Development](development.md)                  | Local examples, checks, package boundaries               |

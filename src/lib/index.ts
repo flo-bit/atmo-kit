@@ -76,6 +76,20 @@ export type {
 	ReportFailure,
 	ReportSubmit
 } from './components/report/types.js';
+export { default as NotificationList } from './components/notifications/NotificationList.svelte';
+export type { NotificationListProps } from './components/notifications/NotificationList.svelte';
+export { default as NotificationSettings } from './components/notifications/NotificationSettings.svelte';
+export type { NotificationSettingsProps } from './components/notifications/NotificationSettings.svelte';
+export { default as NotificationPushToggle } from './components/notifications/NotificationPushToggle.svelte';
+export type { NotificationPushToggleProps } from './components/notifications/NotificationPushToggle.svelte';
+export type {
+	NotificationActor,
+	NotificationItem,
+	NotificationPreference,
+	NotificationChannel,
+	NotificationPreferenceValue,
+	NotificationPushState
+} from './components/notifications/types.js';
 export { default as Tabs } from './components/Tabs.svelte';
 export type { TabItem } from './components/Tabs.svelte';
 export { default as Icon } from './components/Icon.svelte';

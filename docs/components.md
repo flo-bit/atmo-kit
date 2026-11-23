@@ -117,6 +117,16 @@ These are UI components, not an OAuth implementation.
 | `SembleCollectionView`   | Link-collection display using an app-supplied provider  |
 | `StreamplacePicker`      | Stream selection and app-owned identity resolution      |
 
+## Notifications
+
+[Guide](notifications.md).
+
+| Component                | Purpose                                             |
+| ------------------------ | --------------------------------------------------- |
+| `NotificationList`       | Notifications with unread markers and dates         |
+| `NotificationSettings`   | Per-category in-app and channel choices             |
+| `NotificationPushToggle` | Push on or off for this device, with blocked states |
+
 ## Legal and reporting
 
 [Legal guide](legal.md) · [Reporting guide](reporting.md) · Local legal examples: `/legal`.
