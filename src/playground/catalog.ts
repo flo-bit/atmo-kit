@@ -179,6 +179,29 @@ export const catalog: CatalogGroup[] = [
 		]
 	},
 	{
+		id: 'notifications',
+		title: 'Notifications',
+		entry: '@atmo-dev/kit',
+		guide: 'notifications.md',
+		components: [
+			component(
+				'NotificationList',
+				'A list of notifications with unread markers and relative dates.',
+				'components/notifications/NotificationList.svelte'
+			),
+			component(
+				'NotificationSettings',
+				'Per-category choices for the in-app list and delivery channels.',
+				'components/notifications/NotificationSettings.svelte'
+			),
+			component(
+				'NotificationPushToggle',
+				'Turns push on or off for the current device and explains blocked states.',
+				'components/notifications/NotificationPushToggle.svelte'
+			)
+		]
+	},
+	{
 		id: 'legal',
 		title: 'Legal and reporting',
 		entry: '@atmo-dev/kit',
