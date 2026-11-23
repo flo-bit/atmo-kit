@@ -62,6 +62,14 @@ describe('link embed registry', () => {
 		expect(isClickToLoad(postLinkEmbed, (embed) => embed.id === 'klipy')).toBe(false);
 	});
 
+	it('shows atmo.rsvp event links without any setup', () => {
+		const embed = eventLinkEmbed();
+		expect(id('https://atmo.rsvp/p/alice.example/e/abc', [embed])).toBe('event');
+		expect(id('https://events.example/p/alice.example/e/abc', [embed])).toBeUndefined();
+		// The built-in loader cannot read another origin's events.
+		expect(() => eventLinkEmbed({ origins: ['https://events.example'] })).toThrow('loadEvent');
+	});
+
 	it('matches event pages on the given origins, except skipped ones', () => {
 		const embed = eventLinkEmbed({
 			loadEvent: async () => {

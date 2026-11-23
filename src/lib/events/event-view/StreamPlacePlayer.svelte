@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Icon } from '../../index.js';
+	import { liveThumbnail, whepUrl } from '../../streamplace/api.js';
+	import { startWebRTC } from '../../video/engines.js';
 	import { ExternalLink } from '@sketchyicons/svelte';
-	import Player from './Player.svelte';
+	import Player from '../../video/Player.svelte';
 
 	let {
 		handle,
@@ -17,116 +19,20 @@
 	let error = $state(false);
 	let controlsVisible = $state(true);
 
-	let pc: RTCPeerConnection | null = null;
-
-	const posterUrl = $derived(
-		`https://stream.place/api/playback/${encodeURIComponent(handle)}/stream.jpg`
-	);
+	const posterUrl = $derived(liveThumbnail(handle));
 
 	onMount(() => {
-		init();
-		return () => {
-			if (pc) {
-				pc.close();
-				pc = null;
-			}
-			if (videoEl) {
-				videoEl.srcObject = null;
-			}
-		};
+		const node = videoEl;
+		if (!node) return;
+		// One attempt, as before: an event page says "offline" at once instead of retrying.
+		const engine = startWebRTC(
+			node,
+			whepUrl(handle),
+			{ onready: () => void node.play().catch(() => {}), onfail: () => (error = true) },
+			{ attempts: 1 }
+		);
+		return () => engine.destroy();
 	});
-
-	function waitForIceGathering(peer: RTCPeerConnection, timeoutMs = 2000): Promise<void> {
-		return new Promise((resolve) => {
-			if (peer.iceGatheringState === 'complete') {
-				resolve();
-				return;
-			}
-
-			let done = false;
-			const finish = () => {
-				if (done) return;
-				done = true;
-				peer.removeEventListener('icegatheringstatechange', onStateChange);
-				clearTimeout(timer);
-				resolve();
-			};
-
-			const onStateChange = () => {
-				if (peer.iceGatheringState === 'complete') {
-					finish();
-				}
-			};
-
-			peer.addEventListener('icegatheringstatechange', onStateChange);
-			const timer = setTimeout(finish, timeoutMs);
-		});
-	}
-
-	async function init() {
-		if (!videoEl) return;
-
-		try {
-			pc = new RTCPeerConnection({
-				iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-				bundlePolicy: 'max-bundle'
-			});
-
-			pc.addTransceiver('video', { direction: 'recvonly' });
-			pc.addTransceiver('audio', { direction: 'recvonly' });
-
-			pc.addEventListener('track', (event) => {
-				if (!videoEl) return;
-				if (event.streams && event.streams[0]) {
-					videoEl.srcObject = event.streams[0];
-				} else {
-					let stream = videoEl.srcObject as MediaStream | null;
-					if (!stream) {
-						stream = new MediaStream();
-						videoEl.srcObject = stream;
-					}
-					stream.addTrack(event.track);
-				}
-			});
-
-			const offer = await pc.createOffer();
-			await pc.setLocalDescription(offer);
-			await waitForIceGathering(pc, 2000);
-
-			const sdp = pc.localDescription?.sdp;
-			if (!sdp) {
-				error = true;
-				pc.close();
-				pc = null;
-				return;
-			}
-
-			const response = await fetch(
-				`https://stream.place/api/playback/${encodeURIComponent(handle)}/webrtc?rendition=source`,
-				{
-					method: 'POST',
-					headers: { 'Content-Type': 'application/sdp' },
-					body: sdp
-				}
-			);
-
-			if (!response.ok) {
-				error = true;
-				pc.close();
-				pc = null;
-				return;
-			}
-
-			const answerSdp = await response.text();
-			await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
-		} catch {
-			error = true;
-			if (pc) {
-				pc.close();
-				pc = null;
-			}
-		}
-	}
 </script>
 
 {#snippet watchOnStreamPlace(hidden = false)}

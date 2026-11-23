@@ -4,7 +4,11 @@ export type CatalogComponent = { name: string; description: string; source: stri
 export type CatalogGroup = {
 	id: string;
 	title: string;
-	entry: '@atmo-dev/kit' | '@atmo-dev/kit/events' | '@atmo-dev/kit/articles';
+	entry:
+		| '@atmo-dev/kit'
+		| '@atmo-dev/kit/events'
+		| '@atmo-dev/kit/articles'
+		| '@atmo-dev/kit/streamplace';
 	guide?: string;
 	example?: { href: '/' | '/examples' | '/navigation' | '/login' | '/legal'; label: string };
 	components: CatalogComponent[];
@@ -241,6 +245,39 @@ export const catalog: CatalogGroup[] = [
 			article('ArticleEditor', 'The writing surface: cover, title, description and text.'),
 			article('ArticleCodeBlock', 'A code block with a copy button and app-owned highlighting.'),
 			article('PublicationIcon', 'A publication icon, or its initial.')
+		]
+	},
+	{
+		id: 'streamplace',
+		title: 'Streamplace',
+		entry: '@atmo-dev/kit/streamplace',
+		guide: 'streamplace.md',
+		components: [
+			component(
+				'StreamPlayer',
+				'Live streams and recordings with quality, delay and theater controls.',
+				'streamplace/StreamPlayer.svelte'
+			),
+			component(
+				'StreamChat',
+				'Live chat with replies, reactions, link previews and moderation.',
+				'streamplace/chat/StreamChat.svelte'
+			),
+			component(
+				'StreamChatPopups',
+				'New chat messages shown briefly while the chat is hidden.',
+				'streamplace/chat/StreamChatPopups.svelte'
+			),
+			component(
+				'StreamCard',
+				'A live stream with picture, viewers and a hover preview.',
+				'streamplace/StreamCard.svelte'
+			),
+			component(
+				'VideoCard',
+				'A recording with thumbnail, length and views.',
+				'streamplace/VideoCard.svelte'
+			)
 		]
 	}
 ];

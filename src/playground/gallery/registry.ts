@@ -106,6 +106,10 @@ export const demoGroups: DemoGroup[] = [
 			'PostComments'
 		],
 		load: () => import('./Articles.svelte')
+	},
+	{
+		names: ['StreamPlayer', 'StreamChat', 'StreamChatPopups', 'StreamCard', 'VideoCard'],
+		load: () => import('./Streamplace.svelte')
 	}
 ];
 

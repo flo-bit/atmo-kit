@@ -1,8 +1,13 @@
 import { isLinkedActor, parseGrainLink } from './urls.js';
 import type { GrainAlbum, GrainAlbumPage, GrainClient, GrainGallery, GrainPhoto } from './types.js';
 
-// Grain's unspecced API is deliberately isolated here; never proxy a user-supplied host.
+// Grain's API is deliberately isolated here; never proxy a user-supplied host.
 const ORIGIN = 'https://grain.social';
+// The feed listing one account's galleries. `social.grain.feed.describeFeeds` names it; it is
+// fixed here to save a request per page, as Grain's own client keeps the answer too.
+const ACTOR_FEED = 'at://did:web:grain.social/social.grain.feed.generator/actor';
+// Retired endpoints answer with one gallery telling people to update, not with an error.
+const isUpdateNotice = (value: unknown) => text(object(value).uri).endsWith('/update-notice');
 type ObjectValue = Record<string, unknown>;
 function object(value: unknown): ObjectValue {
 	return value && typeof value === 'object' && !Array.isArray(value) ? (value as ObjectValue) : {};
@@ -49,6 +54,7 @@ function photo(value: unknown): GrainPhoto | null {
 	};
 }
 function album(value: unknown): GrainAlbum {
+	if (isUpdateNotice(value)) throw new Error('Grain endpoint retired');
 	const g = object(value),
 		record = object(g.record),
 		creator = object(g.creator);
@@ -97,7 +103,7 @@ export function createGrainXrpcClient(fetchImpl: typeof fetch = fetch): GrainCli
 		async getGallery(reference: string): Promise<GrainGallery> {
 			const ref = parseGrainLink(reference);
 			if (!ref) throw new Error('Invalid Grain reference');
-			const data = await request('social.grain.unspecced.getGallery', { gallery: ref.atUri });
+			const data = await request('social.grain.gallery.getGallery', { gallery: ref.atUri });
 			const result = album(data.gallery);
 			const canonical = parseGrainLink(result.uri)!;
 			if (
@@ -112,8 +118,8 @@ export function createGrainXrpcClient(fetchImpl: typeof fetch = fetch): GrainCli
 		},
 		async listAlbums(actor: string, cursor?: string): Promise<GrainAlbumPage> {
 			if (!isLinkedActor(actor)) throw new Error('Invalid actor');
-			const data = await request('dev.hatk.getFeed', {
-				feed: 'actor',
+			const data = await request('social.grain.feed.getFeed', {
+				feed: ACTOR_FEED,
 				actor,
 				limit: '24',
 				...(cursor ? { cursor } : {})

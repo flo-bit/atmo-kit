@@ -46,6 +46,30 @@ test('runtime data imports never pull in components, styles or players', () => {
 	assert.ok(visited.size > 5);
 });
 
+test('event cards and event link embeds load without the map or players', () => {
+	const visited = new Set();
+	function visit(url) {
+		// Vendored bundles are self-contained; their comments quote imports that do not exist.
+		if (visited.has(url.href) || url.pathname.includes('/vendor/')) return;
+		visited.add(url.href);
+		const source = readFileSync(url, 'utf8');
+		for (const match of source.matchAll(/(?:from\s*|import\s*\(?\s*)['"]([^'"]+)['"]/g)) {
+			const specifier = match[1];
+			assert.doesNotMatch(
+				specifier,
+				/^(?:maplibre-gl|svelte-maplibre-gl)(?:\/|$)|Map\.svelte$|EventView\.svelte$/,
+				`${url.pathname} imports ${specifier}`
+			);
+			if (specifier.startsWith('.') && /\.(?:js|svelte)$/.test(specifier)) {
+				visit(new URL(specifier, url));
+			}
+		}
+	}
+	visit(new URL('../dist/events-card.js', import.meta.url));
+	assert.ok([...visited].some((href) => href.endsWith('/events/EventCard.svelte')));
+	assert.ok([...visited].some((href) => href.endsWith('/event-view/EventLinkEmbed.svelte')));
+});
+
 test('packaged event descriptions use escaped rich text, not the legacy HTML path', () => {
 	const view = readFileSync(new URL('../dist/events/EventView.svelte', import.meta.url), 'utf8');
 	assert.match(view, /<RichText\b/);

@@ -174,3 +174,16 @@ from `@atmo-dev/kit/events` remain compatibility aliases of the same components.
 Event backgrounds, editor sections, maps, and other implementation details are
 internal unless exported by the public entry. Files in the source tree are not
 necessarily supported imports.
+
+## Streamplace
+
+Import from **`@atmo-dev/kit/streamplace`**. See the [Streamplace guide](streamplace.md) for
+the data helpers and the channel store.
+
+| Component          | Purpose                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| `StreamPlayer`     | Live streams and recordings with quality, delay and theater controls |
+| `StreamChat`       | Live chat with replies, reactions, link previews and moderation      |
+| `StreamCard`       | A live stream with picture, viewers and a hover preview              |
+| `VideoCard`        | A recording with thumbnail, length and views                         |
+| `StreamChatPopups` | New chat messages shown briefly while the chat is hidden             |

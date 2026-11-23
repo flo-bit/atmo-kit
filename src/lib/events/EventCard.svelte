@@ -84,6 +84,9 @@
 		return getEventExternalImage(event);
 	}
 
+	let link = $derived(href ?? eventUrl(event, actor));
+	// Like other Kit links: paths in this app stay in the tab, anything else opens a new one.
+	let leaves = $derived(!/^\/(?!\/)/.test(link));
 	let thumbnail = $derived(getThumbnail(event));
 	let location = $derived(getLocationSummary(getLocations(event.locations)));
 	let mode = $derived(getModeLabel(event.mode));
@@ -91,7 +94,9 @@
 </script>
 
 <a
-	href={href ?? eventUrl(event, actor)}
+	href={link}
+	target={leaves ? '_blank' : undefined}
+	rel={leaves ? 'noopener noreferrer' : undefined}
 	class="group grid grid-cols-[5rem_minmax(0,1fr)] gap-3 rounded-ui outline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-accent-700 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3.5 dark:focus-visible:outline-accent-300"
 >
 	<div class="w-full">
