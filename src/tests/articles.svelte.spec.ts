@@ -50,7 +50,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('ArticleView', () => {
 	it('shows the article with app-rendered code and formulas, and plain ones without', async () => {
-		const text = `Intro $x^2$ and $y$.\n\n# Section\n\n\`\`\`js\nlet a = 1;\n\`\`\`\n\n\`\`\`\nplain <b>\n\`\`\`\n\n![A cat](cid:${cid})`;
+		const text = `Intro $x^2$ and $y$.\n\n# Section\n\n\`\`\`js\nlet a = 1;\n\`\`\`\n\n\`\`\`\nplain <b>\n\`\`\`\n\n![A cat](cid:${cid} "Tom, asleep")`;
 		const { container } = await render(ArticleView, {
 			article,
 			content: parseArticleText(text),
@@ -79,6 +79,9 @@ describe('ArticleView', () => {
 		await expect
 			.element(page.getByRole('img', { name: 'A cat' }))
 			.toHaveAttribute('src', '/blob/cat');
+		// The title of an image is its caption.
+		expect(container.querySelector('figure > figcaption')?.textContent?.trim()).toBe('Tom, asleep');
+		expect(container.querySelector('figure > img')?.hasAttribute('title')).toBe(false);
 		expect(page.getByRole('button', { name: 'Copy code' }).elements()).toHaveLength(2);
 	});
 

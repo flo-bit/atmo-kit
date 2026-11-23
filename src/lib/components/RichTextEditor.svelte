@@ -50,8 +50,6 @@
 		upload?: (file: File) => Promise<string>;
 		/** The address to load a destination from, for those that are not HTTP(S). */
 		src?: (url: string) => string | undefined;
-		/** Label of the description field below an image. */
-		altLabel?: string;
 	};
 
 	export type RichTextEditorProps = {
@@ -134,6 +132,42 @@
 		}
 	};
 	const imageSrc = (url: string) => safeHttpUrl(url) ?? images?.src?.(url);
+
+	/** The dialog for an image's description and caption, loaded when one is first opened. */
+	let ImageDialog = $state.raw<typeof import('../editor/ImageDialog.svelte').default>();
+	let imageOpen = $state(false);
+	/** The image the dialog is about. */
+	let image = $state.raw<{ position: number; url: string; alt: string; title: string }>();
+
+	function editImage(position: number): void {
+		if (!editor || editor.isDestroyed || !editor.isEditable) return;
+		if (position < 0 || position > editor.state.doc.content.size) return;
+		const node = editor.state.doc.nodeAt(position);
+		if (node?.type.name !== IMAGE) return;
+		editor.commands.setNodeSelection(position);
+		image = {
+			position,
+			url: String(node.attrs.url ?? ''),
+			alt: String(node.attrs.alt ?? ''),
+			title: String(node.attrs.title ?? '')
+		};
+		imageOpen = true;
+		if (!ImageDialog)
+			void import('../editor/ImageDialog.svelte').then(
+				(module) => (ImageDialog = module.default),
+				() => (imageOpen = false)
+			);
+	}
+	/** Applies `change` to the image the dialog is about, if it is still where it was. */
+	function withImage(
+		change: (position: number, attrs: Record<string, unknown>, size: number) => void
+	): void {
+		if (!image || !editor || editor.isDestroyed || !editor.isEditable) return;
+		if (image.position < 0 || image.position > editor.state.doc.content.size) return;
+		const node = editor.state.doc.nodeAt(image.position);
+		if (node?.type.name !== IMAGE || node.attrs.url !== image.url) return;
+		change(image.position, node.attrs, node.nodeSize);
+	}
 
 	function load(text: string, textFacets?: unknown): JSONContent {
 		const document = markdownTools
@@ -222,7 +256,7 @@
 	// The same look as `RichText`, so that what is typed is what will be shown.
 	// Nothing here reaches into an embed, which brings its own lists, links and code.
 	const markdownClass =
-		'space-y-3 leading-relaxed whitespace-pre-wrap [&_strong:not([data-link-embed]_*)]:font-semibold [&_h1:not([data-link-embed]_*)]:text-xl [&_h2:not([data-link-embed]_*)]:text-lg [&_:is(h1,h2,h3,h4,h5,h6):not([data-link-embed]_*)]:leading-snug [&_:is(h1,h2,h3,h4,h5,h6):not([data-link-embed]_*)]:font-semibold [&_blockquote:not([data-link-embed]_*)]:space-y-3 [&_blockquote:not([data-link-embed]_*)]:border-l-2 [&_blockquote:not([data-link-embed]_*)]:border-base-300 [&_blockquote:not([data-link-embed]_*)]:pl-4 dark:[&_blockquote:not([data-link-embed]_*)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_:is(ul,ol):not([data-link-embed]_*)]:space-y-1 [&_:is(ul,ol):not([data-link-embed]_*)]:pl-6 [&_ul:not([data-link-embed]_*)]:list-disc [&_ol:not([data-link-embed]_*)]:list-decimal [&_li:not([data-link-embed]_*)]:space-y-3 [&_:not(pre)>code:not([data-link-embed]_*)]:rounded [&_:not(pre)>code:not([data-link-embed]_*)]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] [&_:not(pre)>code:not([data-link-embed]_*)]:px-1 [&_:not(pre)>code:not([data-link-embed]_*)]:py-0.5 [&_:not(pre)>code:not([data-link-embed]_*)]:font-mono [&_:not(pre)>code:not([data-link-embed]_*)]:text-[0.875em] dark:[&_:not(pre)>code:not([data-link-embed]_*)]:bg-base-950 [&_pre:not([data-link-embed]_*)]:overflow-x-auto [&_pre:not([data-link-embed]_*)]:rounded-md [&_pre:not([data-link-embed]_*)]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] [&_pre:not([data-link-embed]_*)]:p-3 [&_pre:not([data-link-embed]_*)]:font-mono [&_pre:not([data-link-embed]_*)]:text-[0.875em] dark:[&_pre:not([data-link-embed]_*)]:bg-base-950 [&_hr:not([data-link-embed]_*)]:border-base-300 dark:[&_hr:not([data-link-embed]_*)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_a:not([data-link-embed]_*)]:text-accent-700 [&_a:not([data-link-embed]_*)]:underline [&_a:not([data-link-embed]_*)]:decoration-accent-700/40 [&_a:not([data-link-embed]_*)]:underline-offset-2 dark:[&_a:not([data-link-embed]_*)]:text-accent-300 dark:[&_a:not([data-link-embed]_*)]:decoration-accent-300/40 [&_[data-image]]:whitespace-normal [&_[data-image]>img]:max-w-full [&_[data-image]>img]:rounded-md [&_[data-image]>input]:mt-1 [&_[data-image]>input]:block [&_[data-image]>input]:w-full [&_[data-image]>input]:border-0 [&_[data-image]>input]:bg-transparent [&_[data-image]>input]:p-0 [&_[data-image]>input]:text-sm [&_[data-image]>input]:text-base-600 [&_[data-image]>input]:outline-none [&_[data-image]>input]:placeholder:text-base-500 [&_[data-image]>input]:focus:ring-0 dark:[&_[data-image]>input]:text-base-400 [&_.tableWrapper]:overflow-x-auto [&_table]:border-collapse [&_table]:text-left [&_table]:whitespace-normal [&_:is(th,td)]:border [&_:is(th,td)]:border-base-300 [&_:is(th,td)]:px-3 [&_:is(th,td)]:py-1.5 [&_:is(th,td)]:align-top [&_:is(th,td)]:min-w-16 dark:[&_:is(th,td)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_th]:font-semibold [&_.selectedCell]:bg-accent-500/10';
+		'space-y-3 leading-relaxed whitespace-pre-wrap [&_strong:not([data-link-embed]_*)]:font-semibold [&_h1:not([data-link-embed]_*)]:text-xl [&_h2:not([data-link-embed]_*)]:text-lg [&_:is(h1,h2,h3,h4,h5,h6):not([data-link-embed]_*)]:leading-snug [&_:is(h1,h2,h3,h4,h5,h6):not([data-link-embed]_*)]:font-semibold [&_blockquote:not([data-link-embed]_*)]:space-y-3 [&_blockquote:not([data-link-embed]_*)]:border-l-2 [&_blockquote:not([data-link-embed]_*)]:border-base-300 [&_blockquote:not([data-link-embed]_*)]:pl-4 dark:[&_blockquote:not([data-link-embed]_*)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_:is(ul,ol):not([data-link-embed]_*)]:space-y-1 [&_:is(ul,ol):not([data-link-embed]_*)]:pl-6 [&_ul:not([data-link-embed]_*)]:list-disc [&_ol:not([data-link-embed]_*)]:list-decimal [&_li:not([data-link-embed]_*)]:space-y-3 [&_:not(pre)>code:not([data-link-embed]_*)]:rounded [&_:not(pre)>code:not([data-link-embed]_*)]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] [&_:not(pre)>code:not([data-link-embed]_*)]:px-1 [&_:not(pre)>code:not([data-link-embed]_*)]:py-0.5 [&_:not(pre)>code:not([data-link-embed]_*)]:font-mono [&_:not(pre)>code:not([data-link-embed]_*)]:text-[0.875em] dark:[&_:not(pre)>code:not([data-link-embed]_*)]:bg-base-950 [&_pre:not([data-link-embed]_*)]:overflow-x-auto [&_pre:not([data-link-embed]_*)]:rounded-md [&_pre:not([data-link-embed]_*)]:bg-[color-mix(in_srgb,var(--base-100)_75%,var(--base-200))] [&_pre:not([data-link-embed]_*)]:p-3 [&_pre:not([data-link-embed]_*)]:font-mono [&_pre:not([data-link-embed]_*)]:text-[0.875em] dark:[&_pre:not([data-link-embed]_*)]:bg-base-950 [&_hr:not([data-link-embed]_*)]:border-base-300 dark:[&_hr:not([data-link-embed]_*)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_a:not([data-link-embed]_*)]:text-accent-700 [&_a:not([data-link-embed]_*)]:underline [&_a:not([data-link-embed]_*)]:decoration-accent-700/40 [&_a:not([data-link-embed]_*)]:underline-offset-2 dark:[&_a:not([data-link-embed]_*)]:text-accent-300 dark:[&_a:not([data-link-embed]_*)]:decoration-accent-300/40 [&[contenteditable=true]_[data-image]]:cursor-pointer [&_[data-image]]:whitespace-normal [&_[data-image]>img]:mx-auto [&_[data-image]>img]:max-w-full [&_[data-image]>img]:rounded-md [&_[data-image]>figcaption]:mt-2 [&_[data-image]>figcaption]:text-center [&_[data-image]>figcaption]:text-sm [&_[data-image]>figcaption]:text-base-600 dark:[&_[data-image]>figcaption]:text-base-400 [&_.tableWrapper]:overflow-x-auto [&_table]:border-collapse [&_table]:text-left [&_table]:whitespace-normal [&_:is(th,td)]:border [&_:is(th,td)]:border-base-300 [&_:is(th,td)]:px-3 [&_:is(th,td)]:py-1.5 [&_:is(th,td)]:align-top [&_:is(th,td)]:min-w-16 dark:[&_:is(th,td)]:border-[color-mix(in_srgb,var(--base-800)_80%,var(--base-950))] [&_th]:font-semibold [&_.selectedCell]:bg-accent-500/10';
 	// Task lists, math and footnotes of article Markdown.
 	const articleClass =
 		"[&_li[data-task]]:relative [&_li[data-task]]:list-none [&_li[data-task]]:before:absolute [&_li[data-task]]:before:-left-5 [&_li[data-task=false]]:before:content-['☐'] [&_li[data-task=true]]:before:content-['☑'] [&_ul[data-type=taskList]]:list-none! [&_ul[data-type=taskList]]:pl-0! [&_ul[data-type=taskList]>li]:flex [&_ul[data-type=taskList]>li]:gap-2 [&_ul[data-type=taskList]>li>label]:mt-0.5 [&_ul[data-type=taskList]>li>div]:min-w-0 [&_ul[data-type=taskList]>li>div]:flex-1 [&_ul[data-type=taskList]>li>div]:space-y-3 [&_ul[data-type=taskList]_input]:accent-accent-600 [&_[data-math]]:font-mono [&_[data-math]]:text-[0.875em] [&_[data-math]]:text-accent-700 [&_[data-math]]:before:content-['$'] [&_[data-math]]:after:content-['$'] [&_[data-math]]:before:opacity-50 [&_[data-math]]:after:opacity-50 dark:[&_[data-math]]:text-accent-300 [&_[data-footnote-ref]]:text-accent-700 dark:[&_[data-footnote-ref]]:text-accent-300 [&_[data-footnote]]:relative [&_[data-footnote]]:space-y-3 [&_[data-footnote]]:pl-10 [&_[data-footnote]]:text-[0.9em] [&_[data-footnote]]:before:absolute [&_[data-footnote]]:before:left-0 [&_[data-footnote]]:before:text-base-500 [&_[data-footnote]]:before:content-['['_attr(data-footnote)_']']";
@@ -242,14 +276,7 @@
 					...(markdownTools
 						? [
 								...markdownTools.markdownExtensions(article),
-								...(article
-									? [
-											ImageNode.configure({
-												src: imageSrc,
-												altLabel: images?.altLabel ?? 'Alt text'
-											})
-										]
-									: [])
+								...(article ? [ImageNode.configure({ src: imageSrc, edit: editImage })] : [])
 							]
 						: ([Document, Paragraph, Text, HardBreak, History] as AnyExtension[])),
 					Placeholder.configure({
@@ -377,12 +404,14 @@
 		if (editor && (value !== current || facetsKey !== currentFacets)) {
 			current = value;
 			currentFacets = facetsKey;
+			imageOpen = false;
 			editor.commands.setContent(load(value, facets), { emitUpdate: false });
 		}
 	});
 	$effect(() => {
 		editor?.setEditable(!disabled, false);
 		editor?.view.dom.setAttribute('aria-disabled', String(disabled));
+		if (disabled) imageOpen = false;
 	});
 </script>
 
@@ -404,6 +433,33 @@
 	}}
 >
 	<div bind:this={element}></div>
+	{#if ImageDialog && image}
+		<ImageDialog
+			bind:open={imageOpen}
+			src={imageSrc(image.url)}
+			alt={image.alt}
+			caption={image.title}
+			onCloseAutoFocus={(event) => {
+				if (editor && !editor.isDestroyed && editor.isEditable) {
+					event.preventDefault();
+					editor.commands.focus();
+				}
+			}}
+			onsave={({ alt, caption }) =>
+				withImage((position, attrs) =>
+					editor?.view.dispatch(
+						editor.state.tr.setNodeMarkup(position, undefined, { ...attrs, alt, title: caption })
+					)
+				)}
+			onremove={() =>
+				withImage((position, _attrs, size) =>
+					editor
+						?.chain()
+						.deleteRange({ from: position, to: position + size })
+						.run()
+				)}
+		/>
+	{/if}
 	{#if menuTools && editor && host}
 		<menuTools.EditorMenus {editor} context={commandContext} />
 		{#if images?.upload}

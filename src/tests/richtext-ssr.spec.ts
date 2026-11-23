@@ -104,6 +104,18 @@ describe('rich text SSR', () => {
 		expect(back).toEqual(refs);
 		expect(body).toContain('[^b]');
 	});
+
+	it('renders article images in a figure with a caption and no title tooltip', () => {
+		const content = parseRichText(
+			'![A cat](https://example.com/cat.png "Tom, asleep")\n\n![Blank](https://example.com/blank.png "   ")',
+			{ markdown: true, article: true }
+		);
+		const body = render(RichText, { props: { content } }).body.replace(/<!--.*?-->/g, '');
+		expect(body).toContain('<figure>');
+		expect(body).toMatch(/<figcaption[^>]*>Tom, asleep<\/figcaption>/);
+		expect((body.match(/<figcaption/g) ?? []).length).toBe(1);
+		expect(body).not.toMatch(/<img[^>]*\btitle=/);
+	});
 });
 
 describe('rich text SSR security', () => {

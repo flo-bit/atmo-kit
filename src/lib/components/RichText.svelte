@@ -294,15 +294,23 @@
 			/>
 		{:else if node.type === 'image'}
 			{@const source = src(node)}
-			{#if source}<img
-					src={source}
-					alt={string(node.alt)}
-					title={string(node.title) || undefined}
-					loading="lazy"
-					decoding="async"
-					referrerpolicy="no-referrer"
-					class="max-w-full rounded-md"
-				/>
+			{@const caption = string(node.title).trim()}
+			{#if source}
+				<figure>
+					<img
+						src={source}
+						alt={string(node.alt)}
+						loading="lazy"
+						decoding="async"
+						referrerpolicy="no-referrer"
+						class="mx-auto max-w-full rounded-md"
+					/>
+					{#if caption}
+						<figcaption class="mt-2 text-center text-sm text-base-600 dark:text-base-400">
+							{caption}
+						</figcaption>
+					{/if}
+				</figure>
 			{:else if string(node.alt)}<p>{string(node.alt)}</p>{/if}
 		{:else if node.type === 'table'}
 			{@const rows = cells(node.rows)}

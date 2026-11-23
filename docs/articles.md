@@ -143,6 +143,10 @@ as its destination: a URL, or the app's own reference (`local:…` for an image 
 draft, to be uploaded on publishing). `kind` is `'cover'` for the cover. `images.src(url)`
 returns the address to load such a reference from. Without `images`, no images can be added.
 
+Clicking an image (or Enter while it is selected) opens its alt text and caption. The caption
+is the image's Markdown title, `![alt](url "caption")`, and `ArticleView` shows it under the
+image.
+
 Writing works as in a notes app. `/` lists what can be added (headings, lists, to-dos, quote,
 callout, code, math, divider, image, table, footnote), selected text gets a formatting bar with
 a "turn into" list, `Mod-K` edits a link, and touch screens get a toolbar above the keyboard.
